@@ -30,7 +30,11 @@ interface RepoResult {
 
 /** Evidence each class should leave on or near the cited line. */
 const CLASS_EVIDENCE: Record<string, RegExp> = {
-  "exposed-secret": /(AKIA|sk-|ghp_|ghs_|nvapi-|api[_-]?key|secret|token|password|PRIVATE KEY)/i,
+  // Prefix list must stay in sync with the detector's. A gap here produces a FALSE "unconfirmed"
+  // on a correct finding: the first run flagged a real hardcoded Google key (AIza…) as
+  // unconfirmed purely because this regex lacked the prefix.
+  "exposed-secret":
+    /(AKIA|ASIA|AIza|ya29\.|sk-|sk_live|pk_live|ghp_|ghs_|gho_|github_pat_|nvapi-|xox[baprs]-|SG\.|AC[0-9a-f]{32}|eyJ[A-Za-z0-9_-]{10}|api[_-]?key|apikey|secret|token|passwd|password|BEGIN [A-Z ]*PRIVATE KEY)/i,
   "cors-misconfig": /(access-control-allow-origin|cors|origin)/i,
   "unpinned-dependency": /("\*"|"latest"|\^|~)/,
   "missing-schema-validation": /(param|input|arg|schema|properties|inputSchema|tool)/i,
