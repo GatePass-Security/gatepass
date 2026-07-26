@@ -1,0 +1,101 @@
+{
+  "generatedAt": "2026-07-26T06:05:44.339Z",
+  "method": {
+    "discovery": "GitHub search API — MCP server topics/names/SDK dependency",
+    "engine": "Gatepass deterministic engine (no LLM; semanticEnabled=false)",
+    "counted": "verified-tier findings only (machine-checked reproduction)",
+    "excluded": "node_modules, dist, build, .next, vendor, third_party, site-packages",
+    "rulesetVersion": "corpus-v1"
+  },
+  "reposDiscovered": 6,
+  "reposScanned": 4,
+  "reposFailed": 2,
+  "reposWithAtLeastOneVerifiedFinding": 2,
+  "percentAffected": 50,
+  "totalVerifiedFindings": 174,
+  "totalFilesScanned": 6184,
+  "byAsi": {
+    "ASI01": {
+      "title": "Agent Goal Hijack",
+      "coverage": "full",
+      "repos": 0,
+      "findings": 0
+    },
+    "ASI02": {
+      "title": "Tool Misuse & Exploitation",
+      "coverage": "full",
+      "repos": 1,
+      "findings": 15
+    },
+    "ASI03": {
+      "title": "Agent Identity & Privilege Abuse",
+      "coverage": "full",
+      "repos": 2,
+      "findings": 21
+    },
+    "ASI04": {
+      "title": "Agentic Supply Chain Compromise",
+      "coverage": "full",
+      "repos": 2,
+      "findings": 26
+    },
+    "ASI05": {
+      "title": "Unexpected Code Execution",
+      "coverage": "partial",
+      "repos": 0,
+      "findings": 0
+    },
+    "ASI06": {
+      "title": "Memory & Context Poisoning",
+      "coverage": "none",
+      "repos": 0,
+      "findings": 0
+    },
+    "ASI07": {
+      "title": "Insecure Inter-Agent Communication",
+      "coverage": "partial",
+      "repos": 1,
+      "findings": 15
+    },
+    "ASI08": {
+      "title": "Cascading Agent Failures",
+      "coverage": "partial",
+      "repos": 0,
+      "findings": 0
+    },
+    "ASI09": {
+      "title": "Human-Agent Trust Exploitation",
+      "coverage": "partial",
+      "repos": 0,
+      "findings": 0
+    },
+    "ASI10": {
+      "title": "Rogue Agents",
+      "coverage": "partial",
+      "repos": 0,
+      "findings": 0
+    }
+  },
+  "byClass": {
+    "cors-misconfig": {
+      "repos": 2,
+      "findings": 112
+    },
+    "rls-gap": {
+      "repos": 2,
+      "findings": 21
+    },
+    "exposed-secret": {
+      "repos": 2,
+      "findings": 24
+    },
+    "unauth-mcp-transport": {
+      "repos": 1,
+      "findings": 15
+    },
+    "unpinned-dependency": {
+      "repos": 1,
+      "findings": 2
+    }
+  }
+}

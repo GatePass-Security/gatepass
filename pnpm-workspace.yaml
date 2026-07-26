@@ -6,3 +6,4 @@ packages:
   - "corpus/harness"
   - "benchmark"
   - "ide/*"
+  - "research"

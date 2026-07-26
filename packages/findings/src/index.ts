@@ -2,6 +2,7 @@ export * from "./schema.js";
 export * from "./redaction.js";
 export * from "./sarif.js";
 export * from "./diff.js";
+export * from "./owasp-asi.js";
 
 import { findingSchema, findingsDocumentSchema, type Finding, type FindingsDocument } from "./schema.js";
 

@@ -1,0 +1,138 @@
+[
+  {
+    "repo": "punkpeye/awesome-mcp-servers",
+    "stars": 91410,
+    "sha": "d0bf1db2bb11926c125e13fb69d4898da8ec1f93",
+    "filesScanned": 1,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "D4Vinci/Scrapling",
+    "stars": 71275,
+    "sha": "07a548362ff904a2837f503ed9d9f6b9dcef0195",
+    "filesScanned": 136,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "google-gemini/gemini-cli",
+    "stars": 106182,
+    "sha": "",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "clone failed"
+  },
+  {
+    "repo": "koala73/worldmonitor",
+    "stars": 74276,
+    "sha": "441389269fcfa930536d644efb7bdec96c919a7b",
+    "filesScanned": 2983,
+    "verified": 116,
+    "research": 0,
+    "byClass": {
+      "cors-misconfig": 103,
+      "rls-gap": 12,
+      "exposed-secret": 1
+    },
+    "byAsi": {
+      "ASI03": 12,
+      "ASI04": 1
+    },
+    "samples": [
+      {
+        "classId": "cors-misconfig",
+        "asi": [],
+        "path": "api/oauth-authorization-server.ts",
+        "line": 81
+      },
+      {
+        "classId": "rls-gap",
+        "asi": ["ASI03"],
+        "path": "consumer-prices-core/migrations/001_initial.sql",
+        "line": 22
+      },
+      {
+        "classId": "exposed-secret",
+        "asi": ["ASI04"],
+        "path": "tests/widget-builder.test.mjs",
+        "line": 1782
+      }
+    ]
+  },
+  {
+    "repo": "ruvnet/ruflo",
+    "stars": 66002,
+    "sha": "26c35b59b40a0a95b286ccf5ac675a15edcc995f",
+    "filesScanned": 3064,
+    "verified": 58,
+    "research": 0,
+    "byClass": {
+      "rls-gap": 9,
+      "unauth-mcp-transport": 15,
+      "exposed-secret": 23,
+      "cors-misconfig": 9,
+      "unpinned-dependency": 2
+    },
+    "byAsi": {
+      "ASI03": 9,
+      "ASI02": 15,
+      "ASI07": 15,
+      "ASI04": 25
+    },
+    "samples": [
+      {
+        "classId": "rls-gap",
+        "asi": ["ASI03"],
+        "path": "v3/@claude-flow/plugins/src/integrations/ruvector/migrations/002_create_vector_tables.sql",
+        "line": 165
+      },
+      {
+        "classId": "unauth-mcp-transport",
+        "asi": ["ASI02", "ASI07"],
+        "path": "v3/mcp/transport/websocket.ts",
+        "line": 107
+      },
+      {
+        "classId": "exposed-secret",
+        "asi": ["ASI04"],
+        "path": "v3/@claude-flow/cli/__tests__/plugins-transfer-deep.test.ts",
+        "line": 639
+      },
+      {
+        "classId": "cors-misconfig",
+        "asi": [],
+        "path": "ruflo/src/ruvocal/mcp-bridge/index.js",
+        "line": 1084
+      },
+      {
+        "classId": "unpinned-dependency",
+        "asi": ["ASI04"],
+        "path": "v3/@claude-flow/performance/package.json",
+        "line": 20
+      }
+    ]
+  },
+  {
+    "repo": "n8n-io/n8n",
+    "stars": 198027,
+    "sha": "",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "clone failed"
+  }
+]

@@ -51,3 +51,5 @@ benchmark/reports/
 
 #omo
 .omo/run-continuation/
+# Research survey working output (large; regenerate with pnpm research:scan-mcp)
+research/scan-log.txt

@@ -1,0 +1,11 @@
+{
+  "name": "@gatepass/research",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@gatepass/detectors": "workspace:*",
+    "@gatepass/engine": "workspace:*",
+    "@gatepass/findings": "workspace:*"
+  }
+}

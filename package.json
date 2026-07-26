@@ -26,7 +26,10 @@
     "corpus:measure": "tsx corpus/harness/cli.ts",
     "corpus:publish": "tsx corpus/harness/publish.ts",
     "db:migrate": "tsx packages/shared/db/migrate.ts",
-    "scan": "tsx cli/src/index.ts"
+    "scan": "tsx cli/src/index.ts",
+    "research:scan-mcp": "tsx research/scan-public-mcp.ts",
+    "benchmark:determinism": "tsx benchmark/src/determinism.ts",
+    "research:report": "tsx research/generate-report.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

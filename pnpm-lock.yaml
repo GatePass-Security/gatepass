@@ -262,6 +262,18 @@ importers:
         specifier: ^0.31.10
         version: 0.31.10
 
+  research:
+    dependencies:
+      '@gatepass/detectors':
+        specifier: workspace:*
+        version: link:../packages/detectors
+      '@gatepass/engine':
+        specifier: workspace:*
+        version: link:../packages/engine
+      '@gatepass/findings':
+        specifier: workspace:*
+        version: link:../packages/findings
+
   runner:
     dependencies:
       '@gatepass/detectors':
