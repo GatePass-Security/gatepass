@@ -14,52 +14,60 @@ because they mean different things:
 
 | | Repos | Share |
 |---|---|---|
-| **Have an agentic-infrastructure vulnerability** (MCP transport, tool definitions, agent scope) | **24** | **14.3%** |
-| Have any verified finding, including general web/app issues | 88 | 52.4% |
+| **Ship an agentic-infrastructure vulnerability in production code** | **18** | **10.7%** |
+| Have any verified finding in production code (incl. general web/app issues) | 75 | 44.6% |
+| Have any verified finding anywhere, including test/example code | 88 | 52.4% |
 
-**The first row is the claim about MCP security.** Roughly **one in seven public MCP servers
-ships an agentic-infrastructure vulnerability** — overwhelmingly an MCP transport exposed with
-no authentication.
+**The first row is the claim about MCP security: roughly one in 9 public MCP servers ships an
+agentic-infrastructure vulnerability in production code** — overwhelmingly an MCP transport
+exposed with no authentication.
 
-The second row is larger but less specific: it includes CORS misconfiguration, hardcoded
-secrets, and missing row-level security. Those are real findings in real MCP repositories, but
-they are *general application security* issues that happen to live in an MCP codebase. Reporting
-them as "MCP security" would inflate the story, so we separate them.
+We report three numbers because two common shortcuts would inflate this story, and we would
+rather you check our work than trust us:
 
-Total verified findings: **1,762**, though the distribution is
-heavily skewed — the median affected repository has **5** findings, while a handful of large
-repositories account for hundreds each. Repository-level rates (above) are the robust statistic;
-raw finding totals are not.
+1. **Test and example code is excluded from the headline.** A hardcoded key in a test fixture or
+   a deliberately insecure tutorial sample is not a production vulnerability.
+   **435** of our verified findings sit in
+   test/spec/example/docs paths and are excluded from row 1 and row 2.
+2. **General application-security issues are separated from agentic ones.** CORS
+   misconfiguration, hardcoded secrets, and missing row-level security are real findings in real
+   MCP repositories, but they are ordinary app-sec issues that happen to live in an MCP codebase.
+   Calling them "MCP security" would be misleading.
+3. **Repository rates, not finding totals, are the robust statistic.** Production verified
+   findings total **1,327**, but the distribution is
+   heavily skewed — the median affected repository has **3**, while a handful of large
+   repositories account for hundreds each.
 
 "Verified" has a specific meaning here: every finding carries a machine-checked reproduction —
 a file and line that provably exists in the scanned commit. Nothing in this report is a
 heuristic guess or a model's opinion. A random sample was independently re-checked against the
 source at the recorded commit SHA (`research/out/verification.json`).
 
-## The agentic findings
+## The agentic findings (production code)
 
 These are the MCP/agent-specific classes — the subject of this report.
 
 | Class | ID | Repos affected | Findings |
 |---|---|---|---|
-| Unauthenticated MCP transport | `unauth-mcp-transport` | 23 (14%) | 123 |
-| Tool input without schema validation | `missing-schema-validation` | 2 (1%) | 6 |
+| Unauthenticated MCP transport | `unauth-mcp-transport` | 18 (11%) | 41 |
 | Unbounded tool parameter | `unbounded-tool-param` | 1 (1%) | 39 |
+| Tool input without schema validation | `missing-schema-validation` | 1 (1%) | 5 |
 
-## Findings by OWASP ASI category
+## Findings by OWASP ASI category (production code)
 
 | OWASP ASI (2026) | Repos affected | Findings |
 |---|---|---|
-| **ASI04** Agentic Supply Chain Compromise | 45 (27%) | 429 |
-| **ASI02** Tool Misuse & Exploitation | 24 (14%) | 168 |
-| **ASI03** Agent Identity & Privilege Abuse | 23 (14%) | 692 |
-| **ASI07** Insecure Inter-Agent Communication | 23 (14%) | 123 |
-| **ASI05** Unexpected Code Execution | 2 (1%) | 45 |
+| **ASI04** Agentic Supply Chain Compromise | 23 (14%) | 137 |
+| **ASI03** Agent Identity & Privilege Abuse | 20 (12%) | 681 |
+| **ASI02** Tool Misuse & Exploitation | 18 (11%) | 85 |
+| **ASI07** Insecure Inter-Agent Communication | 18 (11%) | 41 |
+| **ASI05** Unexpected Code Execution | 1 (1%) | 44 |
 
-## All findings by vulnerability class
+## All findings by vulnerability class (production + test)
 
-Includes the general application-security classes. These are genuine findings in MCP server
-repositories, but they are not evidence about MCP/agentic security specifically.
+The complete picture, including general application-security classes and test/example paths.
+These are genuine findings in MCP server repositories, but the classes below the agentic set are
+not evidence about MCP/agentic security specifically.
 
 | Class | ID | Repos affected | Findings |
 |---|---|---|---|
@@ -81,6 +89,7 @@ repositories, but they are not evidence about MCP/agentic security specifically.
 - **Engine.** Gatepass deterministic engine (no LLM; semanticEnabled=false). Ruleset `corpus-v1`.
 - **Counting.** verified-tier findings only (machine-checked reproduction). Findings are de-duplicated by fingerprint, so a repeated
   pattern in one file counts once.
+- **Test/example classification.** Findings in test/spec/example/docs/fixture paths are counted separately and excluded from headline (production) figures.
 - **Exclusions.** node_modules, dist, build, .next, vendor, third_party, site-packages — a repository is never charged for its dependencies'
   problems.
 - **Reproducibility.** `pnpm research:scan-mcp -- --limit 300`. The engine is

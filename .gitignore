@@ -53,3 +53,9 @@ benchmark/reports/
 .omo/run-continuation/
 # Research survey working output (large; regenerate with pnpm research:scan-mcp)
 research/scan-log.txt
+
+# Survey raw data names affected repositories with exact file:line of UNFIXED
+# vulnerabilities. Kept local for responsible disclosure only — never published.
+research/out/mcp-survey-raw.json
+research/out/verification.json
+research/out/disclosure-worklist.md
