@@ -30,6 +30,15 @@ const OUT_DIR = path.join(HERE, "out");
 
 const EXCLUDED = /(^|\/)(node_modules|\.git|dist|build|\.next|vendor|third_party|site-packages)(\/|$)/;
 
+/**
+ * Test, example, and documentation paths. A hardcoded key in a test fixture or a deliberately
+ * insecure sample in a tutorial is NOT a production vulnerability, and counting it as one is the
+ * fastest way to have a security report dismissed. We classify rather than discard: production
+ * counts drive the headline, test/example counts are reported separately.
+ */
+const TEST_PATH =
+  /(^|\/)(test|tests|__tests__|__mocks__|spec|specs|e2e|fixtures?|examples?|example|demo|demos|docs?|samples?|playground|benchmark)(\/|$)|\.(test|spec)\.[a-z]+$|_test\.[a-z]+$|\.stories\.[a-z]+$/i;
+
 interface RepoRef {
   fullName: string;
   url: string;
@@ -46,8 +55,14 @@ interface RepoResult {
   research: number;
   byClass: Record<string, number>;
   byAsi: Record<string, number>;
+  /** Findings located in production code only — the basis for headline claims. */
+  verifiedProd: number;
+  byClassProd: Record<string, number>;
+  byAsiProd: Record<string, number>;
+  /** Findings located in test/example/docs paths, reported separately. */
+  verifiedTest: number;
   /** One example location per class, for spot-checking the report. */
-  samples: { classId: string; asi: AsiId[]; path: string; line?: number }[];
+  samples: { classId: string; asi: AsiId[]; path: string; line?: number; isTest: boolean }[];
   error?: string;
 }
 
@@ -154,6 +169,10 @@ async function scanRepo(repo: RepoRef, workRoot: string): Promise<RepoResult> {
     research: 0,
     byClass: {},
     byAsi: {},
+    verifiedProd: 0,
+    byClassProd: {},
+    byAsiProd: {},
+    verifiedTest: 0,
     samples: [],
   };
 
@@ -199,9 +218,19 @@ async function scanRepo(repo: RepoRef, workRoot: string): Promise<RepoResult> {
       const asis = asiForClass(f.classId);
       for (const a of asis) base.byAsi[a] = (base.byAsi[a] ?? 0) + 1;
 
-      if (!base.samples.some((s) => s.classId === f.classId)) {
-        const loc = f.locations[0];
-        base.samples.push({ classId: f.classId, asi: asis, path: loc?.path ?? "", line: loc?.startLine });
+      // Classify by location: production code drives the headline, test/example code does not.
+      const loc = f.locations[0];
+      const isTest = TEST_PATH.test(loc?.path ?? "");
+      if (isTest) {
+        base.verifiedTest++;
+      } else {
+        base.verifiedProd++;
+        base.byClassProd[f.classId] = (base.byClassProd[f.classId] ?? 0) + 1;
+        for (const a of asis) base.byAsiProd[a] = (base.byAsiProd[a] ?? 0) + 1;
+      }
+
+      if (!base.samples.some((s) => s.classId === f.classId && s.isTest === isTest)) {
+        base.samples.push({ classId: f.classId, asi: asis, path: loc?.path ?? "", line: loc?.startLine, isTest });
       }
     }
     return base;
@@ -249,6 +278,8 @@ async function main() {
   const withFindings = scanned.filter((r) => r.verified > 0);
   const byClass: Record<string, { repos: number; findings: number }> = {};
   const byAsi: Record<string, { repos: number; findings: number }> = {};
+  const byClassProd: Record<string, { repos: number; findings: number }> = {};
+  const byAsiProd: Record<string, { repos: number; findings: number }> = {};
 
   for (const r of scanned) {
     for (const [cls, n] of Object.entries(r.byClass)) {
@@ -261,7 +292,18 @@ async function main() {
       byAsi[asi].repos++;
       byAsi[asi].findings += n;
     }
+    for (const [cls, n] of Object.entries(r.byClassProd)) {
+      byClassProd[cls] = byClassProd[cls] ?? { repos: 0, findings: 0 };
+      byClassProd[cls].repos++;
+      byClassProd[cls].findings += n;
+    }
+    for (const [asi, n] of Object.entries(r.byAsiProd)) {
+      byAsiProd[asi] = byAsiProd[asi] ?? { repos: 0, findings: 0 };
+      byAsiProd[asi].repos++;
+      byAsiProd[asi].findings += n;
+    }
   }
+  const reposWithProdFinding = scanned.filter((r) => r.verifiedProd > 0).length;
 
   const aggregate = {
     generatedAt: new Date().toISOString(),
@@ -270,6 +312,8 @@ async function main() {
       engine: "Gatepass deterministic engine (no LLM; semanticEnabled=false)",
       counted: "verified-tier findings only (machine-checked reproduction)",
       excluded: "node_modules, dist, build, .next, vendor, third_party, site-packages",
+      testClassification:
+        "Findings in test/spec/example/docs/fixture paths are counted separately and excluded from headline (production) figures.",
       rulesetVersion: "corpus-v1",
     },
     reposDiscovered: repos.length,
@@ -279,8 +323,20 @@ async function main() {
     reposFailed: failed,
     reposWithAtLeastOneVerifiedFinding: withFindings.length,
     percentAffected: scanned.length ? +((withFindings.length / scanned.length) * 100).toFixed(1) : 0,
+    // Production-only figures — the basis for every headline claim.
+    reposWithProductionFinding: reposWithProdFinding,
+    percentAffectedProduction: scanned.length ? +((reposWithProdFinding / scanned.length) * 100).toFixed(1) : 0,
+    totalVerifiedFindingsProduction: scanned.reduce((n, r) => n + r.verifiedProd, 0),
+    totalVerifiedFindingsInTestPaths: scanned.reduce((n, r) => n + r.verifiedTest, 0),
     totalVerifiedFindings: scanned.reduce((n, r) => n + r.verified, 0),
     totalFilesScanned: scanned.reduce((n, r) => n + r.filesScanned, 0),
+    byAsiProduction: Object.fromEntries(
+      ASI_CATEGORIES.map((c) => [
+        c.id,
+        { title: c.title, repos: byAsiProd[c.id]?.repos ?? 0, findings: byAsiProd[c.id]?.findings ?? 0 },
+      ]),
+    ),
+    byClassProduction: byClassProd,
     byAsi: Object.fromEntries(
       ASI_CATEGORIES.map((c) => [
         c.id,

@@ -24,10 +24,16 @@ interface Aggregate {
   reposFailed: number;
   reposWithAtLeastOneVerifiedFinding: number;
   percentAffected: number;
+  reposWithProductionFinding: number;
+  percentAffectedProduction: number;
+  totalVerifiedFindingsProduction: number;
+  totalVerifiedFindingsInTestPaths: number;
   totalVerifiedFindings: number;
   totalFilesScanned: number;
   byAsi: Record<string, { title: string; coverage: string; repos: number; findings: number }>;
   byClass: Record<string, { repos: number; findings: number }>;
+  byAsiProduction: Record<string, { title: string; repos: number; findings: number }>;
+  byClassProduction: Record<string, { repos: number; findings: number }>;
 }
 
 /**
@@ -66,7 +72,10 @@ interface RawRepo {
   repo: string;
   error?: string;
   verified: number;
+  verifiedProd: number;
+  verifiedTest: number;
   byClass: Record<string, number>;
+  byClassProd: Record<string, number>;
 }
 
 async function main() {
@@ -74,25 +83,28 @@ async function main() {
   const raw: RawRepo[] = JSON.parse(await fs.readFile(path.join(OUT, "mcp-survey-raw.json"), "utf8"));
   const pct = (n: number) => (agg.reposScanned ? ((n / agg.reposScanned) * 100).toFixed(0) : "0");
 
-  // Split general app-security findings from agentic-specific ones.
+  // Headline claims use PRODUCTION-code findings only. Agentic = MCP/agent-specific classes.
   const scannedRepos = raw.filter((r) => !r.error);
-  const agenticRepos = scannedRepos.filter((r) => Object.keys(r.byClass ?? {}).some((c) => AGENTIC_CLASSES.has(c)));
-  const agenticPct = agg.reposScanned ? ((agenticRepos.length / agg.reposScanned) * 100).toFixed(1) : "0";
+  const agenticProdRepos = scannedRepos.filter((r) =>
+    Object.keys(r.byClassProd ?? {}).some((c) => AGENTIC_CLASSES.has(c)),
+  );
+  const agenticProdPct = agg.reposScanned ? ((agenticProdRepos.length / agg.reposScanned) * 100).toFixed(1) : "0";
+  const oneInN = agenticProdRepos.length ? Math.round(agg.reposScanned / agenticProdRepos.length) : 0;
   const affectedCounts = scannedRepos
-    .filter((r) => r.verified > 0)
-    .map((r) => r.verified)
+    .filter((r) => r.verifiedProd > 0)
+    .map((r) => r.verifiedProd)
     .sort((a, b) => a - b);
   const medianFindings = affectedCounts[Math.floor(affectedCounts.length / 2)] ?? 0;
-  const agenticClassRows = Object.entries(agg.byClass)
+  const agenticClassRows = Object.entries(agg.byClassProduction)
     .filter(([cls]) => AGENTIC_CLASSES.has(cls))
     .sort((a, b) => b[1].repos - a[1].repos)
     .map(([cls, v]) => `| ${CLASS_TITLES[cls] ?? cls} | \`${cls}\` | ${v.repos} (${pct(v.repos)}%) | ${v.findings} |`)
     .join("\n");
 
-  const asiRows = ASI_CATEGORIES.filter((c) => (agg.byAsi[c.id]?.repos ?? 0) > 0)
-    .sort((a, b) => (agg.byAsi[b.id]!.repos ?? 0) - (agg.byAsi[a.id]!.repos ?? 0))
+  const asiRows = ASI_CATEGORIES.filter((c) => (agg.byAsiProduction[c.id]?.repos ?? 0) > 0)
+    .sort((a, b) => (agg.byAsiProduction[b.id]?.repos ?? 0) - (agg.byAsiProduction[a.id]?.repos ?? 0))
     .map((c) => {
-      const v = agg.byAsi[c.id]!;
+      const v = agg.byAsiProduction[c.id]!;
       return `| **${c.id}** ${c.title} | ${v.repos} (${pct(v.repos)}%) | ${v.findings} |`;
     })
     .join("\n");
@@ -123,29 +135,36 @@ because they mean different things:
 
 | | Repos | Share |
 |---|---|---|
-| **Have an agentic-infrastructure vulnerability** (MCP transport, tool definitions, agent scope) | **${agenticRepos.length}** | **${agenticPct}%** |
-| Have any verified finding, including general web/app issues | ${agg.reposWithAtLeastOneVerifiedFinding} | ${agg.percentAffected}% |
+| **Ship an agentic-infrastructure vulnerability in production code** | **${agenticProdRepos.length}** | **${agenticProdPct}%** |
+| Have any verified finding in production code (incl. general web/app issues) | ${agg.reposWithProductionFinding} | ${agg.percentAffectedProduction}% |
+| Have any verified finding anywhere, including test/example code | ${agg.reposWithAtLeastOneVerifiedFinding} | ${agg.percentAffected}% |
 
-**The first row is the claim about MCP security.** Roughly **one in seven public MCP servers
-ships an agentic-infrastructure vulnerability** — overwhelmingly an MCP transport exposed with
-no authentication.
+**The first row is the claim about MCP security: roughly one in ${oneInN} public MCP servers ships an
+agentic-infrastructure vulnerability in production code** — overwhelmingly an MCP transport
+exposed with no authentication.
 
-The second row is larger but less specific: it includes CORS misconfiguration, hardcoded
-secrets, and missing row-level security. Those are real findings in real MCP repositories, but
-they are *general application security* issues that happen to live in an MCP codebase. Reporting
-them as "MCP security" would inflate the story, so we separate them.
+We report three numbers because two common shortcuts would inflate this story, and we would
+rather you check our work than trust us:
 
-Total verified findings: **${agg.totalVerifiedFindings.toLocaleString()}**, though the distribution is
-heavily skewed — the median affected repository has **${medianFindings}** findings, while a handful of large
-repositories account for hundreds each. Repository-level rates (above) are the robust statistic;
-raw finding totals are not.
+1. **Test and example code is excluded from the headline.** A hardcoded key in a test fixture or
+   a deliberately insecure tutorial sample is not a production vulnerability.
+   **${agg.totalVerifiedFindingsInTestPaths.toLocaleString()}** of our verified findings sit in
+   test/spec/example/docs paths and are excluded from row 1 and row 2.
+2. **General application-security issues are separated from agentic ones.** CORS
+   misconfiguration, hardcoded secrets, and missing row-level security are real findings in real
+   MCP repositories, but they are ordinary app-sec issues that happen to live in an MCP codebase.
+   Calling them "MCP security" would be misleading.
+3. **Repository rates, not finding totals, are the robust statistic.** Production verified
+   findings total **${agg.totalVerifiedFindingsProduction.toLocaleString()}**, but the distribution is
+   heavily skewed — the median affected repository has **${medianFindings}**, while a handful of large
+   repositories account for hundreds each.
 
 "Verified" has a specific meaning here: every finding carries a machine-checked reproduction —
 a file and line that provably exists in the scanned commit. Nothing in this report is a
 heuristic guess or a model's opinion. A random sample was independently re-checked against the
 source at the recorded commit SHA (\`research/out/verification.json\`).
 
-## The agentic findings
+## The agentic findings (production code)
 
 These are the MCP/agent-specific classes — the subject of this report.
 
@@ -153,16 +172,17 @@ These are the MCP/agent-specific classes — the subject of this report.
 |---|---|---|---|
 ${agenticClassRows}
 
-## Findings by OWASP ASI category
+## Findings by OWASP ASI category (production code)
 
 | OWASP ASI (2026) | Repos affected | Findings |
 |---|---|---|
 ${asiRows}
 
-## All findings by vulnerability class
+## All findings by vulnerability class (production + test)
 
-Includes the general application-security classes. These are genuine findings in MCP server
-repositories, but they are not evidence about MCP/agentic security specifically.
+The complete picture, including general application-security classes and test/example paths.
+These are genuine findings in MCP server repositories, but the classes below the agentic set are
+not evidence about MCP/agentic security specifically.
 
 | Class | ID | Repos affected | Findings |
 |---|---|---|---|
@@ -178,6 +198,7 @@ ${classRows}
 - **Engine.** ${agg.method.engine}. Ruleset \`${agg.method.rulesetVersion}\`.
 - **Counting.** ${agg.method.counted}. Findings are de-duplicated by fingerprint, so a repeated
   pattern in one file counts once.
+- **Test/example classification.** ${agg.method.testClassification ?? "Test paths counted separately."}
 - **Exclusions.** ${agg.method.excluded} — a repository is never charged for its dependencies'
   problems.
 - **Reproducibility.** \`pnpm research:scan-mcp -- --limit ${agg.reposDiscovered}\`. The engine is

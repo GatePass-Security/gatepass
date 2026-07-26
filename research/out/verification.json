@@ -1,0 +1,104 @@
+{
+  "generatedAt": "2026-07-26T06:35:22.392Z",
+  "sampleSize": 14,
+  "confirmed": 12,
+  "checks": [
+    {
+      "repo": "nitrocloudofficial/nitrostack",
+      "classId": "unauth-mcp-transport",
+      "location": "typescript/packages/cli/src/mcp-dev-wrapper.ts:44",
+      "status": "confirmed",
+      "line": "const logServer = http.createServer((req, res) => {"
+    },
+    {
+      "repo": "yctimlin/mcp_excalidraw",
+      "classId": "unpinned-dependency",
+      "location": "package.json:30",
+      "status": "confirmed",
+      "line": "\"@modelcontextprotocol/sdk\": \"latest\","
+    },
+    {
+      "repo": "mongodb-js/mongodb-mcp-server",
+      "classId": "unauth-mcp-transport",
+      "location": "src/transports/mcpHttpServer.ts:126",
+      "status": "confirmed",
+      "line": "transport: StreamableHTTPServerTransport,"
+    },
+    {
+      "repo": "jnMetaCode/agency-orchestrator",
+      "classId": "cors-misconfig",
+      "location": "website/vite.config.ts:18",
+      "status": "confirmed",
+      "line": "changeOrigin: true,"
+    },
+    {
+      "repo": "ghostwright/phantom",
+      "classId": "exposed-secret",
+      "location": "src/channels/__tests__/slack-http-receiver.test.ts:693",
+      "status": "confirmed",
+      "line": "expect(all).not.toContain(\"xoxb-test-token\");"
+    },
+    {
+      "repo": "containers/kubernetes-mcp-server",
+      "classId": "exposed-secret",
+      "location": "pkg/mcplog/log_test.go:89",
+      "status": "confirmed",
+      "line": "s.NotContains(sanitized, \"AIzaSyDaGmWKa4JsXZ-HjGw7ISLn_3namBGewQe\") // notsecret"
+    },
+    {
+      "repo": "neomjs/neo",
+      "classId": "unauth-mcp-transport",
+      "location": "test/playwright/unit/ai/mcp/server/neural-link/Bridge.spec.mjs:43",
+      "status": "clone-failed"
+    },
+    {
+      "repo": "microsoft/mcp-for-beginners",
+      "classId": "cors-misconfig",
+      "location": "03-GettingStarted/15-mcp-apps/code/typescript/my-app/main.ts:22",
+      "status": "confirmed",
+      "line": "origin: \"*\","
+    },
+    {
+      "repo": "ChromeDevTools/chrome-devtools-mcp",
+      "classId": "exposed-secret",
+      "location": "src/tools/performance.ts:242",
+      "status": "no-evidence",
+      "line": "'https://chromeuxreport.googleapis.com/v1/records:queryRecord?key=AIzaSyBn5gimNjhiEyA_euicSKko6IlD3HdgUfk',"
+    },
+    {
+      "repo": "webiny/webiny-js",
+      "classId": "cors-misconfig",
+      "location": "packages/api-headless-cms/__tests__/contentAPI/httpOptions.test.ts:41",
+      "status": "confirmed",
+      "line": "\"access-control-allow-origin\": \"*\","
+    },
+    {
+      "repo": "clidey/whodb",
+      "classId": "cors-misconfig",
+      "location": ".agents/skills/impeccable/scripts/live-server.mjs:391",
+      "status": "confirmed",
+      "line": "res.setHeader('Access-Control-Allow-Origin', '*');"
+    },
+    {
+      "repo": "sceneview/sceneview",
+      "classId": "rls-gap",
+      "location": "mcp-gateway/migrations/0001_init.sql:18",
+      "status": "confirmed",
+      "line": "CREATE TABLE IF NOT EXISTS subscriptions ("
+    },
+    {
+      "repo": "arabold/docs-mcp-server",
+      "classId": "unauth-mcp-transport",
+      "location": "test/mcp-http-e2e.test.ts:41",
+      "status": "confirmed",
+      "line": "let transport: SSEClientTransport | null = null;"
+    },
+    {
+      "repo": "MCPJam/inspector",
+      "classId": "rls-gap",
+      "location": "examples/mcp-apps/flashcards-supabase/supabase/schema.sql:3",
+      "status": "confirmed",
+      "line": "create table if not exists public.flashcards ("
+    }
+  ]
+}
