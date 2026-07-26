@@ -83,6 +83,15 @@ async function main() {
   const raw: RawRepo[] = JSON.parse(await fs.readFile(path.join(OUT, "mcp-survey-raw.json"), "utf8"));
   const pct = (n: number) => (agg.reposScanned ? ((n / agg.reposScanned) * 100).toFixed(0) : "0");
 
+  // Independent spot-check results, if verify-sample.ts has been run.
+  const verification: { sampleSize: number; confirmed: number } | null = await fs
+    .readFile(path.join(OUT, "verification.json"), "utf8")
+    .then((t) => JSON.parse(t))
+    .catch(() => null);
+  const verificationLine = verification
+    ? `A random sample of **${verification.sampleSize}** findings was independently re-checked by re-cloning each repository at the recorded commit SHA and confirming the cited line still evidences the class: **${verification.confirmed}/${verification.sampleSize} confirmed**.`
+    : "";
+
   // Headline claims use PRODUCTION-code findings only. Agentic = MCP/agent-specific classes.
   const scannedRepos = raw.filter((r) => !r.error);
   const agenticProdRepos = scannedRepos.filter((r) =>
@@ -161,8 +170,7 @@ rather you check our work than trust us:
 
 "Verified" has a specific meaning here: every finding carries a machine-checked reproduction —
 a file and line that provably exists in the scanned commit. Nothing in this report is a
-heuristic guess or a model's opinion. A random sample was independently re-checked against the
-source at the recorded commit SHA (\`research/out/verification.json\`).
+heuristic guess or a model's opinion. ${verificationLine}
 
 ## The agentic findings (production code)
 

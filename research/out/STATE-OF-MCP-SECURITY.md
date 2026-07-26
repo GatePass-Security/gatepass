@@ -40,8 +40,7 @@ rather you check our work than trust us:
 
 "Verified" has a specific meaning here: every finding carries a machine-checked reproduction —
 a file and line that provably exists in the scanned commit. Nothing in this report is a
-heuristic guess or a model's opinion. A random sample was independently re-checked against the
-source at the recorded commit SHA (`research/out/verification.json`).
+heuristic guess or a model's opinion. A random sample of **10** findings was independently re-checked by re-cloning each repository at the recorded commit SHA and confirming the cited line still evidences the class: **10/10 confirmed**.
 
 ## The agentic findings (production code)
 
