@@ -78,9 +78,26 @@ pnpm research:report
 Output: `research/out/STATE-OF-MCP-SECURITY.md`. **Read it before posting** and sanity-check
 2-3 findings by hand against the raw JSON — if one number is wrong, the whole thing burns.
 
+### The actual survey numbers (measured 2026-07-26)
+
+| Metric | Value |
+|---|---|
+| MCP servers scanned | **168** (300 discovered; 122 excluded as not-actually-MCP; 10 clone failures) |
+| Source files | 119,868 |
+| **Repos with an agentic-infrastructure vuln** | **24 (14.3%)** ← *the MCP-security claim* |
+| Repos with any verified finding (incl. general web) | 88 (52.4%) |
+| Unauthenticated MCP transport | **23 repos** ← the dominant agentic finding |
+| Total verified findings | 1,762 (median 5 per affected repo — heavily skewed) |
+
+**Use 14.3%, not 52.4%, as the headline.** The 52% number is mostly CORS/secrets/RLS — real
+findings, but general app-sec that happens to live in MCP repos. If you lead with 52% a
+security reader will check, find it's mostly CORS, and dismiss the whole report. Leading with
+"1 in 7 MCP servers exposes an unauthenticated transport" is smaller, sharper, and *survives
+scrutiny* — and it's a scarier finding anyway.
+
 **HN title** (do not editorialize, HN punishes hype):
 
-> Show HN: We scanned N public MCP servers — X% have a verified security finding
+> Show HN: We scanned 168 public MCP servers — 1 in 7 exposes an unauthenticated transport
 
 **Post body skeleton:**
 
@@ -123,7 +140,8 @@ Regenerate any of these:
 | Determinism / cost / latency | `pnpm benchmark:determinism` | byte-identical ×10 · 0.9 ms · 0 tokens · $0 |
 | Corpus precision | `pnpm corpus:measure` | 12/12 classes, 100% TP, 0% FP |
 | Compliance precision | `npx vitest run packages/compliance/test/measure.test.ts` | 0% FP, 100% recall |
-| Public MCP survey | `pnpm research:scan-mcp -- --limit 300` | see `research/out/` |
+| Public MCP survey | `pnpm research:scan-mcp -- --limit 300` | 168 servers · 14.3% agentic vuln · 23 unauth transports |
+| Survey spot-check | `pnpm research:verify -- --sample 14` | re-checks findings against source at recorded SHA |
 | OWASP ASI coverage | — | 9/10 categories, ASI06 declared as the gap |
 
 ---

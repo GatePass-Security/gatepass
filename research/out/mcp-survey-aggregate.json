@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-26T06:05:44.339Z",
+  "generatedAt": "2026-07-26T06:20:11.279Z",
   "method": {
     "discovery": "GitHub search API — MCP server topics/names/SDK dependency",
     "engine": "Gatepass deterministic engine (no LLM; semanticEnabled=false)",
@@ -7,13 +7,15 @@
     "excluded": "node_modules, dist, build, .next, vendor, third_party, site-packages",
     "rulesetVersion": "corpus-v1"
   },
-  "reposDiscovered": 6,
-  "reposScanned": 4,
-  "reposFailed": 2,
-  "reposWithAtLeastOneVerifiedFinding": 2,
-  "percentAffected": 50,
-  "totalVerifiedFindings": 174,
-  "totalFilesScanned": 6184,
+  "reposDiscovered": 300,
+  "reposConfirmedMcpAndScanned": 168,
+  "reposScanned": 168,
+  "reposExcludedNotMcpServer": 122,
+  "reposFailed": 10,
+  "reposWithAtLeastOneVerifiedFinding": 88,
+  "percentAffected": 52.4,
+  "totalVerifiedFindings": 1762,
+  "totalFilesScanned": 119868,
   "byAsi": {
     "ASI01": {
       "title": "Agent Goal Hijack",
@@ -24,26 +26,26 @@
     "ASI02": {
       "title": "Tool Misuse & Exploitation",
       "coverage": "full",
-      "repos": 1,
-      "findings": 15
+      "repos": 24,
+      "findings": 168
     },
     "ASI03": {
       "title": "Agent Identity & Privilege Abuse",
       "coverage": "full",
-      "repos": 2,
-      "findings": 21
+      "repos": 23,
+      "findings": 692
     },
     "ASI04": {
       "title": "Agentic Supply Chain Compromise",
       "coverage": "full",
-      "repos": 2,
-      "findings": 26
+      "repos": 45,
+      "findings": 429
     },
     "ASI05": {
       "title": "Unexpected Code Execution",
       "coverage": "partial",
-      "repos": 0,
-      "findings": 0
+      "repos": 2,
+      "findings": 45
     },
     "ASI06": {
       "title": "Memory & Context Poisoning",
@@ -54,8 +56,8 @@
     "ASI07": {
       "title": "Insecure Inter-Agent Communication",
       "coverage": "partial",
-      "repos": 1,
-      "findings": 15
+      "repos": 23,
+      "findings": 123
     },
     "ASI08": {
       "title": "Cascading Agent Failures",
@@ -77,25 +79,33 @@
     }
   },
   "byClass": {
-    "cors-misconfig": {
-      "repos": 2,
-      "findings": 112
-    },
     "rls-gap": {
-      "repos": 2,
-      "findings": 21
+      "repos": 23,
+      "findings": 692
     },
-    "exposed-secret": {
-      "repos": 2,
-      "findings": 24
+    "cors-misconfig": {
+      "repos": 53,
+      "findings": 473
     },
     "unauth-mcp-transport": {
-      "repos": 1,
-      "findings": 15
+      "repos": 23,
+      "findings": 123
+    },
+    "exposed-secret": {
+      "repos": 34,
+      "findings": 296
     },
     "unpinned-dependency": {
+      "repos": 17,
+      "findings": 133
+    },
+    "missing-schema-validation": {
+      "repos": 2,
+      "findings": 6
+    },
+    "unbounded-tool-param": {
       "repos": 1,
-      "findings": 2
+      "findings": 39
     }
   }
 }

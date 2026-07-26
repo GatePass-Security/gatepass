@@ -3,23 +3,25 @@
     "repo": "punkpeye/awesome-mcp-servers",
     "stars": 91410,
     "sha": "d0bf1db2bb11926c125e13fb69d4898da8ec1f93",
-    "filesScanned": 1,
+    "filesScanned": 0,
     "verified": 0,
     "research": 0,
     "byClass": {},
     "byAsi": {},
-    "samples": []
+    "samples": [],
+    "error": "not-an-mcp-server"
   },
   {
     "repo": "D4Vinci/Scrapling",
     "stars": 71275,
     "sha": "07a548362ff904a2837f503ed9d9f6b9dcef0195",
-    "filesScanned": 136,
+    "filesScanned": 0,
     "verified": 0,
     "research": 0,
     "byClass": {},
     "byAsi": {},
-    "samples": []
+    "samples": [],
+    "error": "not-an-mcp-server"
   },
   {
     "repo": "google-gemini/gemini-cli",
@@ -35,38 +37,67 @@
   },
   {
     "repo": "koala73/worldmonitor",
-    "stars": 74276,
+    "stars": 74278,
     "sha": "441389269fcfa930536d644efb7bdec96c919a7b",
-    "filesScanned": 2983,
-    "verified": 116,
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "headroomlabs-ai/headroom",
+    "stars": 62451,
+    "sha": "b121223ec97e95c5a7a4c2c5e06a4655c7328e88",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "sansan0/TrendRadar",
+    "stars": 60883,
+    "sha": "8ee26026ba6c11dec41a95fb3895a7162876caa1",
+    "filesScanned": 93,
+    "verified": 15,
     "research": 0,
     "byClass": {
-      "cors-misconfig": 103,
-      "rls-gap": 12,
-      "exposed-secret": 1
+      "rls-gap": 15
     },
     "byAsi": {
-      "ASI03": 12,
-      "ASI04": 1
+      "ASI03": 15
     },
+    "samples": [
+      {
+        "classId": "rls-gap",
+        "asi": ["ASI03"],
+        "path": "trendradar/storage/schema.sql",
+        "line": 37
+      }
+    ]
+  },
+  {
+    "repo": "upstash/context7",
+    "stars": 59755,
+    "sha": "b250c2515694eee4b6df4db82fa056df9ed3e306",
+    "filesScanned": 153,
+    "verified": 1,
+    "research": 0,
+    "byClass": {
+      "cors-misconfig": 1
+    },
+    "byAsi": {},
     "samples": [
       {
         "classId": "cors-misconfig",
         "asi": [],
-        "path": "api/oauth-authorization-server.ts",
-        "line": 81
-      },
-      {
-        "classId": "rls-gap",
-        "asi": ["ASI03"],
-        "path": "consumer-prices-core/migrations/001_initial.sql",
-        "line": 22
-      },
-      {
-        "classId": "exposed-secret",
-        "asi": ["ASI04"],
-        "path": "tests/widget-builder.test.mjs",
-        "line": 1782
+        "path": "packages/mcp/src/index.ts",
+        "line": 340
       }
     ]
   },
@@ -124,8 +155,117 @@
     ]
   },
   {
+    "repo": "ChromeDevTools/chrome-devtools-mcp",
+    "stars": 47612,
+    "sha": "e2c19fed80fccd6cadd3b4e45151ac661420e90a",
+    "filesScanned": 210,
+    "verified": 1,
+    "research": 0,
+    "byClass": {
+      "exposed-secret": 1
+    },
+    "byAsi": {
+      "ASI04": 1
+    },
+    "samples": [
+      {
+        "classId": "exposed-secret",
+        "asi": ["ASI04"],
+        "path": "src/tools/performance.ts",
+        "line": 242
+      }
+    ]
+  },
+  {
+    "repo": "zylon-ai/private-gpt",
+    "stars": 57372,
+    "sha": "a8da90a73e6d10fc427a8b45a611677da4fae587",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "microsoft/playwright-mcp",
+    "stars": 35492,
+    "sha": "55679f5f3d4b4f3e2534ec0ce2fc5683ba2eaf3f",
+    "filesScanned": 21,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "github/github-mcp-server",
+    "stars": 31720,
+    "sha": "eb088dfe9d854dab6453a8d4ae5871a5ced20974",
+    "filesScanned": 248,
+    "verified": 1,
+    "research": 0,
+    "byClass": {
+      "cors-misconfig": 1
+    },
+    "byAsi": {},
+    "samples": [
+      {
+        "classId": "cors-misconfig",
+        "asi": [],
+        "path": "pkg/http/middleware/cors.go",
+        "line": 31
+      }
+    ]
+  },
+  {
+    "repo": "assafelovic/gpt-researcher",
+    "stars": 28642,
+    "sha": "5d84d2f5553e70a2765a8ff3a0d2672d60437ce8",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "bytedance/UI-TARS-desktop",
+    "stars": 38281,
+    "sha": "c2ad42e3eb9b27830db41a3e6f51ca7179d9b168",
+    "filesScanned": 1739,
+    "verified": 2,
+    "research": 0,
+    "byClass": {
+      "cors-misconfig": 2
+    },
+    "byAsi": {},
+    "samples": [
+      {
+        "classId": "cors-misconfig",
+        "asi": [],
+        "path": "multimodal/tarko/agent-server-next/src/controllers/queries.ts",
+        "line": 221
+      }
+    ]
+  },
+  {
+    "repo": "oraios/serena",
+    "stars": 26908,
+    "sha": "34342a9d00b0da4efb3b1e92710f9d7c4ad2edcf",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
     "repo": "n8n-io/n8n",
-    "stars": 198027,
+    "stars": 198028,
     "sha": "",
     "filesScanned": 0,
     "verified": 0,
@@ -134,5 +274,4592 @@
     "byAsi": {},
     "samples": [],
     "error": "clone failed"
+  },
+  {
+    "repo": "PrefectHQ/fastmcp",
+    "stars": 26846,
+    "sha": "37fb0ad803a528950ddead95a60176712d260965",
+    "filesScanned": 888,
+    "verified": 1,
+    "research": 0,
+    "byClass": {
+      "exposed-secret": 1
+    },
+    "byAsi": {
+      "ASI04": 1
+    },
+    "samples": [
+      {
+        "classId": "exposed-secret",
+        "asi": ["ASI04"],
+        "path": "tests/server/auth/test_jwt_provider.py",
+        "line": 162
+      }
+    ]
+  },
+  {
+    "repo": "DeusData/codebase-memory-mcp",
+    "stars": 35388,
+    "sha": "97ce23f9827177fff3858831156e9795c6832b18",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "czlonkowski/n8n-mcp",
+    "stars": 22406,
+    "sha": "84f1145eb0598ba69e8907b77813edba5619ffef",
+    "filesScanned": 646,
+    "verified": 26,
+    "research": 0,
+    "byClass": {
+      "exposed-secret": 17,
+      "rls-gap": 9
+    },
+    "byAsi": {
+      "ASI04": 17,
+      "ASI03": 9
+    },
+    "samples": [
+      {
+        "classId": "exposed-secret",
+        "asi": ["ASI04"],
+        "path": "tests/unit/telemetry/workflow-sanitizer.test.ts",
+        "line": 16
+      },
+      {
+        "classId": "rls-gap",
+        "asi": ["ASI03"],
+        "path": "src/database/schema.sql",
+        "line": 204
+      }
+    ]
+  },
+  {
+    "repo": "1Panel-dev/MaxKB",
+    "stars": 22236,
+    "sha": "5084a37a372fd7b2a4f5ea7c6643b743a50b415a",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "mksglu/context-mode",
+    "stars": 19329,
+    "sha": "d77f94708c217eef11e75f02fe60c3f5bc8418c2",
+    "filesScanned": 485,
+    "verified": 2,
+    "research": 0,
+    "byClass": {
+      "exposed-secret": 2
+    },
+    "byAsi": {
+      "ASI04": 2
+    },
+    "samples": [
+      {
+        "classId": "exposed-secret",
+        "asi": ["ASI04"],
+        "path": "tests/executor.test.ts",
+        "line": 1494
+      }
+    ]
+  },
+  {
+    "repo": "nukeop/nuclear",
+    "stars": 18094,
+    "sha": "d030cc10d060041aa792e2854ce8f3995335fbdf",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "modelscope/FunASR",
+    "stars": 19475,
+    "sha": "162729f85a4350e98d1b8db76e29df22acc55864",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "googleapis/mcp-toolbox",
+    "stars": 16021,
+    "sha": "f517dcd74c19a1133d62c3ad501e068ec8240c25",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "GLips/Figma-Context-MCP",
+    "stars": 15495,
+    "sha": "c083d65c7e002923e7cb98f4e3bdafb105e90f6d",
+    "filesScanned": 92,
+    "verified": 1,
+    "research": 0,
+    "byClass": {
+      "unauth-mcp-transport": 1
+    },
+    "byAsi": {
+      "ASI02": 1,
+      "ASI07": 1
+    },
+    "samples": [
+      {
+        "classId": "unauth-mcp-transport",
+        "asi": ["ASI02", "ASI07"],
+        "path": "src/mcp/index.ts",
+        "line": 31
+      }
+    ]
+  },
+  {
+    "repo": "triggerdotdev/trigger.dev",
+    "stars": 15760,
+    "sha": "",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "clone failed"
+  },
+  {
+    "repo": "xpzouying/xiaohongshu-mcp",
+    "stars": 14859,
+    "sha": "a32150a83f783aeaea88a58628cd7d1d7a70b7b1",
+    "filesScanned": 67,
+    "verified": 1,
+    "research": 0,
+    "byClass": {
+      "cors-misconfig": 1
+    },
+    "byAsi": {},
+    "samples": [
+      {
+        "classId": "cors-misconfig",
+        "asi": [],
+        "path": "middleware.go",
+        "line": 13
+      }
+    ]
+  },
+  {
+    "repo": "activepieces/activepieces",
+    "stars": 23427,
+    "sha": "a518fb586a430e6971bbe813e183cfc316c85e18",
+    "filesScanned": 22291,
+    "verified": 20,
+    "research": 0,
+    "byClass": {
+      "exposed-secret": 10,
+      "cors-misconfig": 8,
+      "unpinned-dependency": 2
+    },
+    "byAsi": {
+      "ASI04": 12
+    },
+    "samples": [
+      {
+        "classId": "exposed-secret",
+        "asi": ["ASI04"],
+        "path": "packages/pieces/community/snowflake/src/lib/auth.ts",
+        "line": 20
+      },
+      {
+        "classId": "cors-misconfig",
+        "asi": [],
+        "path": "packages/server/api/src/app/mcp/oauth/metadata/mcp-oauth-metadata.controller.ts",
+        "line": 33
+      },
+      {
+        "classId": "unpinned-dependency",
+        "asi": ["ASI04"],
+        "path": "packages/cli/package.json",
+        "line": 16
+      }
+    ]
+  },
+  {
+    "repo": "MODSetter/SurfSense",
+    "stars": 15471,
+    "sha": "a89b3aa219e64e08f1fd96334c7dbd75192d0f50",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "yusufkaraaslan/Skill_Seekers",
+    "stars": 14561,
+    "sha": "efb4c2eb25c06fc429cae9fb06209c7b5fb792c6",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "casdoor/casdoor",
+    "stars": 14044,
+    "sha": "8bb6c391480b2ac9ea04d3e2b5d3c7ab12115b1f",
+    "filesScanned": 843,
+    "verified": 14,
+    "research": 0,
+    "byClass": {
+      "exposed-secret": 3,
+      "cors-misconfig": 11
+    },
+    "byAsi": {
+      "ASI04": 3
+    },
+    "samples": [
+      {
+        "classId": "exposed-secret",
+        "asi": ["ASI04"],
+        "path": "idp/alipay.go",
+        "line": 326
+      },
+      {
+        "classId": "cors-misconfig",
+        "asi": [],
+        "path": "web/craco.config.js",
+        "line": 25
+      }
+    ]
+  },
+  {
+    "repo": "wanshuiyin/Auto-claude-code-research-in-sleep",
+    "stars": 13865,
+    "sha": "53562a7c64cc1d55946cba1fb8a8416137143d14",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "JoeanAmier/XHS-Downloader",
+    "stars": 12086,
+    "sha": "cdc02d0da867473d0d020adf8d26a939794a1a51",
+    "filesScanned": 59,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "tadata-org/fastapi_mcp",
+    "stars": 11956,
+    "sha": "e5cad13cabfc725bbcb047e526816d887d96da62",
+    "filesScanned": 51,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "open-metadata/OpenMetadata",
+    "stars": 14567,
+    "sha": "",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "clone failed"
+  },
+  {
+    "repo": "hangwin/mcp-chrome",
+    "stars": 12202,
+    "sha": "f48e71751e00bc09725c7e173423cff4f2ccd12a",
+    "filesScanned": 496,
+    "verified": 1,
+    "research": 0,
+    "byClass": {
+      "unauth-mcp-transport": 1
+    },
+    "byAsi": {
+      "ASI02": 1,
+      "ASI07": 1
+    },
+    "samples": [
+      {
+        "classId": "unauth-mcp-transport",
+        "asi": ["ASI02", "ASI07"],
+        "path": "app/native-server/src/agent/tool-bridge.ts",
+        "line": 39
+      }
+    ]
+  },
+  {
+    "repo": "microsoft/mcp-for-beginners",
+    "stars": 16835,
+    "sha": "cea10aa93867c25034ae9431be1664021dc6c069",
+    "filesScanned": 256,
+    "verified": 1,
+    "research": 0,
+    "byClass": {
+      "cors-misconfig": 1
+    },
+    "byAsi": {},
+    "samples": [
+      {
+        "classId": "cors-misconfig",
+        "asi": [],
+        "path": "03-GettingStarted/15-mcp-apps/code/typescript/my-app/main.ts",
+        "line": 22
+      }
+    ]
+  },
+  {
+    "repo": "BeehiveInnovations/pal-mcp-server",
+    "stars": 11696,
+    "sha": "7afc7c1cc96e23992c8f105f960132c657883bb1",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "mrexodia/ida-pro-mcp",
+    "stars": 10771,
+    "sha": "8c555e9ffc59a460997c5e006dfc72d903924264",
+    "filesScanned": 89,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "0x4m4/hexstrike-ai",
+    "stars": 10484,
+    "sha": "9b8c780f324ce5145a322bfa23c98886f8424ba3",
+    "filesScanned": 4,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "0xJacky/nginx-ui",
+    "stars": 11337,
+    "sha": "e6a9cd9580bcb23c6baa0d4eaccd3f5be1d937be",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "modelcontextprotocol/inspector",
+    "stars": 10475,
+    "sha": "ac3c1a122a5e072a200c99869fc0cd8bfa660ece",
+    "filesScanned": 163,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "t8y2/dbx",
+    "stars": 11702,
+    "sha": "f18030df7285b1a37c7c8148591117cb8d35b203",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "LaurieWired/GhidraMCP",
+    "stars": 9582,
+    "sha": "27f316f80139e2d5dec882519a1bdf4aa46ac04c",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "OpenByteInc/QuantDinger",
+    "stars": 9987,
+    "sha": "23b1aad65c87ef9c5e5424830e99794075a0e632",
+    "filesScanned": 628,
+    "verified": 80,
+    "research": 0,
+    "byClass": {
+      "rls-gap": 80
+    },
+    "byAsi": {
+      "ASI03": 80
+    },
+    "samples": [
+      {
+        "classId": "rls-gap",
+        "asi": ["ASI03"],
+        "path": "backend_api_python/migrations/init.sql",
+        "line": 734
+      }
+    ]
+  },
+  {
+    "repo": "wonderwhy-er/DesktopCommanderMCP",
+    "stars": 8851,
+    "sha": "1eccc8b09cc09805202a1737fd20d605356c3671",
+    "filesScanned": 219,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "awslabs/mcp",
+    "stars": 9502,
+    "sha": "cbde1fbc56ce931f71e3ec9667b213e2ed09a726",
+    "filesScanned": 2644,
+    "verified": 58,
+    "research": 0,
+    "byClass": {
+      "exposed-secret": 58
+    },
+    "byAsi": {
+      "ASI04": 58
+    },
+    "samples": [
+      {
+        "classId": "exposed-secret",
+        "asi": ["ASI04"],
+        "path": "src/ecs-mcp-server/tests/unit/utils/test_response_sanitization.py",
+        "line": 14
+      }
+    ]
+  },
+  {
+    "repo": "xinnan-tech/xiaozhi-esp32-server",
+    "stars": 10136,
+    "sha": "f5ed1aaec88471ba00ac778045331514066d63dc",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "mcp-use/mcp-use",
+    "stars": 10365,
+    "sha": "feda006831b6019eb65025d379db5074f4205096",
+    "filesScanned": 1095,
+    "verified": 20,
+    "research": 0,
+    "byClass": {
+      "cors-misconfig": 16,
+      "exposed-secret": 1,
+      "unpinned-dependency": 2,
+      "unauth-mcp-transport": 1
+    },
+    "byAsi": {
+      "ASI04": 3,
+      "ASI02": 1,
+      "ASI07": 1
+    },
+    "samples": [
+      {
+        "classId": "cors-misconfig",
+        "asi": [],
+        "path": "libraries/typescript/packages/inspector/src/server/cli.ts",
+        "line": 92
+      },
+      {
+        "classId": "exposed-secret",
+        "asi": ["ASI04"],
+        "path": "libraries/python/.env.example",
+        "line": 29
+      },
+      {
+        "classId": "unpinned-dependency",
+        "asi": ["ASI04"],
+        "path": "libraries/typescript/packages/mcp-use/examples/server/oauth/better-auth/package.json",
+        "line": 25
+      },
+      {
+        "classId": "unauth-mcp-transport",
+        "asi": ["ASI02", "ASI07"],
+        "path": "libraries/typescript/packages/mcp-use/examples/server/features/nextjs-drop-in/src/mcp/index.ts",
+        "line": 48
+      }
+    ]
+  },
+  {
+    "repo": "firerpa/lamda",
+    "stars": 7956,
+    "sha": "9a4736f327aa89be687ee7c411fee59730081a5e",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "idosal/git-mcp",
+    "stars": 8287,
+    "sha": "c487a29895dcfcb5b672247e646426a56e2051c1",
+    "filesScanned": 114,
+    "verified": 2,
+    "research": 0,
+    "byClass": {
+      "cors-misconfig": 2
+    },
+    "byAsi": {},
+    "samples": [
+      {
+        "classId": "cors-misconfig",
+        "asi": [],
+        "path": "src/api/utils/badge.ts",
+        "line": 38
+      }
+    ]
+  },
+  {
+    "repo": "google-labs-code/stitch-skills",
+    "stars": 7816,
+    "sha": "7b53207b94e62911777d53d4238b5f8c88c2b519",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "yzfly/Awesome-MCP-ZH",
+    "stars": 7470,
+    "sha": "b29e114d95fa26338b092423fd1ede1e5598e4df",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "AgentDeskAI/browser-tools-mcp",
+    "stars": 7273,
+    "sha": "d298068137c3dfd01e7a6f24038a6c199790da1e",
+    "filesScanned": 19,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "modelcontextprotocol/registry",
+    "stars": 7069,
+    "sha": "29e32c39dcb5e0e2b43974089d959fcc4794eb6d",
+    "filesScanned": 191,
+    "verified": 3,
+    "research": 0,
+    "byClass": {
+      "rls-gap": 3
+    },
+    "byAsi": {
+      "ASI03": 3
+    },
+    "samples": [
+      {
+        "classId": "rls-gap",
+        "asi": ["ASI03"],
+        "path": "internal/database/migrations/001_initial_schema.sql",
+        "line": 10
+      }
+    ]
+  },
+  {
+    "repo": "xberg-io/xberg",
+    "stars": 8694,
+    "sha": "aef843c504fd9c508d685e840a9dfd9cffda3e0d",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "firecrawl/firecrawl-mcp-server",
+    "stars": 7043,
+    "sha": "7232b6d1cdd80335107d53a33b80c902b515a334",
+    "filesScanned": 21,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "osaurus-ai/osaurus",
+    "stars": 7367,
+    "sha": "afa32e5c84191aea90b70fa44afa72ad64feee1f",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "BrowserMCP/mcp",
+    "stars": 6881,
+    "sha": "9db12f2b4f61294f0bc11708986abc47db539d6c",
+    "filesScanned": 14,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "CursorTouch/Windows-MCP",
+    "stars": 6503,
+    "sha": "aeb94c26830d2359490aed56a65404f614ed24c8",
+    "filesScanned": 101,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "getsentry/XcodeBuildMCP",
+    "stars": 6146,
+    "sha": "c79f4eb9b7b96680d5a774acb0ae525416d254fb",
+    "filesScanned": 1206,
+    "verified": 1,
+    "research": 0,
+    "byClass": {
+      "unauth-mcp-transport": 1
+    },
+    "byAsi": {
+      "ASI02": 1,
+      "ASI07": 1
+    },
+    "samples": [
+      {
+        "classId": "unauth-mcp-transport",
+        "asi": ["ASI02", "ASI07"],
+        "path": "src/smoke-tests/mcp-test-harness.ts",
+        "line": 197
+      }
+    ]
+  },
+  {
+    "repo": "Zipstack/unstract",
+    "stars": 6923,
+    "sha": "023b140214aee88d676cb555b812e20eb8a569ac",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "epiral/bb-browser",
+    "stars": 6002,
+    "sha": "7975dc74b3f637d54906228e52f2ba9454874105",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "lharries/whatsapp-mcp",
+    "stars": 5934,
+    "sha": "7d6a06dcdce1f01dfb24f60e1030d5efba9f3b88",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "kucherenko/jscpd",
+    "stars": 5932,
+    "sha": "a79127fde5352e30ad22f1c4be545b6215b72883",
+    "filesScanned": 505,
+    "verified": 2,
+    "research": 0,
+    "byClass": {
+      "rls-gap": 2
+    },
+    "byAsi": {
+      "ASI03": 2
+    },
+    "samples": [
+      {
+        "classId": "rls-gap",
+        "asi": ["ASI03"],
+        "path": "fixtures/sql/file1.sql",
+        "line": 44
+      }
+    ]
+  },
+  {
+    "repo": "appcypher/awesome-mcp-servers",
+    "stars": 5715,
+    "sha": "280218b4bba97a49facf929f8012dec5e30384b6",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "MinishLab/semble",
+    "stars": 5706,
+    "sha": "906319556a46bca45d8809b4733e05dd51cd5ba2",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "webiny/webiny-js",
+    "stars": 8018,
+    "sha": "e2be68e79394d0040e1fb91557b9f75b19ccdbeb",
+    "filesScanned": 11815,
+    "verified": 39,
+    "research": 0,
+    "byClass": {
+      "unpinned-dependency": 38,
+      "cors-misconfig": 1
+    },
+    "byAsi": {
+      "ASI04": 38
+    },
+    "samples": [
+      {
+        "classId": "unpinned-dependency",
+        "asi": ["ASI04"],
+        "path": "packages/project-aws/_templates/appTemplates/api/graphql/package.json",
+        "line": 20
+      },
+      {
+        "classId": "cors-misconfig",
+        "asi": [],
+        "path": "packages/api-headless-cms/__tests__/contentAPI/httpOptions.test.ts",
+        "line": 41
+      }
+    ]
+  },
+  {
+    "repo": "Gentleman-Programming/engram",
+    "stars": 5695,
+    "sha": "763a6ba432713725d6ce82a2416eec6cbd9ec94e",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "jacob-bd/gemini-notebook-mcp-cli",
+    "stars": 5620,
+    "sha": "74d357538482e85cb6ab37107615bc105c91227d",
+    "filesScanned": 199,
+    "verified": 2,
+    "research": 0,
+    "byClass": {
+      "unauth-mcp-transport": 2
+    },
+    "byAsi": {
+      "ASI02": 2,
+      "ASI07": 2
+    },
+    "samples": [
+      {
+        "classId": "unauth-mcp-transport",
+        "asi": ["ASI02", "ASI07"],
+        "path": "src/notebooklm_tools/mcp/server.py",
+        "line": 268
+      }
+    ]
+  },
+  {
+    "repo": "sooperset/mcp-atlassian",
+    "stars": 5614,
+    "sha": "1bd07dab87eb4f00b4e3661da0e48356f27cd085",
+    "filesScanned": 355,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "FlorianBruniaux/claude-code-ultimate-guide",
+    "stars": 5561,
+    "sha": "9777d5b74653dd7fac8f96e66760de3448b3513e",
+    "filesScanned": 151,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "nanbingxyz/5ire",
+    "stars": 5290,
+    "sha": "d55f353ea507b192afdd77982fa03125e8a84084",
+    "filesScanned": 359,
+    "verified": 12,
+    "research": 0,
+    "byClass": {
+      "rls-gap": 11,
+      "unauth-mcp-transport": 1
+    },
+    "byAsi": {
+      "ASI03": 11,
+      "ASI02": 1,
+      "ASI07": 1
+    },
+    "samples": [
+      {
+        "classId": "rls-gap",
+        "asi": ["ASI03"],
+        "path": "drizzle/migrations/0000_fast_nightmare.sql",
+        "line": 10
+      },
+      {
+        "classId": "unauth-mcp-transport",
+        "asi": ["ASI02", "ASI07"],
+        "path": "src/main/services/mcp-servers-manager.ts",
+        "line": 76
+      }
+    ]
+  },
+  {
+    "repo": "agent-infra/sandbox",
+    "stars": 5489,
+    "sha": "f2ebdba21a4c209abd132c887de4569a04a9991e",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "FunnyWolf/Viper",
+    "stars": 5239,
+    "sha": "78ffab8729aeb227ab7056ad06140c070ebe2e79",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "Klavis-AI/klavis",
+    "stars": 5777,
+    "sha": "45c9f7da83d1cf43f7429b96f9c8e8153542ea1e",
+    "filesScanned": 1982,
+    "verified": 9,
+    "research": 0,
+    "byClass": {
+      "unauth-mcp-transport": 3,
+      "cors-misconfig": 3,
+      "exposed-secret": 2,
+      "unpinned-dependency": 1
+    },
+    "byAsi": {
+      "ASI02": 3,
+      "ASI07": 3,
+      "ASI04": 3
+    },
+    "samples": [
+      {
+        "classId": "unauth-mcp-transport",
+        "asi": ["ASI02", "ASI07"],
+        "path": "mcp_servers/supabase/src/mcp.ts",
+        "line": 52
+      },
+      {
+        "classId": "cors-misconfig",
+        "asi": [],
+        "path": "mcp_servers/heygen/server.py",
+        "line": 554
+      },
+      {
+        "classId": "exposed-secret",
+        "asi": ["ASI04"],
+        "path": "mcp_servers/slack/.env.example",
+        "line": 12
+      },
+      {
+        "classId": "unpinned-dependency",
+        "asi": ["ASI04"],
+        "path": "mcp_servers/hugging_face/packages/app/package.json",
+        "line": 103
+      }
+    ]
+  },
+  {
+    "repo": "JerBouma/FinanceToolkit",
+    "stars": 5156,
+    "sha": "7dab0dd68200f0789da72868a63856768a8cd9b7",
+    "filesScanned": 265,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "lemonade-sdk/lemonade",
+    "stars": 5121,
+    "sha": "e8f0d220dcbe0fd1b596f37d7fa89ed1cfe085ab",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "Coding-Solo/godot-mcp",
+    "stars": 4904,
+    "sha": "1209744fad78f3998f98c7394fd0f6ef50da5281",
+    "filesScanned": 6,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "clidey/whodb",
+    "stars": 4935,
+    "sha": "05eda303584d15ec4d3af2083272555f33c42946",
+    "filesScanned": 1151,
+    "verified": 88,
+    "research": 0,
+    "byClass": {
+      "rls-gap": 82,
+      "exposed-secret": 4,
+      "cors-misconfig": 2
+    },
+    "byAsi": {
+      "ASI03": 82,
+      "ASI04": 4
+    },
+    "samples": [
+      {
+        "classId": "rls-gap",
+        "asi": ["ASI03"],
+        "path": "dev/sample-data/mysql/data842.sql",
+        "line": 220
+      },
+      {
+        "classId": "exposed-secret",
+        "asi": ["ASI04"],
+        "path": "core/src/common/ssl/tls_test.go",
+        "line": 58
+      },
+      {
+        "classId": "cors-misconfig",
+        "asi": [],
+        "path": ".agents/skills/impeccable/scripts/live-server.mjs",
+        "line": 391
+      }
+    ]
+  },
+  {
+    "repo": "openclaw/Peekaboo",
+    "stars": 4914,
+    "sha": "cb19c66d7b536d30731f81a18c0ec12bd19368e6",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "aipotheosis-labs/aci",
+    "stars": 4825,
+    "sha": "3e4a82fa5fd22f1165af2b39fa3de2b0f031242e",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "exa-labs/exa-mcp-server",
+    "stars": 4772,
+    "sha": "b4076055af28698d944b50deade80e541b7788ea",
+    "filesScanned": 57,
+    "verified": 8,
+    "research": 0,
+    "byClass": {
+      "cors-misconfig": 8
+    },
+    "byAsi": {},
+    "samples": [
+      {
+        "classId": "cors-misconfig",
+        "asi": [],
+        "path": "api/well-known-mcp-config.ts",
+        "line": 50
+      }
+    ]
+  },
+  {
+    "repo": "u14app/deep-research",
+    "stars": 4682,
+    "sha": "4a211edd9face54d0786ecf73e69ce5257627e20",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "wgpsec/ENScan_GO",
+    "stars": 4587,
+    "sha": "9969d5156c2fec80d5f4724b8d6d6bbb45471933",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "makenotion/notion-mcp-server",
+    "stars": 4555,
+    "sha": "1d38420769c8a1fe2d583ff1e7d2d108d4eb0b30",
+    "filesScanned": 37,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "prest/prest",
+    "stars": 4600,
+    "sha": "e0cd7bdc8cd4edbee9090257cb618378ad0c1593",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "maximhq/bifrost",
+    "stars": 6794,
+    "sha": "2952aae628f93b82aea5c9a14e2abe844ece2c0e",
+    "filesScanned": 2483,
+    "verified": 57,
+    "research": 0,
+    "byClass": {
+      "exposed-secret": 55,
+      "cors-misconfig": 2
+    },
+    "byAsi": {
+      "ASI04": 55
+    },
+    "samples": [
+      {
+        "classId": "exposed-secret",
+        "asi": ["ASI04"],
+        "path": "framework/configstore/encryption_test.go",
+        "line": 770
+      },
+      {
+        "classId": "cors-misconfig",
+        "asi": [],
+        "path": "transports/bifrost-http/integrations/router.go",
+        "line": 2658
+      }
+    ]
+  },
+  {
+    "repo": "open-webui/mcpo",
+    "stars": 4316,
+    "sha": "788ff92e5288a899a743a252edd5748f4ad4ab1f",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "modelcontextprotocol/csharp-sdk",
+    "stars": 4412,
+    "sha": "9f845f8ca51ea26043464207db37a45319e45bc0",
+    "filesScanned": 48,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "httprunner/httprunner",
+    "stars": 4286,
+    "sha": "47996ed22fb19dd911e382002cceb898a2897f06",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "antvis/mcp-server-chart",
+    "stars": 4259,
+    "sha": "33178096abfa58f245b456f5bacb18bc37f5cbaf",
+    "filesScanned": 95,
+    "verified": 1,
+    "research": 0,
+    "byClass": {
+      "cors-misconfig": 1
+    },
+    "byAsi": {},
+    "samples": [
+      {
+        "classId": "cors-misconfig",
+        "asi": [],
+        "path": "src/services/streamable.ts",
+        "line": 15
+      }
+    ]
+  },
+  {
+    "repo": "wong2/awesome-mcp-servers",
+    "stars": 4225,
+    "sha": "39eb1d76d76e562657f3c657266a504cea159e23",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "Pimzino/spec-workflow-mcp",
+    "stars": 4273,
+    "sha": "d38e82eaa8a6a2f5480285fa1feb8cf8378c86e0",
+    "filesScanned": 236,
+    "verified": 2,
+    "research": 0,
+    "byClass": {
+      "unpinned-dependency": 1,
+      "cors-misconfig": 1
+    },
+    "byAsi": {
+      "ASI04": 1
+    },
+    "samples": [
+      {
+        "classId": "unpinned-dependency",
+        "asi": ["ASI04"],
+        "path": "vscode-extension/package.json",
+        "line": 236
+      },
+      {
+        "classId": "cors-misconfig",
+        "asi": [],
+        "path": "src/dashboard_frontend/vite.config.ts",
+        "line": 27
+      }
+    ]
+  },
+  {
+    "repo": "MarkusPfundstein/mcp-obsidian",
+    "stars": 4135,
+    "sha": "32285e9ac07049a8a23ea7d7903603a3e48a1bf7",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "haris-musa/excel-mcp-server",
+    "stars": 4059,
+    "sha": "f51340ecd5778952405044b203d3a2d4c8a46833",
+    "filesScanned": 18,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "txn2/kubefwd",
+    "stars": 4151,
+    "sha": "05761dd8f278bd4ee06812793ac3b524eb065c00",
+    "filesScanned": 160,
+    "verified": 1,
+    "research": 0,
+    "byClass": {
+      "cors-misconfig": 1
+    },
+    "byAsi": {},
+    "samples": [
+      {
+        "classId": "cors-misconfig",
+        "asi": [],
+        "path": "pkg/fwdapi/handlers/docs.go",
+        "line": 79
+      }
+    ]
+  },
+  {
+    "repo": "archestra-ai/archestra",
+    "stars": 4027,
+    "sha": "",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "clone failed"
+  },
+  {
+    "repo": "cloudflare/mcp-server-cloudflare",
+    "stars": 3990,
+    "sha": "e1b9c17936b903d3e336ebf84c58ab8403e67c1a",
+    "filesScanned": 310,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "agentgateway/agentgateway",
+    "stars": 4046,
+    "sha": "c214281908e481c8a1e873e6b1aec4a79d65ad5c",
+    "filesScanned": 1242,
+    "verified": 11,
+    "research": 0,
+    "byClass": {
+      "cors-misconfig": 5,
+      "exposed-secret": 5,
+      "missing-schema-validation": 1
+    },
+    "byAsi": {
+      "ASI04": 5,
+      "ASI02": 1,
+      "ASI05": 1
+    },
+    "samples": [
+      {
+        "classId": "cors-misconfig",
+        "asi": [],
+        "path": "ui/src/gatewayUrls.ts",
+        "line": 82
+      },
+      {
+        "classId": "exposed-secret",
+        "asi": ["ASI04"],
+        "path": "controller/test/e2e/testdata/dynamic-ca-cert/dynamic-ca-cert.yaml",
+        "line": 27
+      },
+      {
+        "classId": "missing-schema-validation",
+        "asi": ["ASI02", "ASI05"],
+        "path": "crates/llm/src/tests/requests/messages/tools.json",
+        "line": 6
+      }
+    ]
+  },
+  {
+    "repo": "CodeGraphContext/CodeGraphContext",
+    "stars": 3988,
+    "sha": "df3af047b21b816ee83f602d7cd0324c7d0c0716",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "homeassistant-ai/ha-mcp",
+    "stars": 4120,
+    "sha": "ca61cd9f510c91c02f2248f44d28f44d99dac0b9",
+    "filesScanned": 911,
+    "verified": 1,
+    "research": 0,
+    "byClass": {
+      "cors-misconfig": 1
+    },
+    "byAsi": {},
+    "samples": [
+      {
+        "classId": "cors-misconfig",
+        "asi": [],
+        "path": "tests/src/unit/test_oauth_metadata_http.py",
+        "line": 230
+      }
+    ]
+  },
+  {
+    "repo": "TabularisDB/tabularis",
+    "stars": 3908,
+    "sha": "1ad3b8da6dd4d674e76f39075b1d56534cbd2709",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "atilaahmettaner/tradingview-mcp",
+    "stars": 3668,
+    "sha": "a82aafa3c443703ba45a97024c214f091a856f7f",
+    "filesScanned": 56,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "Minidoracat/mcp-feedback-enhanced",
+    "stars": 3788,
+    "sha": "541ca1e5db8f5d1357d856f163feaacda1eb7144",
+    "filesScanned": 98,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "evalstate/fast-agent",
+    "stars": 3873,
+    "sha": "972b5b2a9cda4f4ff1548da4afaf4e5957a0788c",
+    "filesScanned": 1630,
+    "verified": 19,
+    "research": 0,
+    "byClass": {
+      "unauth-mcp-transport": 19
+    },
+    "byAsi": {
+      "ASI02": 19,
+      "ASI07": 19
+    },
+    "samples": [
+      {
+        "classId": "unauth-mcp-transport",
+        "asi": ["ASI02", "ASI07"],
+        "path": "tests/unit/fast_agent/mcp/test_transport_factory_validation.py",
+        "line": 19
+      }
+    ]
+  },
+  {
+    "repo": "dagucloud/dagu",
+    "stars": 3674,
+    "sha": "10a895e7188c7d9737da926b4db886d1ebaae8e3",
+    "filesScanned": 2471,
+    "verified": 1,
+    "research": 0,
+    "byClass": {
+      "cors-misconfig": 1
+    },
+    "byAsi": {},
+    "samples": [
+      {
+        "classId": "cors-misconfig",
+        "asi": [],
+        "path": "ui/webpack.dev.js",
+        "line": 18
+      }
+    ]
+  },
+  {
+    "repo": "liaokongVFX/MCP-Chinese-Getting-Started-Guide",
+    "stars": 3548,
+    "sha": "a911d8ce250fe00b050bda8fdb37aed71dbc0966",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "KnockOutEZ/wigolo",
+    "stars": 3624,
+    "sha": "e3a9adaf1fa5090c7fde42f35124095a2d97b8d9",
+    "filesScanned": 1309,
+    "verified": 11,
+    "research": 0,
+    "byClass": {
+      "exposed-secret": 4,
+      "rls-gap": 7
+    },
+    "byAsi": {
+      "ASI04": 4,
+      "ASI03": 7
+    },
+    "samples": [
+      {
+        "classId": "exposed-secret",
+        "asi": ["ASI04"],
+        "path": "tests/unit/cli/doctor-provider.test.ts",
+        "line": 10
+      },
+      {
+        "classId": "rls-gap",
+        "asi": ["ASI03"],
+        "path": "src/cache/migrations/001-sqlite-vec.sql",
+        "line": 18
+      }
+    ]
+  },
+  {
+    "repo": "opensumi/core",
+    "stars": 3647,
+    "sha": "9fee6aa38f96f85ac686f25c2522910067324c1d",
+    "filesScanned": 3416,
+    "verified": 2,
+    "research": 0,
+    "byClass": {
+      "cors-misconfig": 2
+    },
+    "byAsi": {},
+    "samples": [
+      {
+        "classId": "cors-misconfig",
+        "asi": [],
+        "path": "tools/dev-tool/src/webpack.js",
+        "line": 258
+      }
+    ]
+  },
+  {
+    "repo": "laravel/boost",
+    "stars": 3546,
+    "sha": "c6c91e41ff7a2356493942516d764aa05f35bc74",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "IvanMurzak/Unity-MCP",
+    "stars": 3668,
+    "sha": "0a491e3307413b3f439c4635f10198298f9d6e4b",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "browserbase/mcp-server-browserbase",
+    "stars": 3411,
+    "sha": "3e6f53461949037d5e65dd425da3ceb1263f11d6",
+    "filesScanned": 40,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "Mouseww/anything-analyzer",
+    "stars": 3360,
+    "sha": "778f396e2296fe12dbab1ce51aedccffbe712130",
+    "filesScanned": 117,
+    "verified": 1,
+    "research": 0,
+    "byClass": {
+      "cors-misconfig": 1
+    },
+    "byAsi": {},
+    "samples": [
+      {
+        "classId": "cors-misconfig",
+        "asi": [],
+        "path": "src/main/mcp/mcp-server.ts",
+        "line": 85
+      }
+    ]
+  },
+  {
+    "repo": "geekjourneyx/md2wechat-skill",
+    "stars": 3345,
+    "sha": "d656438f1e9994fb7f4560c43d51eb7fd0a1ceb3",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "microsoft/mcp",
+    "stars": 3503,
+    "sha": "",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "clone failed"
+  },
+  {
+    "repo": "huangjunsen0406/py-xiaozhi",
+    "stars": 3423,
+    "sha": "8e4dad51cb3f59357f88ee1649cf68943b55640a",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "yvgude/lean-ctx",
+    "stars": 3409,
+    "sha": "fe36c06efb76df79f445035f28295771a11cd903",
+    "filesScanned": 355,
+    "verified": 1,
+    "research": 0,
+    "byClass": {
+      "cors-misconfig": 1
+    },
+    "byAsi": {},
+    "samples": [
+      {
+        "classId": "cors-misconfig",
+        "asi": [],
+        "path": "cookbook/examples/knowledge-graph-explorer/vite.config.ts",
+        "line": 22
+      }
+    ]
+  },
+  {
+    "repo": "grafana/mcp-grafana",
+    "stars": 3279,
+    "sha": "20648a1fbe14b77e42a41f44d162283075e16d4b",
+    "filesScanned": 303,
+    "verified": 5,
+    "research": 0,
+    "byClass": {
+      "exposed-secret": 3,
+      "rls-gap": 2
+    },
+    "byAsi": {
+      "ASI04": 3,
+      "ASI03": 2
+    },
+    "samples": [
+      {
+        "classId": "exposed-secret",
+        "asi": ["ASI04"],
+        "path": "tools/datasource_schemas/tempo_schema.json",
+        "line": 468
+      },
+      {
+        "classId": "rls-gap",
+        "asi": ["ASI03"],
+        "path": "testdata/clickhouse-init.sql",
+        "line": 7
+      }
+    ]
+  },
+  {
+    "repo": "punkpeye/fastmcp",
+    "stars": 3233,
+    "sha": "8f6b7511789eb510c2b0ff814c62632ab3f40e76",
+    "filesScanned": 81,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "bytebase/dbhub",
+    "stars": 3231,
+    "sha": "8cc8616e1ebb9d0d9704a2b19cccbfe46ccc02ba",
+    "filesScanned": 229,
+    "verified": 12,
+    "research": 0,
+    "byClass": {
+      "rls-gap": 6,
+      "exposed-secret": 3,
+      "cors-misconfig": 3
+    },
+    "byAsi": {
+      "ASI03": 6,
+      "ASI04": 3
+    },
+    "samples": [
+      {
+        "classId": "rls-gap",
+        "asi": ["ASI03"],
+        "path": "demo/employee-sqlite/employee.sql",
+        "line": 49
+      },
+      {
+        "classId": "exposed-secret",
+        "asi": ["ASI04"],
+        "path": "src/connectors/__tests__/dsn-parser.test.ts",
+        "line": 144
+      },
+      {
+        "classId": "cors-misconfig",
+        "asi": [],
+        "path": "frontend/vite.config.ts",
+        "line": 31
+      }
+    ]
+  },
+  {
+    "repo": "PleasePrompto/notebooklm-mcp",
+    "stars": 3084,
+    "sha": "50b3e7f67f8535d9899c5e2b1b68f37d17b72aef",
+    "filesScanned": 41,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "blazickjp/arxiv-mcp-server",
+    "stars": 2985,
+    "sha": "07347d0dc773215faba39e07513a2726e60437e8",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "punitarani/fli",
+    "stars": 3056,
+    "sha": "121d34fea056dc513258958c4262cb5a4cc033c1",
+    "filesScanned": 187,
+    "verified": 1,
+    "research": 0,
+    "byClass": {
+      "unauth-mcp-transport": 1
+    },
+    "byAsi": {
+      "ASI02": 1,
+      "ASI07": 1
+    },
+    "samples": [
+      {
+        "classId": "unauth-mcp-transport",
+        "asi": ["ASI02", "ASI07"],
+        "path": "fli/mcp/server.py",
+        "line": 1459
+      }
+    ]
+  },
+  {
+    "repo": "davepoon/buildwithclaude",
+    "stars": 3213,
+    "sha": "b394ba21f7b7f5264544bfe1394bdcd4f0fe26f6",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "taylorwilsdon/google_workspace_mcp",
+    "stars": 2912,
+    "sha": "1cae59684f4022b5140236d515d2e8b08d37b118",
+    "filesScanned": 205,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "bethington/ghidra-mcp",
+    "stars": 2956,
+    "sha": "8cd2078e10b9ba28b188cb84ce5b9051a904b995",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "stickerdaniel/linkedin-mcp-server",
+    "stars": 2900,
+    "sha": "97b0ea5fc5892ae7a71772951921a058e1bd1cec",
+    "filesScanned": 101,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "Jpisnice/shadcn-ui-mcp-server",
+    "stars": 2888,
+    "sha": "45d615f0950b49e7618b129fab8d637ebf44f3da",
+    "filesScanned": 62,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "deedy5/ddgs",
+    "stars": 2842,
+    "sha": "a12929a72429a39a0841c3d7caacb20ee17acd4d",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "snyk/agent-scan",
+    "stars": 2815,
+    "sha": "5f2022a6e5e7c0a77a9da468f9e9a9dc92d6f602",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "microsoft/skills",
+    "stars": 2818,
+    "sha": "4f1db7ec55caf11e3b143c91220bd79a632bc55b",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "supercorp-ai/supergateway",
+    "stars": 2764,
+    "sha": "973c4595250dcd59da83c12c4f11ff653b6cd4f0",
+    "filesScanned": 30,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "moltis-org/moltis",
+    "stars": 2793,
+    "sha": "1f53cd27b1a21c36b61ceda7a8ea65a35deb7872",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "rusq/slackdump",
+    "stars": 2707,
+    "sha": "3d52f4fedf628222b9f9bf2d575c34accc702082",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "coddingtonbear/obsidian-local-rest-api",
+    "stars": 2693,
+    "sha": "6e4326fb7446eccc8f551aa40d3e529bca6e64e5",
+    "filesScanned": 54,
+    "verified": 4,
+    "research": 0,
+    "byClass": {
+      "unauth-mcp-transport": 4
+    },
+    "byAsi": {
+      "ASI02": 4,
+      "ASI07": 4
+    },
+    "samples": [
+      {
+        "classId": "unauth-mcp-transport",
+        "asi": ["ASI02", "ASI07"],
+        "path": "src/mcpHandler.ts",
+        "line": 50
+      }
+    ]
+  },
+  {
+    "repo": "sparfenyuk/mcp-proxy",
+    "stars": 2685,
+    "sha": "153a96a61fde2bf5a23961c64a3dd96b5e385108",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "opensolon/solon",
+    "stars": 2756,
+    "sha": "2fea89aff29fd8a159ec74b74b03d83c9c33559e",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "modelcontextprotocol/ext-apps",
+    "stars": 2616,
+    "sha": "92f46a574568a3ddac7600343b7d3c4c4ed7b588",
+    "filesScanned": 268,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "skyhook-io/radar",
+    "stars": 2662,
+    "sha": "f618f4203a705ba70b40bda8df0a143b71f938f0",
+    "filesScanned": 1622,
+    "verified": 11,
+    "research": 0,
+    "byClass": {
+      "cors-misconfig": 1,
+      "exposed-secret": 9,
+      "unpinned-dependency": 1
+    },
+    "byAsi": {
+      "ASI04": 10
+    },
+    "samples": [
+      {
+        "classId": "cors-misconfig",
+        "asi": [],
+        "path": "web/vite.config.ts",
+        "line": 19
+      },
+      {
+        "classId": "exposed-secret",
+        "asi": ["ASI04"],
+        "path": "pkg/ai/context/redact_test.go",
+        "line": 30
+      },
+      {
+        "classId": "unpinned-dependency",
+        "asi": ["ASI04"],
+        "path": "web/package.json",
+        "line": 44
+      }
+    ]
+  },
+  {
+    "repo": "go-nunu/nunu",
+    "stars": 2593,
+    "sha": "ba07a4e8333dab8c934969a959db05f7fc8ca17e",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "zinja-coder/jadx-ai-mcp",
+    "stars": 2549,
+    "sha": "0b4ee5a622ec864214202e8f24c37ea630d433c7",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "Vexa-ai/vexa",
+    "stars": 2603,
+    "sha": "d7ed2bb8e0fd00d4f0b2915afae06044a8b90547",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "metatool-ai/metamcp",
+    "stars": 2555,
+    "sha": "ff4ff2de9d25453c52dcc7be32680b30700a6012",
+    "filesScanned": 382,
+    "verified": 22,
+    "research": 0,
+    "byClass": {
+      "cors-misconfig": 5,
+      "rls-gap": 17
+    },
+    "byAsi": {
+      "ASI03": 17
+    },
+    "samples": [
+      {
+        "classId": "cors-misconfig",
+        "asi": [],
+        "path": "apps/backend/src/routers/oauth/index.ts",
+        "line": 36
+      },
+      {
+        "classId": "rls-gap",
+        "asi": ["ASI03"],
+        "path": "apps/backend/drizzle/0005_clammy_speedball.sql",
+        "line": 1
+      }
+    ]
+  },
+  {
+    "repo": "perplexityai/modelcontextprotocol",
+    "stars": 2409,
+    "sha": "7c8993499c808e5b3c11b8c16736687ecef0f457",
+    "filesScanned": 23,
+    "verified": 1,
+    "research": 0,
+    "byClass": {
+      "cors-misconfig": 1
+    },
+    "byAsi": {},
+    "samples": [
+      {
+        "classId": "cors-misconfig",
+        "asi": [],
+        "path": "src/transport.test.ts",
+        "line": 82
+      }
+    ]
+  },
+  {
+    "repo": "wesammustafa/Claude-Code-Everything-You-Need-to-Know",
+    "stars": 2380,
+    "sha": "6f7a173306b09c0a36a000c47d45a1d526db4d62",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "brightdata/brightdata-mcp",
+    "stars": 2535,
+    "sha": "adbfdd49b8805136662a264490118c2688da3e29",
+    "filesScanned": 37,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "knowsuchagency/mcp2cli",
+    "stars": 2318,
+    "sha": "dd2a5a6353060a7bf8d2599bf5d037d75b26a7ae",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "chrisryugj/korean-law-mcp",
+    "stars": 2319,
+    "sha": "ae05221629e6013f2f7e06fdb652fb994ac464c8",
+    "filesScanned": 155,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "zhizhuodemao/js-reverse-mcp",
+    "stars": 2299,
+    "sha": "f45172a7b2a8d98daf29434e99baf35bc08bb959",
+    "filesScanned": 74,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "vitali87/code-graph-rag",
+    "stars": 2357,
+    "sha": "bc1630d5db6b58eb7a8eeb8f885d596c3cf83729",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "jamubc/gemini-mcp-tool",
+    "stars": 2263,
+    "sha": "588e73dfff07c29f5eeec988e886b46cc8cd6330",
+    "filesScanned": 54,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "neomjs/neo",
+    "stars": 3243,
+    "sha": "f33eb328c23f42522c6f39878d9602fb7e908b39",
+    "filesScanned": 4429,
+    "verified": 10,
+    "research": 0,
+    "byClass": {
+      "unauth-mcp-transport": 8,
+      "exposed-secret": 2
+    },
+    "byAsi": {
+      "ASI02": 8,
+      "ASI07": 8,
+      "ASI04": 2
+    },
+    "samples": [
+      {
+        "classId": "unauth-mcp-transport",
+        "asi": ["ASI02", "ASI07"],
+        "path": "test/playwright/unit/ai/mcp/server/neural-link/Bridge.spec.mjs",
+        "line": 43
+      },
+      {
+        "classId": "exposed-secret",
+        "asi": ["ASI04"],
+        "path": "examples/component/wrapper/googleMaps/neo-config.json",
+        "line": 5
+      }
+    ]
+  },
+  {
+    "repo": "tavily-ai/tavily-mcp",
+    "stars": 2258,
+    "sha": "259bfd205de90d74a131e9d2b29cb69ebe11feb7",
+    "filesScanned": 6,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "openags/paper-search-mcp",
+    "stars": 2252,
+    "sha": "c8b642183bb725f0a7faec89e58b558df09079d1",
+    "filesScanned": 67,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "financial-datasets/mcp-server",
+    "stars": 2244,
+    "sha": "08e7a3dbb949d3d99bbd6d6f3a22e5f02973ec58",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "apify/apify-mcp-server",
+    "stars": 2239,
+    "sha": "a74945aa0f3c782f65d2dc4f50ad42c3270e6e9b",
+    "filesScanned": 287,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "yctimlin/mcp_excalidraw",
+    "stars": 2211,
+    "sha": "505f4c6e0ca1fe2489b4c18c9fedc24ac50a9002",
+    "filesScanned": 43,
+    "verified": 3,
+    "research": 0,
+    "byClass": {
+      "cors-misconfig": 2,
+      "unpinned-dependency": 1
+    },
+    "byAsi": {
+      "ASI04": 1
+    },
+    "samples": [
+      {
+        "classId": "cors-misconfig",
+        "asi": [],
+        "path": "vite.config.js",
+        "line": 32
+      },
+      {
+        "classId": "unpinned-dependency",
+        "asi": ["ASI04"],
+        "path": "package.json",
+        "line": 30
+      }
+    ]
+  },
+  {
+    "repo": "samanhappy/mcphub",
+    "stars": 2240,
+    "sha": "a99c382fb1cc2f316d2d1ec8e2cbff7930e14451",
+    "filesScanned": 508,
+    "verified": 9,
+    "research": 0,
+    "byClass": {
+      "cors-misconfig": 7,
+      "exposed-secret": 2
+    },
+    "byAsi": {
+      "ASI04": 2
+    },
+    "samples": [
+      {
+        "classId": "cors-misconfig",
+        "asi": [],
+        "path": "frontend/vite.config.ts",
+        "line": 82
+      },
+      {
+        "classId": "exposed-secret",
+        "asi": ["ASI04"],
+        "path": "servers.json",
+        "line": 8004
+      }
+    ]
+  },
+  {
+    "repo": "jgravelle/jcodemunch-mcp",
+    "stars": 2207,
+    "sha": "2e83a68e71ae9d698e9615962e8b4f4b46bf8718",
+    "filesScanned": 678,
+    "verified": 7,
+    "research": 0,
+    "byClass": {
+      "exposed-secret": 7
+    },
+    "byAsi": {
+      "ASI04": 7
+    },
+    "samples": [
+      {
+        "classId": "exposed-secret",
+        "asi": ["ASI04"],
+        "path": "tests/test_redact.py",
+        "line": 89
+      }
+    ]
+  },
+  {
+    "repo": "AmoyLab/Unla",
+    "stars": 2180,
+    "sha": "96f0bb64ece764949fef2d6bce9c40bfc94110f9",
+    "filesScanned": 447,
+    "verified": 10,
+    "research": 0,
+    "byClass": {
+      "rls-gap": 8,
+      "cors-misconfig": 1,
+      "unpinned-dependency": 1
+    },
+    "byAsi": {
+      "ASI03": 8,
+      "ASI04": 1
+    },
+    "samples": [
+      {
+        "classId": "rls-gap",
+        "asi": ["ASI03"],
+        "path": "configs/db/mysql/base.sql",
+        "line": 70
+      },
+      {
+        "classId": "cors-misconfig",
+        "asi": [],
+        "path": "web/vite.config.ts",
+        "line": 47
+      },
+      {
+        "classId": "unpinned-dependency",
+        "asi": ["ASI04"],
+        "path": "web/package.json",
+        "line": 51
+      }
+    ]
+  },
+  {
+    "repo": "llmsresearch/paperbanana",
+    "stars": 2193,
+    "sha": "8b4745ad302439eded5884c9ec77412d99931047",
+    "filesScanned": 204,
+    "verified": 1,
+    "research": 0,
+    "byClass": {
+      "exposed-secret": 1
+    },
+    "byAsi": {
+      "ASI04": 1
+    },
+    "samples": [
+      {
+        "classId": "exposed-secret",
+        "asi": ["ASI04"],
+        "path": "tests/test_doctor.py",
+        "line": 85
+      }
+    ]
+  },
+  {
+    "repo": "cjo4m06/mcp-shrimp-task-manager",
+    "stars": 2134,
+    "sha": "8a3be6bced310c7b660e5cfc3f42e4e5e45f2f61",
+    "filesScanned": 169,
+    "verified": 3,
+    "research": 0,
+    "byClass": {
+      "cors-misconfig": 3
+    },
+    "byAsi": {},
+    "samples": [
+      {
+        "classId": "cors-misconfig",
+        "asi": [],
+        "path": "tools/task-viewer/server.js",
+        "line": 461
+      }
+    ]
+  },
+  {
+    "repo": "nitrocloudofficial/nitrostack",
+    "stars": 2167,
+    "sha": "f106a7504133891e403efb17c191e47d35ebc3e1",
+    "filesScanned": 448,
+    "verified": 10,
+    "research": 0,
+    "byClass": {
+      "cors-misconfig": 8,
+      "unauth-mcp-transport": 2
+    },
+    "byAsi": {
+      "ASI02": 2,
+      "ASI07": 2
+    },
+    "samples": [
+      {
+        "classId": "cors-misconfig",
+        "asi": [],
+        "path": "typescript/packages/core/src/core/oauth-module.ts",
+        "line": 443
+      },
+      {
+        "classId": "unauth-mcp-transport",
+        "asi": ["ASI02", "ASI07"],
+        "path": "typescript/packages/cli/src/mcp-dev-wrapper.ts",
+        "line": 44
+      }
+    ]
+  },
+  {
+    "repo": "aws/agent-toolkit-for-aws",
+    "stars": 2121,
+    "sha": "",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "clone failed"
+  },
+  {
+    "repo": "crbnos/carbon",
+    "stars": 2283,
+    "sha": "90f68961d0893bf661475d32cd19abf506dc2a63",
+    "filesScanned": 5149,
+    "verified": 210,
+    "research": 0,
+    "byClass": {
+      "rls-gap": 200,
+      "cors-misconfig": 8,
+      "unpinned-dependency": 2
+    },
+    "byAsi": {
+      "ASI03": 200,
+      "ASI04": 2
+    },
+    "samples": [
+      {
+        "classId": "rls-gap",
+        "asi": ["ASI03"],
+        "path": "packages/database/supabase/migrations/20240715024405_quotes.sql",
+        "line": 13
+      },
+      {
+        "classId": "cors-misconfig",
+        "asi": [],
+        "path": "apps/erp/app/routes/_oauth+/register.ts",
+        "line": 10
+      },
+      {
+        "classId": "unpinned-dependency",
+        "asi": ["ASI04"],
+        "path": "packages/form/package.json",
+        "line": 23
+      }
+    ]
+  },
+  {
+    "repo": "GongRzhe/Office-Word-MCP-Server",
+    "stars": 2112,
+    "sha": "a3bbbb6d6167e68cf855d73ef7dc6cd8cfbfedba",
+    "filesScanned": 33,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "joshuayoes/ios-simulator-mcp",
+    "stars": 2111,
+    "sha": "8f3c6710bf0d247b2389e1cc883ff78c57672960",
+    "filesScanned": 5,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "apioo/fusio",
+    "stars": 2107,
+    "sha": "febf15d39e1926e9a9011ef94081d19911fa1e59",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "mcp-router/mcp-router",
+    "stars": 2100,
+    "sha": "2df1bf4f264b2e5597f7ea049ce2ad09b0256eb8",
+    "filesScanned": 295,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "cyberagiinc/DevDocs",
+    "stars": 2098,
+    "sha": "f8fa9de505c96bcc8c76561196a75d39b52847b6",
+    "filesScanned": 83,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "microsoft/flint-chart",
+    "stars": 2125,
+    "sha": "004b800a2a9791e60c496dcbc758da0fb9457459",
+    "filesScanned": 2741,
+    "verified": 2,
+    "research": 0,
+    "byClass": {
+      "cors-misconfig": 1,
+      "unpinned-dependency": 1
+    },
+    "byAsi": {
+      "ASI04": 1
+    },
+    "samples": [
+      {
+        "classId": "cors-misconfig",
+        "asi": [],
+        "path": "test-harness/excel/office-runner/server.mjs",
+        "line": 85
+      },
+      {
+        "classId": "unpinned-dependency",
+        "asi": ["ASI04"],
+        "path": "site/package.json",
+        "line": 20
+      }
+    ]
+  },
+  {
+    "repo": "0xMassi/webclaw",
+    "stars": 2066,
+    "sha": "a107c6376beb614d17b7cff82faf32fe6d32d50d",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "martin-ger/esp32_nat_router",
+    "stars": 2056,
+    "sha": "1157ae2c0a53c543a2ec6f75cb5383a39e8f9ce9",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "modelcontextprotocol/mcpb",
+    "stars": 2051,
+    "sha": "70fe3b34cd6dff1b3bba046638edc72a6467a4fb",
+    "filesScanned": 72,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "chongdashu/unreal-mcp",
+    "stars": 2040,
+    "sha": "4e5f00da50733190481311e254d16d137a84ef33",
+    "filesScanned": 15,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "chatmcp/mcpso",
+    "stars": 2030,
+    "sha": "ddcdb9d54576baec7ab9929af3bf7d5d71497498",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "benborla/mcp-server-mysql",
+    "stars": 1977,
+    "sha": "27d5b27e4e02a2d651c7708074dde5ea4d833e68",
+    "filesScanned": 44,
+    "verified": 1,
+    "research": 0,
+    "byClass": {
+      "exposed-secret": 1
+    },
+    "byAsi": {
+      "ASI04": 1
+    },
+    "samples": [
+      {
+        "classId": "exposed-secret",
+        "asi": ["ASI04"],
+        "path": "tests/unit/ssl-mtls.test.ts",
+        "line": 48
+      }
+    ]
+  },
+  {
+    "repo": "agentset-ai/agentset",
+    "stars": 2034,
+    "sha": "eb1f187f8722bcb9cca619b5a0b278ca95026d28",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "forloopcodes/contextplus",
+    "stars": 1961,
+    "sha": "1b59b37f313047bd99d95e50ad8e5f0e2e38467f",
+    "filesScanned": 79,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "alpic-ai/skybridge",
+    "stars": 1949,
+    "sha": "adbde82b6074dbbd194e744918c6fe5180c49750",
+    "filesScanned": 628,
+    "verified": 3,
+    "research": 0,
+    "byClass": {
+      "cors-misconfig": 3
+    },
+    "byAsi": {},
+    "samples": [
+      {
+        "classId": "cors-misconfig",
+        "asi": [],
+        "path": "packages/core/src/cli/build-helpers.ts",
+        "line": 63
+      }
+    ]
+  },
+  {
+    "repo": "MCPJam/inspector",
+    "stars": 2079,
+    "sha": "16a7735e8560e76440a5481b2c9682e06ecb4fc8",
+    "filesScanned": 3237,
+    "verified": 40,
+    "research": 0,
+    "byClass": {
+      "unpinned-dependency": 6,
+      "cors-misconfig": 29,
+      "unauth-mcp-transport": 4,
+      "rls-gap": 1
+    },
+    "byAsi": {
+      "ASI04": 6,
+      "ASI02": 4,
+      "ASI07": 4,
+      "ASI03": 1
+    },
+    "samples": [
+      {
+        "classId": "unpinned-dependency",
+        "asi": ["ASI04"],
+        "path": "mcp/package.json",
+        "line": 23
+      },
+      {
+        "classId": "cors-misconfig",
+        "asi": [],
+        "path": "mcp/src/auth.ts",
+        "line": 254
+      },
+      {
+        "classId": "unauth-mcp-transport",
+        "asi": ["ASI02", "ASI07"],
+        "path": "mcpjam-inspector/client/src/components/lifecycle/__tests__/mcp-lifecycle-data.test.ts",
+        "line": 68
+      },
+      {
+        "classId": "rls-gap",
+        "asi": ["ASI03"],
+        "path": "examples/mcp-apps/flashcards-supabase/supabase/schema.sql",
+        "line": 3
+      }
+    ]
+  },
+  {
+    "repo": "microsoft/azure-devops-mcp",
+    "stars": 1909,
+    "sha": "95e76b8d708cc342dd9759e49e16420e19ddb1e0",
+    "filesScanned": 69,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "stacklok/toolhive",
+    "stars": 1975,
+    "sha": "d65af0bb924ba7e0d02bb757ee7f0aa1dd0675a7",
+    "filesScanned": 2257,
+    "verified": 44,
+    "research": 0,
+    "byClass": {
+      "unauth-mcp-transport": 31,
+      "rls-gap": 7,
+      "exposed-secret": 6
+    },
+    "byAsi": {
+      "ASI02": 31,
+      "ASI07": 31,
+      "ASI03": 7,
+      "ASI04": 6
+    },
+    "samples": [
+      {
+        "classId": "unauth-mcp-transport",
+        "asi": ["ASI02", "ASI07"],
+        "path": "cmd/thv-operator/controllers/mcpserver_replicas_test.go",
+        "line": 893
+      },
+      {
+        "classId": "rls-gap",
+        "asi": ["ASI03"],
+        "path": "pkg/storage/sqlite/migrations/001_create_entries_and_skills.sql",
+        "line": 37
+      },
+      {
+        "classId": "exposed-secret",
+        "asi": ["ASI04"],
+        "path": "pkg/authserver/upstream/token_exchange_test.go",
+        "line": 41
+      }
+    ]
+  },
+  {
+    "repo": "samuelgursky/davinci-resolve-mcp",
+    "stars": 1852,
+    "sha": "b54ff6329604218759668be0b1b92b56187e307c",
+    "filesScanned": 435,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "containers/kubernetes-mcp-server",
+    "stars": 1847,
+    "sha": "fbb4c8e563633aa22fc1903d249498cf0a5eb09f",
+    "filesScanned": 555,
+    "verified": 11,
+    "research": 0,
+    "byClass": {
+      "exposed-secret": 10,
+      "cors-misconfig": 1
+    },
+    "byAsi": {
+      "ASI04": 10
+    },
+    "samples": [
+      {
+        "classId": "exposed-secret",
+        "asi": ["ASI04"],
+        "path": "pkg/mcplog/log_test.go",
+        "line": 89
+      },
+      {
+        "classId": "cors-misconfig",
+        "asi": [],
+        "path": "pkg/http/wellknown.go",
+        "line": 440
+      }
+    ]
+  },
+  {
+    "repo": "figma/mcp-server-guide",
+    "stars": 1808,
+    "sha": "07316dd2920d61303ca0e52812b31f5f341e7b15",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "composio-community/awesome-claude-plugins",
+    "stars": 1843,
+    "sha": "6c36e4107e6cba1256578b97eff265294d4e5181",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "jnMetaCode/agency-orchestrator",
+    "stars": 1895,
+    "sha": "e09bdb757c6289f48f3b004bba9954ecf5c34fbc",
+    "filesScanned": 276,
+    "verified": 1,
+    "research": 0,
+    "byClass": {
+      "cors-misconfig": 1
+    },
+    "byAsi": {},
+    "samples": [
+      {
+        "classId": "cors-misconfig",
+        "asi": [],
+        "path": "website/vite.config.ts",
+        "line": 18
+      }
+    ]
+  },
+  {
+    "repo": "GongRzhe/Office-PowerPoint-MCP-Server",
+    "stars": 1843,
+    "sha": "3631ba2ec0c24504476f78bf74d329c9be11caaa",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "MicrosoftDocs/mcp",
+    "stars": 1796,
+    "sha": "caa3d670bf2814171dba4f7346ece5080964021e",
+    "filesScanned": 31,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "OpenAgentPlatform/Dive",
+    "stars": 1802,
+    "sha": "4010d87686b98d07fedf6cf0e0d46342b7b8bace",
+    "filesScanned": 229,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "timescale/pg-aiguide",
+    "stars": 1794,
+    "sha": "b4f11a45907af3abda0f79e784aff9a6d5eef468",
+    "filesScanned": 63,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "korotovsky/slack-mcp-server",
+    "stars": 1752,
+    "sha": "b88c0de3f706f4f07337c9eda7133c736d1c9524",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "ravitemer/mcphub.nvim",
+    "stars": 1785,
+    "sha": "7cd5db330f41b7bae02b2d6202218a061c3ebc1f",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "glidea/zenfeed",
+    "stars": 1699,
+    "sha": "26d34b57dac042ee162f244a0b02e26e5ba7614b",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "asciimoo/hister",
+    "stars": 1674,
+    "sha": "067a0945dbbbaba395fc09b7f463b57c5f9a3eaa",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "Mcp-Brasil/mcp-brasil",
+    "stars": 1689,
+    "sha": "7a7c49cdfc2398eb623a47c60e4b786a86213bdc",
+    "filesScanned": 849,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "mixelpixx/KiCAD-MCP-Server",
+    "stars": 1649,
+    "sha": "9437733f8dd5ddeece507680736024e060e8b62a",
+    "filesScanned": 258,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "Aas-ee/open-webSearch",
+    "stars": 1643,
+    "sha": "3094fa558fce35a8373e45ed5a6c43362e206906",
+    "filesScanned": 93,
+    "verified": 6,
+    "research": 0,
+    "byClass": {
+      "cors-misconfig": 6
+    },
+    "byAsi": {},
+    "samples": [
+      {
+        "classId": "cors-misconfig",
+        "asi": [],
+        "path": "docker-compose.yml",
+        "line": 20
+      }
+    ]
+  },
+  {
+    "repo": "leonardsellem/n8n-mcp-server",
+    "stars": 1631,
+    "sha": "3b97d467ae076564afd2a597a8e986463c227153",
+    "filesScanned": 61,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "jau123/MeiGen-AI-Design-MCP",
+    "stars": 1619,
+    "sha": "68cddce2970f58656ea0878c1d07ff1ba91cda28",
+    "filesScanned": 41,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "f/mcptools",
+    "stars": 1614,
+    "sha": "e7bd7246118384095ba22fd219ff38a1bf1cb792",
+    "filesScanned": 53,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "theNetworkChuck/docker-mcp-tutorial",
+    "stars": 1590,
+    "sha": "baf497fa87f3f04a1d1b937112743d7be9e5218f",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "datagouv/datagouv-mcp",
+    "stars": 1571,
+    "sha": "79ec83487b3b9557e341ead8e54fb957ae0aacd2",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "isaacphi/mcp-language-server",
+    "stars": 1570,
+    "sha": "e4395849a52e18555361abab60a060802c06bf50",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "anysearch-ai/anysearch-mcp-server",
+    "stars": 1562,
+    "sha": "01c5832f8e9e7612cbfcd2be9c5bb9547089e0c4",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "arabold/docs-mcp-server",
+    "stars": 1570,
+    "sha": "5b03d219c55b75a1c99eccd76bc190263c2bbfd4",
+    "filesScanned": 431,
+    "verified": 12,
+    "research": 0,
+    "byClass": {
+      "rls-gap": 9,
+      "unauth-mcp-transport": 3
+    },
+    "byAsi": {
+      "ASI03": 9,
+      "ASI02": 3,
+      "ASI07": 3
+    },
+    "samples": [
+      {
+        "classId": "rls-gap",
+        "asi": ["ASI03"],
+        "path": "db/migrations/002-normalize-library-table.sql",
+        "line": 5
+      },
+      {
+        "classId": "unauth-mcp-transport",
+        "asi": ["ASI02", "ASI07"],
+        "path": "test/mcp-http-e2e.test.ts",
+        "line": 41
+      }
+    ]
+  },
+  {
+    "repo": "rulego/rulego",
+    "stars": 1569,
+    "sha": "652ee41dd9db0e2436047df1a786f698a2ee4a09",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "bitbonsai/mcpvault",
+    "stars": 1560,
+    "sha": "313983bffcfb8e2e6b6c4c9f977cf0bffdc9e8c6",
+    "filesScanned": 44,
+    "verified": 6,
+    "research": 0,
+    "byClass": {
+      "unpinned-dependency": 6
+    },
+    "byAsi": {
+      "ASI04": 6
+    },
+    "samples": [
+      {
+        "classId": "unpinned-dependency",
+        "asi": ["ASI04"],
+        "path": "website/package.json",
+        "line": 34
+      }
+    ]
+  },
+  {
+    "repo": "vibheksoni/stealth-browser-mcp",
+    "stars": 1555,
+    "sha": "e628a050887d527d9c42eed6aac8bd4969d13369",
+    "filesScanned": 42,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "MiniMax-AI/MiniMax-MCP",
+    "stars": 1541,
+    "sha": "f4d6a61ba176d714637c0c1bf7231c6ece019cf9",
+    "filesScanned": 17,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "chrisryugj/kordoc",
+    "stars": 1552,
+    "sha": "483b8b57ab4f82cd01afac10ecd9deadd4e8dd9a",
+    "filesScanned": 273,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "anaisbetts/mcp-installer",
+    "stars": 1533,
+    "sha": "747fbd88aa2e54368f98252fc9e8d228748dc594",
+    "filesScanned": 4,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "mattt/iMCP",
+    "stars": 1503,
+    "sha": "b84f266a7649125a407feb3c303570f1798e04dc",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "elevenlabs/elevenlabs-mcp",
+    "stars": 1486,
+    "sha": "a9426ee256b61ce9a10ad735b620048efd156ea1",
+    "filesScanned": 18,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "777genius/agent-teams-ai",
+    "stars": 1672,
+    "sha": "ff4a89c27c67ea861f18c95ef75c12126a018569",
+    "filesScanned": 4112,
+    "verified": 19,
+    "research": 0,
+    "byClass": {
+      "exposed-secret": 6,
+      "unauth-mcp-transport": 8,
+      "cors-misconfig": 5
+    },
+    "byAsi": {
+      "ASI04": 6,
+      "ASI02": 8,
+      "ASI07": 8
+    },
+    "samples": [
+      {
+        "classId": "exposed-secret",
+        "asi": ["ASI04"],
+        "path": "src/features/member-log-stream/main/application/__tests__/MemberRuntimeLogTailReader.test.ts",
+        "line": 86
+      },
+      {
+        "classId": "unauth-mcp-transport",
+        "asi": ["ASI02", "ASI07"],
+        "path": "test/main/services/extensions/McpInstallationStateService.test.ts",
+        "line": 208
+      },
+      {
+        "classId": "cors-misconfig",
+        "asi": [],
+        "path": "src/main/services/infrastructure/HttpServer.ts",
+        "line": 96
+      }
+    ]
+  },
+  {
+    "repo": "hashicorp/terraform-mcp-server",
+    "stars": 1482,
+    "sha": "8cf391f3489c37a0ec93f83d20c33d296a3512b6",
+    "filesScanned": 126,
+    "verified": 1,
+    "research": 0,
+    "byClass": {
+      "exposed-secret": 1
+    },
+    "byAsi": {
+      "ASI04": 1
+    },
+    "samples": [
+      {
+        "classId": "exposed-secret",
+        "asi": ["ASI04"],
+        "path": "pkg/client/tls_test.go",
+        "line": 36
+      }
+    ]
+  },
+  {
+    "repo": "PaperDebugger/paperdebugger",
+    "stars": 1519,
+    "sha": "527afed307371d213c495e0444f64eb3666c617c",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "qdrant/mcp-server-qdrant",
+    "stars": 1480,
+    "sha": "f1a4d04e4f91c4d3e2b7c63d5283f3f4338fd2e5",
+    "filesScanned": 26,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "BlackSnufkin/LitterBox",
+    "stars": 1493,
+    "sha": "a609527c0b1f4c74ef476a854cddb320897d49bc",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "svnscha/mcp-windbg",
+    "stars": 1474,
+    "sha": "4f3305094d0b8f947c844d7cc8d7914aa1ad2b1b",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "Flux159/mcp-server-kubernetes",
+    "stars": 1471,
+    "sha": "ef7315001151eb40e0991b1db25f0bb01887cb83",
+    "filesScanned": 120,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "Azure/data-api-builder",
+    "stars": 1476,
+    "sha": "2210289c2a8ffeefadf0aa5166ae0cb5a9a5bf98",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "neka-nat/freecad-mcp",
+    "stars": 1453,
+    "sha": "7667e272e1db669ff61dd5411fb4f622691f2dbc",
+    "filesScanned": 28,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "waybarrios/vllm-mlx",
+    "stars": 1461,
+    "sha": "0dd115769ef1196a715b96b181353edacd2a4f69",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "ghostwright/phantom",
+    "stars": 1454,
+    "sha": "f8c7ab42d885936ee54abc785528000260f4acc5",
+    "filesScanned": 573,
+    "verified": 40,
+    "research": 0,
+    "byClass": {
+      "exposed-secret": 39,
+      "unpinned-dependency": 1
+    },
+    "byAsi": {
+      "ASI04": 40
+    },
+    "samples": [
+      {
+        "classId": "exposed-secret",
+        "asi": ["ASI04"],
+        "path": "src/channels/__tests__/slack-http-receiver.test.ts",
+        "line": 693
+      },
+      {
+        "classId": "unpinned-dependency",
+        "asi": ["ASI04"],
+        "path": "package.json",
+        "line": 37
+      }
+    ]
+  },
+  {
+    "repo": "NPC-Worldwide/npcpy",
+    "stars": 1444,
+    "sha": "c187719604c7634e9730fefe506ac6244898d035",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "lucasastorian/llmwiki",
+    "stars": 1421,
+    "sha": "ad626a3d81be1480e35ef4e94234de8dbb27a61e",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "0xSteph/pentest-ai",
+    "stars": 1427,
+    "sha": "e42f8212e270e50b3dbf8dd70cd84e84ac8c15ff",
+    "filesScanned": 540,
+    "verified": 279,
+    "research": 0,
+    "byClass": {
+      "cors-misconfig": 276,
+      "exposed-secret": 3
+    },
+    "byAsi": {
+      "ASI04": 3
+    },
+    "samples": [
+      {
+        "classId": "cors-misconfig",
+        "asi": [],
+        "path": "benchmarks/results/2026-05-12/juice-shop/zap/authed/alerts.json",
+        "line": 14572
+      },
+      {
+        "classId": "exposed-secret",
+        "asi": ["ASI04"],
+        "path": "tests/test_oob_client.py",
+        "line": 219
+      }
+    ]
+  },
+  {
+    "repo": "mnemox-ai/tradememory-protocol",
+    "stars": 1401,
+    "sha": "1c556de3b8d743e99e3259655c749a2b2f837d97",
+    "filesScanned": 360,
+    "verified": 1,
+    "research": 0,
+    "byClass": {
+      "cors-misconfig": 1
+    },
+    "byAsi": {},
+    "samples": [
+      {
+        "classId": "cors-misconfig",
+        "asi": [],
+        "path": "dashboard/vite.config.ts",
+        "line": 13
+      }
+    ]
+  },
+  {
+    "repo": "regenrek/deepwiki-mcp",
+    "stars": 1374,
+    "sha": "d62d749629716a28905da5555922b6f93a654fbf",
+    "filesScanned": 28,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "chunkhound/chunkhound",
+    "stars": 1376,
+    "sha": "9cdfe7a1e66c31c9608b81e0d8ab3b6dff471acf",
+    "filesScanned": 821,
+    "verified": 5,
+    "research": 0,
+    "byClass": {
+      "cors-misconfig": 3,
+      "exposed-secret": 2
+    },
+    "byAsi": {
+      "ASI04": 2
+    },
+    "samples": [
+      {
+        "classId": "cors-misconfig",
+        "asi": [],
+        "path": "tests/test_smoke.py",
+        "line": 843
+      },
+      {
+        "classId": "exposed-secret",
+        "asi": ["ASI04"],
+        "path": "tests/unit/test_codex_error_redaction.py",
+        "line": 36
+      }
+    ]
+  },
+  {
+    "repo": "nickclyde/duckduckgo-mcp-server",
+    "stars": 1369,
+    "sha": "8992977d65a086995c82826ceead42e890aa17c1",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "taielab/awesome-hacking-lists",
+    "stars": 1367,
+    "sha": "edcded737923c9ef3bbe1291c9e9746666db2ece",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "lgazo/drawio-mcp-server",
+    "stars": 1359,
+    "sha": "530342d2d065ee235e81bf9b0ec15d31de1883ec",
+    "filesScanned": 189,
+    "verified": 3,
+    "research": 0,
+    "byClass": {
+      "exposed-secret": 2,
+      "cors-misconfig": 1
+    },
+    "byAsi": {
+      "ASI04": 2
+    },
+    "samples": [
+      {
+        "classId": "exposed-secret",
+        "asi": ["ASI04"],
+        "path": "packages/drawio-mcp-server/src/tls/load.test.ts",
+        "line": 15
+      },
+      {
+        "classId": "cors-misconfig",
+        "asi": [],
+        "path": "packages/drawio-mcp-server/src/index.ts",
+        "line": 163
+      }
+    ]
+  },
+  {
+    "repo": "justrach/codedb",
+    "stars": 1350,
+    "sha": "c6e50fa763a811d35b833a2c784c5522e01622f4",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "designcomputer/mysql_mcp_server",
+    "stars": 1342,
+    "sha": "e25be7fc4e9e79d7efc52eb69d776129429a837f",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "sourcey/sourcey",
+    "stars": 1335,
+    "sha": "7b84dc2b672f97b286be5eab8d4f9f095b9c4d76",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "robotmcp/ros-mcp-server",
+    "stars": 1360,
+    "sha": "f1c023bb5570794ee4d935aa2c7c06e025810952",
+    "filesScanned": 87,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "inkeep/agents",
+    "stars": 1327,
+    "sha": "",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "clone failed"
+  },
+  {
+    "repo": "kimsungwhee/apple-docs-mcp",
+    "stars": 1346,
+    "sha": "28c06cbaa896cb4f89239d30cb20152a74c78cdb",
+    "filesScanned": 1411,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "chigwell/telegram-mcp",
+    "stars": 1332,
+    "sha": "02d0a93929cfeaabd3cbc6b1a993ec32385523a1",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "Prismer-AI/PrismerCloud",
+    "stars": 1416,
+    "sha": "742ef635a5ea05686f9ad42573dbe44db029a632",
+    "filesScanned": 2233,
+    "verified": 147,
+    "research": 0,
+    "byClass": {
+      "rls-gap": 144,
+      "cors-misconfig": 3
+    },
+    "byAsi": {
+      "ASI03": 144
+    },
+    "samples": [
+      {
+        "classId": "rls-gap",
+        "asi": ["ASI03"],
+        "path": "server/src/im/sql/016_hypergraph.sql",
+        "line": 44
+      },
+      {
+        "classId": "cors-misconfig",
+        "asi": [],
+        "path": "server/src/app/evolution/components/studio/v2/templates/blueprint-card.tsx",
+        "line": 186
+      }
+    ]
+  },
+  {
+    "repo": "harishsg993010/damn-vulnerable-MCP-server",
+    "stars": 1321,
+    "sha": "79734c19f5104cd11486c90926d245560f53befa",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "brave/brave-search-mcp-server",
+    "stars": 1323,
+    "sha": "76106c83f9d57319478b540374ba261061d26c3e",
+    "filesScanned": 54,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "steipete/claude-code-mcp",
+    "stars": 1313,
+    "sha": "2e401f3ed81d32435ca6cfe85a3ac1404d318c84",
+    "filesScanned": 24,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "microsoft/azure-skills",
+    "stars": 1320,
+    "sha": "013b97d8aab03ce8cd88944976e9988f8c829746",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "study8677/repobrain",
+    "stars": 1299,
+    "sha": "dbc51687ef5ddef3d87677a99753747bdb5c9fd1",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "joey-zhou/xiaozhi-esp32-server-java",
+    "stars": 1316,
+    "sha": "ccfaec51795fea2f69ba4161c550caf555bbed8e",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "mbailey/voicemode",
+    "stars": 1289,
+    "sha": "5c1b3e4d9421cd365d039da1d29827a0a83a18c7",
+    "filesScanned": 301,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "TanStack/cli",
+    "stars": 1288,
+    "sha": "efbc8d5fb6698dbc4487024d50fe42bbff8c915d",
+    "filesScanned": 605,
+    "verified": 53,
+    "research": 0,
+    "byClass": {
+      "unpinned-dependency": 51,
+      "rls-gap": 2
+    },
+    "byAsi": {
+      "ASI04": 51,
+      "ASI03": 2
+    },
+    "samples": [
+      {
+        "classId": "unpinned-dependency",
+        "asi": ["ASI04"],
+        "path": "examples/react/ecommerce/package.json",
+        "line": 18
+      },
+      {
+        "classId": "rls-gap",
+        "asi": ["ASI03"],
+        "path": "packages/create/src/frameworks/react/add-ons/neon/assets/db/init.sql",
+        "line": 2
+      }
+    ]
+  },
+  {
+    "repo": "Dataojitori/nocturne_memory",
+    "stars": 1276,
+    "sha": "2cbfb8a80a3993f1555ba2c046b824cd77f64c51",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "caol64/wenyan-mcp",
+    "stars": 1281,
+    "sha": "fa81c1d1879634dc41958b9177a57638d62d19eb",
+    "filesScanned": 20,
+    "verified": 1,
+    "research": 0,
+    "byClass": {
+      "unauth-mcp-transport": 1
+    },
+    "byAsi": {
+      "ASI02": 1,
+      "ASI07": 1
+    },
+    "samples": [
+      {
+        "classId": "unauth-mcp-transport",
+        "asi": ["ASI02", "ASI07"],
+        "path": "src/mcpServer.ts",
+        "line": 12
+      }
+    ]
+  },
+  {
+    "repo": "DaxianLee/cocos-mcp-server",
+    "stars": 1252,
+    "sha": "a5db895b3299dccd78979ca0268193e4b6ebf037",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "matlab/matlab-mcp-server",
+    "stars": 1258,
+    "sha": "c7a39e3967ea96dd0cce517dd297891de017dda2",
+    "filesScanned": 934,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "AminForou/mcp-gsc",
+    "stars": 1245,
+    "sha": "377cbfb7d53571052cb2b7b31693674614504060",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "higress-group/himarket",
+    "stars": 1247,
+    "sha": "c39dd0a9885050a19889eac5c1e544bfb212bb89",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "CyberStrikeus/CyberStrike",
+    "stars": 1283,
+    "sha": "",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "clone failed"
+  },
+  {
+    "repo": "refreshdotdev/web-eval-agent",
+    "stars": 1241,
+    "sha": "4e1ad6e2c76a5c9463939f9508fede1f20e10f67",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "philschmid/mcp-cli",
+    "stars": 1235,
+    "sha": "d77672a1ce800ec3fec1f43829909badb2ffbd32",
+    "filesScanned": 27,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "yzfly/douyin-mcp-server",
+    "stars": 1227,
+    "sha": "b0bb8b1fbe4f514bf28099b1471928ebb3716ad2",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "datalayer/jupyter-mcp-server",
+    "stars": 1227,
+    "sha": "7cbe2ce99ce29ad90acfa2426731a4ccfeb3fb69",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "hi-godot/godot-ai",
+    "stars": 1235,
+    "sha": "9b640957aae93fbdf2917951e64c1211ffa98188",
+    "filesScanned": 211,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "Azure/azure-mcp",
+    "stars": 1224,
+    "sha": "54f04ab1ade20b4adc4955cffea0833788307596",
+    "filesScanned": 138,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "better-auth/better-icons",
+    "stars": 1202,
+    "sha": "033316ecb8f4982235af4111a2257e80231f5ab1",
+    "filesScanned": 19,
+    "verified": 1,
+    "research": 0,
+    "byClass": {
+      "unpinned-dependency": 1
+    },
+    "byAsi": {
+      "ASI04": 1
+    },
+    "samples": [
+      {
+        "classId": "unpinned-dependency",
+        "asi": ["ASI04"],
+        "path": "package.json",
+        "line": 43
+      }
+    ]
+  },
+  {
+    "repo": "ridafkih/keeper.sh",
+    "stars": 1211,
+    "sha": "1c274dbe74fce3b8464c8686e1cec63c14e34557",
+    "filesScanned": 854,
+    "verified": 59,
+    "research": 0,
+    "byClass": {
+      "unpinned-dependency": 16,
+      "rls-gap": 41,
+      "cors-misconfig": 2
+    },
+    "byAsi": {
+      "ASI04": 16,
+      "ASI03": 41
+    },
+    "samples": [
+      {
+        "classId": "unpinned-dependency",
+        "asi": ["ASI04"],
+        "path": "services/mcp/package.json",
+        "line": 26
+      },
+      {
+        "classId": "rls-gap",
+        "asi": ["ASI03"],
+        "path": "packages/database/drizzle/0030_youthful_speed.sql",
+        "line": 13
+      },
+      {
+        "classId": "cors-misconfig",
+        "asi": [],
+        "path": "applications/web/vite.config.ts",
+        "line": 56
+      }
+    ]
+  },
+  {
+    "repo": "drhelius/Gearboy",
+    "stars": 1185,
+    "sha": "511189b71b1a9479a3f95fda3e1b833276bf36c5",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "mcpjungle/MCPJungle",
+    "stars": 1173,
+    "sha": "c2a2c8d9fba162c97ad043269ea0c7f3e347437e",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "LycheeMem/LycheeMem",
+    "stars": 1166,
+    "sha": "9c4ba5e5c046d06063cb5159297a73a3ec1eb112",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "OpenOSINT/OpenOSINT",
+    "stars": 1180,
+    "sha": "5af320bc105bf34ba908bdd2d1556e2adf096891",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "GongRzhe/Gmail-MCP-Server",
+    "stars": 1165,
+    "sha": "a890d19189bbc1325b8728fab830fc278cfd8804",
+    "filesScanned": 13,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "keinsaasforever/better-chatbot",
+    "stars": 1164,
+    "sha": "489596fd5200af9bc8588c84269d924f26e3452e",
+    "filesScanned": 571,
+    "verified": 22,
+    "research": 0,
+    "byClass": {
+      "rls-gap": 21,
+      "cors-misconfig": 1
+    },
+    "byAsi": {
+      "ASI03": 21
+    },
+    "samples": [
+      {
+        "classId": "rls-gap",
+        "asi": ["ASI03"],
+        "path": "src/lib/db/migrations/pg/0004_oval_silverclaw.sql",
+        "line": 1
+      },
+      {
+        "classId": "cors-misconfig",
+        "asi": [],
+        "path": "src/app/api/workflow/[id]/execute/route.ts",
+        "line": 101
+      }
+    ]
+  },
+  {
+    "repo": "mex-memory/mex",
+    "stars": 1160,
+    "sha": "43f61fe586095448e681c74c22c5df2e24c79d5b",
+    "filesScanned": 164,
+    "verified": 9,
+    "research": 0,
+    "byClass": {
+      "rls-gap": 9
+    },
+    "byAsi": {
+      "ASI03": 9
+    },
+    "samples": [
+      {
+        "classId": "rls-gap",
+        "asi": ["ASI03"],
+        "path": "src/graph/schema.sql",
+        "line": 57
+      }
+    ]
+  },
+  {
+    "repo": "Zen4-bit/Proxima",
+    "stars": 1152,
+    "sha": "4a223386d09b06955b32a3ce99e399c606d77956",
+    "filesScanned": 290,
+    "verified": 5,
+    "research": 0,
+    "byClass": {
+      "exposed-secret": 2,
+      "unauth-mcp-transport": 3
+    },
+    "byAsi": {
+      "ASI04": 2,
+      "ASI02": 3,
+      "ASI07": 3
+    },
+    "samples": [
+      {
+        "classId": "exposed-secret",
+        "asi": ["ASI04"],
+        "path": "tests/utils/codebase-packer.test.js",
+        "line": 31
+      },
+      {
+        "classId": "unauth-mcp-transport",
+        "asi": ["ASI02", "ASI07"],
+        "path": "tests/mcp/ipc-bridge.test.js",
+        "line": 13
+      }
+    ]
+  },
+  {
+    "repo": "ref-tools/ref-tools-mcp",
+    "stars": 1143,
+    "sha": "83970a35627785a0589ae2dbe5510b4a3dd04146",
+    "filesScanned": 9,
+    "verified": 1,
+    "research": 0,
+    "byClass": {
+      "cors-misconfig": 1
+    },
+    "byAsi": {},
+    "samples": [
+      {
+        "classId": "cors-misconfig",
+        "asi": [],
+        "path": "index.ts",
+        "line": 411
+      }
+    ]
+  },
+  {
+    "repo": "sheshbabu/zen",
+    "stars": 1127,
+    "sha": "c8e14d70de7de631cd9d4cda55daccf227283d92",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "polterguy/magic",
+    "stars": 1155,
+    "sha": "",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "clone failed"
+  },
+  {
+    "repo": "Joooook/12306-mcp",
+    "stars": 1118,
+    "sha": "0961414312ed7a8f6d6b8e4e7a5f28e9799b4bf3",
+    "filesScanned": 8,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "pipeboard-co/meta-ads-mcp",
+    "stars": 1107,
+    "sha": "3b612c7d59646c76cc544d2d224baa550ca6b046",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "jaw9c/awesome-remote-mcp-servers",
+    "stars": 1095,
+    "sha": "302ea1c4a9f185a823e3f5fe7991b93a851ec565",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "mukul975/cve-mcp-server",
+    "stars": 1095,
+    "sha": "d666bac3743574cecc98bcbf524558c2bf0d8e61",
+    "filesScanned": 54,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "mongodb-js/mongodb-mcp-server",
+    "stars": 1087,
+    "sha": "b5c6f198f7f9f939701aa81ce31d0550e5d54e3c",
+    "filesScanned": 545,
+    "verified": 5,
+    "research": 0,
+    "byClass": {
+      "exposed-secret": 3,
+      "unauth-mcp-transport": 2
+    },
+    "byAsi": {
+      "ASI04": 3,
+      "ASI02": 2,
+      "ASI07": 2
+    },
+    "samples": [
+      {
+        "classId": "exposed-secret",
+        "asi": ["ASI04"],
+        "path": "tests/unit/resources/common/config.test.ts",
+        "line": 54
+      },
+      {
+        "classId": "unauth-mcp-transport",
+        "asi": ["ASI02", "ASI07"],
+        "path": "src/transports/mcpHttpServer.ts",
+        "line": 126
+      }
+    ]
+  },
+  {
+    "repo": "Mibayy/token-savior",
+    "stars": 1087,
+    "sha": "3d6fe2d1f89ac3f1209e9abad857add2b6f7f7e4",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "saidsurucu/yargi-mcp",
+    "stars": 1080,
+    "sha": "6eb86d0a9a5f3ad2ff1f2c4ea02a070d012fb658",
+    "filesScanned": 66,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "miscusi-peek/cheatengine-mcp-bridge",
+    "stars": 1080,
+    "sha": "ca299481afd6e86faf73dc874ed178e7dd3c3c33",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "iFurySt/RedNote-MCP",
+    "stars": 1079,
+    "sha": "74bf739a3db5c5b8e86fc8323ede09038cd89f48",
+    "filesScanned": 15,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "ihor-sokoliuk/mcp-searxng",
+    "stars": 1073,
+    "sha": "cf545d041cf3471e9522ee7bb2bc6bbdd59d5d18",
+    "filesScanned": 79,
+    "verified": 4,
+    "research": 0,
+    "byClass": {
+      "unauth-mcp-transport": 4
+    },
+    "byAsi": {
+      "ASI02": 4,
+      "ASI07": 4
+    },
+    "samples": [
+      {
+        "classId": "unauth-mcp-transport",
+        "asi": ["ASI02", "ASI07"],
+        "path": "__tests__/integration/mcp-handlers.test.ts",
+        "line": 606
+      }
+    ]
+  },
+  {
+    "repo": "nduckmink/arkon",
+    "stars": 1076,
+    "sha": "5e4069df67b80b3ebcea1a4e841196b6f263d28e",
+    "filesScanned": 263,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "jae-jae/fetcher-mcp",
+    "stars": 1069,
+    "sha": "8754aff66e3d9207502207bf82a493f45f556bb8",
+    "filesScanned": 23,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "mohitagw15856/pm-claude-skills",
+    "stars": 1220,
+    "sha": "34d8a3705615ddc7e597c0ca889624732a69f1a6",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "mrkrsl/web-search-mcp",
+    "stars": 1053,
+    "sha": "eeb03f88525cbf74c4019e59a3fea45a537a760b",
+    "filesScanned": 20,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "YuzeHao2023/Awesome-MCP-Servers",
+    "stars": 1051,
+    "sha": "4136c6583971307cf7cc6cd9c336626272c1c207",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "TencentCloudBase/CloudBase-AI-Toolkit",
+    "stars": 1066,
+    "sha": "0da41fe20addd98e161111fb754e05d35112502e",
+    "filesScanned": 339,
+    "verified": 55,
+    "research": 0,
+    "byClass": {
+      "unbounded-tool-param": 39,
+      "cors-misconfig": 6,
+      "unauth-mcp-transport": 5,
+      "missing-schema-validation": 5
+    },
+    "byAsi": {
+      "ASI02": 49,
+      "ASI05": 44,
+      "ASI07": 5
+    },
+    "samples": [
+      {
+        "classId": "unbounded-tool-param",
+        "asi": ["ASI02", "ASI05"],
+        "path": "scripts/tools.json",
+        "line": 1774
+      },
+      {
+        "classId": "cors-misconfig",
+        "asi": [],
+        "path": "mcp/src/tools/env.ts",
+        "line": 1862
+      },
+      {
+        "classId": "unauth-mcp-transport",
+        "asi": ["ASI02", "ASI07"],
+        "path": "mcp/src/interactive-server.ts",
+        "line": 673
+      },
+      {
+        "classId": "missing-schema-validation",
+        "asi": ["ASI02", "ASI05"],
+        "path": "scripts/tools.json",
+        "line": 434
+      }
+    ]
+  },
+  {
+    "repo": "agentrq/agentrq",
+    "stars": 1051,
+    "sha": "8d37807bd47f10d56c0d1c3a40a4a2fd958bde9f",
+    "filesScanned": 135,
+    "verified": 10,
+    "research": 0,
+    "byClass": {
+      "exposed-secret": 7,
+      "cors-misconfig": 3
+    },
+    "byAsi": {
+      "ASI04": 7
+    },
+    "samples": [
+      {
+        "classId": "exposed-secret",
+        "asi": ["ASI04"],
+        "path": "backend/internal/controller/slack/slack_test.go",
+        "line": 589
+      },
+      {
+        "classId": "cors-misconfig",
+        "asi": [],
+        "path": "backend/internal/app/app.go",
+        "line": 940
+      }
+    ]
+  },
+  {
+    "repo": "jerry-ai-dev/MODULAR-RAG-MCP-SERVER",
+    "stars": 1046,
+    "sha": "f658c5a4011c8b826707a65a3b11ce9301b0626f",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "irinabuht12-oss/google-meta-ads-ga4-mcp",
+    "stars": 1043,
+    "sha": "eb87b027ebbc62844c06116a3b1071b83567e3a5",
+    "filesScanned": 0,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": [],
+    "error": "not-an-mcp-server"
+  },
+  {
+    "repo": "openops-cloud/openops",
+    "stars": 1058,
+    "sha": "f251a5da1fb82f390392066cca083516ea64475a",
+    "filesScanned": 3188,
+    "verified": 3,
+    "research": 0,
+    "byClass": {
+      "exposed-secret": 1,
+      "cors-misconfig": 2
+    },
+    "byAsi": {
+      "ASI04": 1
+    },
+    "samples": [
+      {
+        "classId": "exposed-secret",
+        "asi": ["ASI04"],
+        "path": "packages/openops/test/aws/auth.test.ts",
+        "line": 25
+      },
+      {
+        "classId": "cors-misconfig",
+        "asi": [],
+        "path": "packages/react-ui/vite.config.ts",
+        "line": 18
+      }
+    ]
+  },
+  {
+    "repo": "jordanrendric/claude-video-vision",
+    "stars": 1042,
+    "sha": "5c8bc7ba32b727c7f97e9a7b336a775e0c6cd911",
+    "filesScanned": 52,
+    "verified": 0,
+    "research": 0,
+    "byClass": {},
+    "byAsi": {},
+    "samples": []
+  },
+  {
+    "repo": "sceneview/sceneview",
+    "stars": 1267,
+    "sha": "c18c3c8a7f3065cb83cb9833eedd6829d90db18e",
+    "filesScanned": 432,
+    "verified": 17,
+    "research": 0,
+    "byClass": {
+      "cors-misconfig": 7,
+      "unauth-mcp-transport": 3,
+      "rls-gap": 7
+    },
+    "byAsi": {
+      "ASI02": 3,
+      "ASI07": 3,
+      "ASI03": 7
+    },
+    "samples": [
+      {
+        "classId": "cors-misconfig",
+        "asi": [],
+        "path": "samples/web-demo/tests/model-sources.spec.ts",
+        "line": 59
+      },
+      {
+        "classId": "unauth-mcp-transport",
+        "asi": ["ASI02", "ASI07"],
+        "path": "mcp/packages/rerun/src/python-sidecar.ts",
+        "line": 213
+      },
+      {
+        "classId": "rls-gap",
+        "asi": ["ASI03"],
+        "path": "mcp-gateway/migrations/0001_init.sql",
+        "line": 18
+      }
+    ]
   }
 ]

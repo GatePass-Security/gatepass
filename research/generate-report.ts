@@ -30,6 +30,23 @@ interface Aggregate {
   byClass: Record<string, { repos: number; findings: number }>;
 }
 
+/**
+ * Classes that are specific to AGENTIC infrastructure. The distinction is load-bearing for
+ * honesty: a CORS misconfiguration in an MCP server's HTTP layer is a general web issue that
+ * happens to live in an MCP repo, not evidence about MCP security. Headline claims about
+ * "MCP security" must be driven by this set; the general classes are reported separately.
+ */
+const AGENTIC_CLASSES = new Set([
+  "tool-poisoning",
+  "hbv",
+  "unbounded-tool-param",
+  "missing-schema-validation",
+  "unauth-mcp-transport",
+  "confused-deputy",
+  "cross-surface-scope-mismatch",
+  "over-permissioned-loop",
+]);
+
 const CLASS_TITLES: Record<string, string> = {
   "exposed-secret": "Hardcoded secret / credential",
   "cors-misconfig": "Wildcard CORS with credentials",
@@ -45,9 +62,32 @@ const CLASS_TITLES: Record<string, string> = {
   "cross-surface-scope-mismatch": "Tool scope vs client scope mismatch",
 };
 
+interface RawRepo {
+  repo: string;
+  error?: string;
+  verified: number;
+  byClass: Record<string, number>;
+}
+
 async function main() {
   const agg: Aggregate = JSON.parse(await fs.readFile(path.join(OUT, "mcp-survey-aggregate.json"), "utf8"));
+  const raw: RawRepo[] = JSON.parse(await fs.readFile(path.join(OUT, "mcp-survey-raw.json"), "utf8"));
   const pct = (n: number) => (agg.reposScanned ? ((n / agg.reposScanned) * 100).toFixed(0) : "0");
+
+  // Split general app-security findings from agentic-specific ones.
+  const scannedRepos = raw.filter((r) => !r.error);
+  const agenticRepos = scannedRepos.filter((r) => Object.keys(r.byClass ?? {}).some((c) => AGENTIC_CLASSES.has(c)));
+  const agenticPct = agg.reposScanned ? ((agenticRepos.length / agg.reposScanned) * 100).toFixed(1) : "0";
+  const affectedCounts = scannedRepos
+    .filter((r) => r.verified > 0)
+    .map((r) => r.verified)
+    .sort((a, b) => a - b);
+  const medianFindings = affectedCounts[Math.floor(affectedCounts.length / 2)] ?? 0;
+  const agenticClassRows = Object.entries(agg.byClass)
+    .filter(([cls]) => AGENTIC_CLASSES.has(cls))
+    .sort((a, b) => b[1].repos - a[1].repos)
+    .map(([cls, v]) => `| ${CLASS_TITLES[cls] ?? cls} | \`${cls}\` | ${v.repos} (${pct(v.repos)}%) | ${v.findings} |`)
+    .join("\n");
 
   const asiRows = ASI_CATEGORIES.filter((c) => (agg.byAsi[c.id]?.repos ?? 0) > 0)
     .sort((a, b) => (agg.byAsi[b.id]!.repos ?? 0) - (agg.byAsi[a.id]!.repos ?? 0))
@@ -78,15 +118,40 @@ results, including commit SHAs, are in [\`mcp-survey-raw.json\`](./mcp-survey-ra
 ## Headline
 
 We scanned **${agg.reposScanned} public MCP server repositories** (${agg.totalFilesScanned.toLocaleString()} source files)
-with a deterministic static engine — no LLM involved — and found that
-**${agg.reposWithAtLeastOneVerifiedFinding} of them (${agg.percentAffected}%) contain at least one verified
-security finding** mapped to the [OWASP Top 10 for Agentic Applications (2026)](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/).
+with a deterministic static engine — no LLM involved. Two numbers matter, and we report both
+because they mean different things:
 
-Total verified findings: **${agg.totalVerifiedFindings.toLocaleString()}**.
+| | Repos | Share |
+|---|---|---|
+| **Have an agentic-infrastructure vulnerability** (MCP transport, tool definitions, agent scope) | **${agenticRepos.length}** | **${agenticPct}%** |
+| Have any verified finding, including general web/app issues | ${agg.reposWithAtLeastOneVerifiedFinding} | ${agg.percentAffected}% |
+
+**The first row is the claim about MCP security.** Roughly **one in seven public MCP servers
+ships an agentic-infrastructure vulnerability** — overwhelmingly an MCP transport exposed with
+no authentication.
+
+The second row is larger but less specific: it includes CORS misconfiguration, hardcoded
+secrets, and missing row-level security. Those are real findings in real MCP repositories, but
+they are *general application security* issues that happen to live in an MCP codebase. Reporting
+them as "MCP security" would inflate the story, so we separate them.
+
+Total verified findings: **${agg.totalVerifiedFindings.toLocaleString()}**, though the distribution is
+heavily skewed — the median affected repository has **${medianFindings}** findings, while a handful of large
+repositories account for hundreds each. Repository-level rates (above) are the robust statistic;
+raw finding totals are not.
 
 "Verified" has a specific meaning here: every finding carries a machine-checked reproduction —
 a file and line that provably exists in the scanned commit. Nothing in this report is a
-heuristic guess or a model's opinion.
+heuristic guess or a model's opinion. A random sample was independently re-checked against the
+source at the recorded commit SHA (\`research/out/verification.json\`).
+
+## The agentic findings
+
+These are the MCP/agent-specific classes — the subject of this report.
+
+| Class | ID | Repos affected | Findings |
+|---|---|---|---|
+${agenticClassRows}
 
 ## Findings by OWASP ASI category
 
@@ -94,7 +159,10 @@ heuristic guess or a model's opinion.
 |---|---|---|
 ${asiRows}
 
-## Findings by vulnerability class
+## All findings by vulnerability class
+
+Includes the general application-security classes. These are genuine findings in MCP server
+repositories, but they are not evidence about MCP/agentic security specifically.
 
 | Class | ID | Repos affected | Findings |
 |---|---|---|---|

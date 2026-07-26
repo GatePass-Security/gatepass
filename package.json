@@ -29,7 +29,8 @@
     "scan": "tsx cli/src/index.ts",
     "research:scan-mcp": "tsx research/scan-public-mcp.ts",
     "benchmark:determinism": "tsx benchmark/src/determinism.ts",
-    "research:report": "tsx research/generate-report.ts"
+    "research:report": "tsx research/generate-report.ts",
+    "research:verify": "tsx research/verify-sample.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
