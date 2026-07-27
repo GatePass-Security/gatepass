@@ -98,7 +98,7 @@ export function Sidebar() {
           <Menu size={20} />
         </button>
 
-        <Link href="/" className="flex items-center gap-2">
+        <Link href="/dashboard" className="flex items-center gap-2">
           <div className="flex h-7 w-7 items-center justify-center rounded-md bg-[#0D9488]">
             <Shield size={14} className="text-white" />
           </div>

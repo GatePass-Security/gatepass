@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="370" viewBox="0 0 320 370" fill="none">
+<defs>
+  <linearGradient id="sheen" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#ffffff" stop-opacity="0.05"/>
+    <stop offset="55%" stop-color="#ffffff" stop-opacity="0"/>
+  </linearGradient>
+  <clipPath id="clip"><rect width="320" height="370" rx="24"/></clipPath>
+</defs>
+<g clip-path="url(#clip)">
+  <rect width="320" height="370" rx="24" fill="#0a0a0c"/>
+  <rect width="320" height="370" rx="24" fill="url(#sheen)"/>
+  <rect x="0" y="0" width="320" height="44" rx="0" fill="#0e0e11"/>
+<rect x="0" y="43.5" width="320" height="1" rx="0" fill="#26262b"/>
+<circle cx="20" cy="22" r="4" fill="#f87171"/><circle cx="34" cy="22" r="4" fill="#1a1a1e"/><circle cx="48" cy="22" r="4" fill="#1a1a1e"/>
+<text x="66" y="26" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11.5" font-weight="400" fill="#83838d" text-anchor="start">src/transports/http.ts</text>
+<rect x="24" y="64" width="44.4" height="22" rx="11" fill="none" stroke="#f87171" opacity="0.55"/>
+<text x="46.2" y="79" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10" font-weight="600" fill="#f87171" text-anchor="middle" letter-spacing="0.5">HIGH</text>
+<text x="24" y="118" font-family="'Inter Tight', Inter, system-ui, -apple-system, sans-serif" font-size="17" font-weight="500" fill="#e6e6e8" text-anchor="start">Unauthenticated</text>
+<text x="24" y="140" font-family="'Inter Tight', Inter, system-ui, -apple-system, sans-serif" font-size="17" font-weight="500" fill="#e6e6e8" text-anchor="start">MCP transport</text>
+<rect x="24" y="162" width="272" height="138" rx="12" fill="#0e0e11" stroke="#1a1a1e"/>
+<text x="38" y="190" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" font-weight="400" fill="#5c5c66" text-anchor="start"> 1</text><text x="64" y="190" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" font-weight="400" fill="#a78bfa" text-anchor="start" xml:space="preserve">const</text><text x="97" y="190" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" font-weight="400" fill="#e6e6e8" text-anchor="start" xml:space="preserve"> srv = http</text>
+<text x="38" y="209" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" font-weight="400" fill="#5c5c66" text-anchor="start"> 2</text><text x="64" y="209" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" font-weight="400" fill="#e6e6e8" text-anchor="start" xml:space="preserve">  .createServer(app)</text>
+<rect x="28" y="215" width="244" height="19" rx="4" fill="#2a1315"/><rect x="28" y="215" width="2" height="19" rx="0" fill="#f87171"/><text x="38" y="228" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" font-weight="400" fill="#5c5c66" text-anchor="start"> 3</text><text x="64" y="228" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" font-weight="400" fill="#e6e6e8" text-anchor="start" xml:space="preserve">srv.listen(</text><text x="136.6" y="228" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" font-weight="400" fill="#fbbf24" text-anchor="start" xml:space="preserve">3000</text><text x="163" y="228" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" font-weight="400" fill="#e6e6e8" text-anchor="start" xml:space="preserve">)</text>
+<text x="38" y="247" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" font-weight="400" fill="#5c5c66" text-anchor="start"> 4</text><text x="64" y="247" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" font-weight="400" fill="#5c5c66" text-anchor="start" xml:space="preserve">// no auth guard</text>
+<text x="38" y="266" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" font-weight="400" fill="#5c5c66" text-anchor="start"> 5</text><text x="64" y="266" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" font-weight="400" fill="#5c5c66" text-anchor="start" xml:space="preserve">// binds 0.0.0.0</text>
+<text x="24" y="326" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" font-weight="400" fill="#2dd4bf" text-anchor="start">ASI02 · Tool Misuse</text>
+<text x="24" y="348" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" font-weight="400" fill="#83838d" text-anchor="start">the most common real finding</text>
+</g>
+<rect x="0.5" y="0.5" width="319" height="369" rx="23.5" stroke="#26262b"/>
+</svg>

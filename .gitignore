@@ -59,3 +59,4 @@ research/scan-log.txt
 research/out/mcp-survey-raw.json
 research/out/verification.json
 research/out/disclosure-worklist.md
+.gstack/
