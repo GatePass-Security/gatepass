@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle2, XCircle, Zap, Shield, DollarSign, Clock, RefreshCw, Cpu } from "lucide-react";
+import { CheckCircle2, XCircle, Shield, DollarSign, Clock, RefreshCw } from "lucide-react";
 
 interface ScannerData {
   id: string;

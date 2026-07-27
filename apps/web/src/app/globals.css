@@ -248,3 +248,58 @@
 .animate-toast-exit {
   animation: toast-exit 200ms var(--duration-fast) forwards;
 }
+
+/* ── Radar Sweep & Node Pulse Animations ── */
+@keyframes radar-sweep {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes node-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(45, 212, 191, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(45, 212, 191, 0);
+  }
+}
+
+@keyframes node-pulse-warning {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(245, 158, 11, 0);
+  }
+}
+
+.animate-radar-sweep {
+  animation: radar-sweep 8s linear infinite;
+}
+
+.animate-node-pulse {
+  animation: node-pulse 3s infinite;
+}
+
+.animate-node-pulse-warning {
+  animation: node-pulse-warning 3s infinite;
+}
+
+/* ── Bento Card Glassmorphism & Dark Glow ── */
+.bento-card {
+  background-color: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(51, 65, 85, 0.6);
+  backdrop-filter: blur(12px);
+  border-radius: 1rem;
+  transition: all 0.25s ease-in-out;
+}
+
+.bento-card:hover {
+  border-color: rgba(45, 212, 191, 0.4);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4), 0 0 20px rgba(13, 148, 136, 0.15);
+}
+

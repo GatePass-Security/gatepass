@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { ArrowRight, ArrowUpRight } from "lucide-react";
 import { LandingNav } from "@/components/landing/LandingNav";
 import { DetectionSlider } from "@/components/landing/DetectionSlider";
@@ -21,9 +20,9 @@ import "@/styles/landing.css";
 
 /** Outbound destinations. Edit these once the real URLs exist. */
 const SITE = {
-  install: "/dashboard",
-  docs: "/docs",
-  benchmarkReport: "/benchmark",
+  install: "#start",
+  docs: "https://github.com/gatepass-dev/gatepass#readme",
+  benchmarkReport: "#benchmarks",
   github: "https://github.com/gatepass-dev/gatepass",
   contact: "mailto:founders@gatepass.dev",
 };
@@ -144,7 +143,6 @@ export default function LandingPage() {
             <Reveal>
               <span className="gp-eyebrow">
                 <span className="gp-eyebrow-dot" aria-hidden="true" />
-                {/* One text node so it wraps as a sentence rather than as flex items. */}
                 <span>
                   We scanned <b>168 public MCP servers</b>. 1 in 9 shipped a vulnerability.
                 </span>
@@ -169,9 +167,9 @@ export default function LandingPage() {
 
             <Reveal delay={3}>
               <div className="gp-buttons-row">
-                <Link className="gp-btn gp-btn-primary" href={SITE.install}>
+                <a className="gp-btn gp-btn-primary" href="#start">
                   Scan your repo
-                </Link>
+                </a>
                 <a className="gp-btn gp-btn-secondary" href="#benchmarks">
                   See the benchmarks
                 </a>
@@ -180,7 +178,7 @@ export default function LandingPage() {
           </div>
         </div>
 
-        {/* Infinite marquee. The track is duplicated so the loop seam is invisible. */}
+        {/* Infinite marquee */}
         <div className="gp-marquee-stage" aria-hidden="true">
           <div className="gp-marquee-row">
             {[0, 1].map((copy) => (
@@ -280,9 +278,6 @@ export default function LandingPage() {
           <Reveal>
             <div className="gp-svc-list" role="list">
               {SERVICES.map((s) => (
-                /* Each bar is a flex item whose expansion panel uses grid-template-rows
-                   0fr → 1fr to animate height smoothly on hover. focus-within keeps the
-                   accordion usable from the keyboard. */
                 <div key={s.title} className="gp-svc" role="listitem">
                   <button type="button" className="gp-svc-trigger" aria-label={`Expand ${s.title}`}>
                     <span className="gp-svc-title">{s.title}</span>
@@ -315,9 +310,9 @@ export default function LandingPage() {
               agent installed, nothing written to your repository.
             </p>
             <div className="gp-buttons-row">
-              <Link className="gp-btn gp-btn-primary" href={SITE.install}>
+              <a className="gp-btn gp-btn-primary" href="#start">
                 Scan your repo
-              </Link>
+              </a>
               <a className="gp-btn gp-btn-secondary" href={SITE.contact}>
                 Talk to the founders
               </a>
@@ -326,12 +321,12 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ─────────────── 05 · Benchmarks (Cinemaflow Single Blog Format) ─────────────── */}
+      {/* ─────────────── 05 · Benchmarks ─────────────── */}
       <Divider index="05" label="Benchmarks" />
       <section className="gp-section" id="benchmarks" style={{ paddingTop: 0 }}>
         <div className="gp-container">
           <div className="gp-bench-layout">
-            {/* ── Left Sticky Sidebar (Cinemaflow Blog Format) ── */}
+            {/* Left Sidebar */}
             <Reveal className="gp-bench-sidebar">
               <div className="gp-bench-author-label">Written by</div>
               <div className="gp-bench-author-row">
@@ -384,7 +379,7 @@ export default function LandingPage() {
               </div>
             </Reveal>
 
-            {/* ── Right Content Column (Clean Table & Analysis) ── */}
+            {/* Right Content */}
             <div className="gp-bench-content">
               <Reveal>
                 <h2 className="gp-bench-h2">Understanding the benchmark methodology</h2>
@@ -394,7 +389,6 @@ export default function LandingPage() {
                 </p>
               </Reveal>
 
-              {/* ── Restored Clean 24-Case Table ── */}
               <Reveal delay={1}>
                 <h3 className="gp-bench-h3">24-Case Scoring Matrix</h3>
                 <div className="gp-table-wrap" style={{ marginTop: 16 }}>
@@ -447,10 +441,10 @@ export default function LandingPage() {
                 <BenchmarkVisualCard />
 
                 <div style={{ marginTop: 20 }}>
-                  <Link className="gp-link" href={SITE.benchmarkReport}>
+                  <a className="gp-link" href="#benchmarks">
                     Read the full method and re-run it yourself
                     <ArrowUpRight size={16} />
-                  </Link>
+                  </a>
                 </div>
               </Reveal>
             </div>
@@ -471,12 +465,12 @@ export default function LandingPage() {
               says so.
             </p>
             <div className="gp-buttons-row">
-              <Link className="gp-btn gp-btn-primary" href={SITE.install}>
-                Scan your repo
-              </Link>
-              <a className="gp-btn gp-btn-secondary" href={SITE.github}>
-                View the source
+              <a className="gp-btn gp-btn-primary" href={SITE.github} target="_blank" rel="noreferrer">
+                Get started on GitHub
                 <ArrowUpRight size={18} />
+              </a>
+              <a className="gp-btn gp-btn-secondary" href={SITE.contact}>
+                Contact sales
               </a>
             </div>
             <p className="gp-small" style={{ marginTop: 28 }}>
@@ -513,10 +507,10 @@ export default function LandingPage() {
                   <a href="#how">How it works</a>
                 </li>
                 <li>
-                  <a href="#coverage">Coverage</a>
+                  <a href="#services">Surfaces</a>
                 </li>
                 <li>
-                  <Link href={SITE.install}>Dashboard</Link>
+                  <a href="#start">Get started</a>
                 </li>
               </ul>
             </div>
@@ -528,13 +522,13 @@ export default function LandingPage() {
                   <a href="#benchmarks">Benchmarks</a>
                 </li>
                 <li>
-                  <a href="#research">MCP security survey</a>
+                  <a href="#services">MCP security survey</a>
                 </li>
                 <li>
-                  <Link href={SITE.benchmarkReport}>Precision report</Link>
+                  <a href="#benchmarks">Precision report</a>
                 </li>
                 <li>
-                  <Link href="/compliance">Compliance</Link>
+                  <a href="#services">Compliance</a>
                 </li>
               </ul>
             </div>
@@ -543,16 +537,16 @@ export default function LandingPage() {
               <h4>Company</h4>
               <ul>
                 <li>
-                  <Link href={SITE.docs}>Documentation</Link>
+                  <a href={SITE.docs} target="_blank" rel="noreferrer">Documentation</a>
                 </li>
                 <li>
-                  <a href={SITE.github}>GitHub</a>
+                  <a href={SITE.github} target="_blank" rel="noreferrer">GitHub</a>
                 </li>
                 <li>
                   <a href={SITE.contact}>Contact</a>
                 </li>
                 <li>
-                  <Link href="/support">Support</Link>
+                  <a href={SITE.contact}>Support</a>
                 </li>
               </ul>
             </div>

@@ -14,14 +14,15 @@ import {
   Lightbulb,
   HelpCircle,
   FileText,
-  Upload,
+  LayoutDashboard,
 } from "lucide-react";
 import { useOrg } from "@/providers/OrgProvider";
 import { useEffect, useState } from "react";
 
 const NAV_ITEMS = [
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/findings", label: "Findings", icon: Search },
-  { href: "/agent-guidance", label: "Guidance", icon: Lightbulb },
+  { href: "/agent-guidance", label: "Agent Guidance", icon: Lightbulb },
   { href: "/fleet", label: "Fleet", icon: Server },
   { href: "/benchmark", label: "Benchmark", icon: BarChart3 },
   { href: "/compliance", label: "Compliance", icon: FileCheck },
@@ -30,7 +31,7 @@ const NAV_ITEMS = [
 
 const FOOTER_ITEMS = [
   { href: "/support", label: "Support", icon: HelpCircle },
-  { href: "/docs", label: "Documentation", icon: FileText },
+  { href: "/docs", label: "Docs", icon: FileText },
 ];
 
 export function Sidebar() {
@@ -38,12 +39,10 @@ export function Sidebar() {
   const { org } = useOrg();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  // Close mobile nav on route change
   useEffect(() => {
     setMobileOpen(false);
   }, [pathname]);
 
-  // Prevent body scroll when mobile nav is open
   useEffect(() => {
     if (mobileOpen) {
       document.body.style.overflow = "hidden";
@@ -57,29 +56,29 @@ export function Sidebar() {
 
   const planBadgeColors: Record<string, string> = {
     free: "bg-gatepass-100 text-gatepass-600",
-    team: "bg-blue-100 text-blue-700",
-    scale: "bg-emerald-100 text-emerald-700",
+    team: "bg-blue-50 text-blue-700",
+    scale: "bg-emerald-50 text-emerald-700",
   };
 
-  // Shared nav item render logic
-  function renderNavItem(item: {
-    href: string;
-    label: string;
-    icon: React.ComponentType<{ size: number; className?: string }>;
-  }) {
-    const isActive = pathname.startsWith(item.href);
+  function renderNavItem(item: (typeof NAV_ITEMS)[number]) {
+    const isActive =
+      pathname === item.href ||
+      (item.href !== "/dashboard" && pathname.startsWith(item.href));
 
     return (
       <li key={item.href}>
         <Link
           href={item.href}
-          className={`flex items-center gap-3 rounded-md px-4 py-3 text-sm font-medium transition-colors duration-150 ${
+          className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
             isActive
-              ? "border-l-[3px] border-l-[#0D9488] bg-teal-50 text-[#0D9488] dark:bg-teal-950/40"
-              : "border-l-[3px] border-l-transparent text-gatepass-600 hover:bg-gatepass-50 hover:text-gatepass-900 dark:text-gatepass-300 dark:hover:bg-gatepass-800 dark:hover:text-gatepass-100"
+              ? "bg-[#0D9488]/10 text-[#0D9488]"
+              : "text-gatepass-600 hover:bg-gatepass-50 hover:text-gatepass-900"
           }`}
         >
-          <item.icon size={20} className={`shrink-0 ${isActive ? "text-[#0D9488]" : "text-gatepass-400"}`} />
+          <item.icon
+            size={16}
+            className={isActive ? "text-[#0D9488]" : "text-gatepass-400"}
+          />
           <span>{item.label}</span>
         </Link>
       </li>
@@ -88,8 +87,8 @@ export function Sidebar() {
 
   return (
     <>
-      {/* ── Mobile top bar ── */}
-      <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between border-b border-gatepass-200 bg-white px-4 h-14 md:hidden dark:border-gatepass-800 dark:bg-gatepass-900">
+      {/* Mobile top bar */}
+      <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between border-b border-gatepass-200 bg-white px-4 h-14 md:hidden">
         <button
           onClick={() => setMobileOpen(true)}
           className="flex items-center justify-center rounded-lg p-2 -ml-2 text-gatepass-600 hover:bg-gatepass-100 transition-colors"
@@ -97,41 +96,45 @@ export function Sidebar() {
         >
           <Menu size={20} />
         </button>
-
         <Link href="/dashboard" className="flex items-center gap-2">
           <div className="flex h-7 w-7 items-center justify-center rounded-md bg-[#0D9488]">
             <Shield size={14} className="text-white" />
           </div>
-          <span className="text-sm font-semibold text-gatepass-900">Gatepass</span>
+          <span className="text-sm font-semibold text-gatepass-900">
+            Gatepass
+          </span>
         </Link>
-
         <div className="w-9" />
       </header>
 
-      {/* ── Spacer for mobile top bar ── */}
+      {/* Mobile spacer */}
       <div className="h-14 md:hidden" />
 
-      {/* ── Mobile overlay ── */}
+      {/* Mobile overlay */}
       {mobileOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm md:hidden"
+          className="fixed inset-0 z-40 bg-black/30 md:hidden"
           onClick={() => setMobileOpen(false)}
         />
       )}
 
-      {/* ── Sidebar ── */}
+      {/* Sidebar */}
       <aside
-        className={`fixed md:static inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-gatepass-200 bg-white transition-transform duration-300 ease-out dark:border-gatepass-800 dark:bg-gatepass-900 ${
-          mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
-        } shadow-xl md:shadow-none`}
+        className={`fixed md:sticky md:top-0 inset-y-0 left-0 z-50 flex h-screen w-60 shrink-0 flex-col border-r border-gatepass-200 bg-white transition-transform duration-200 ${
+          mobileOpen
+            ? "translate-x-0"
+            : "-translate-x-full md:translate-x-0"
+        }`}
       >
-        {/* Mobile drawer header */}
+        {/* Mobile drawer close */}
         <div className="flex items-center justify-between border-b border-gatepass-200 px-4 h-14 md:hidden">
           <div className="flex items-center gap-2">
             <div className="flex h-7 w-7 items-center justify-center rounded-md bg-[#0D9488]">
               <Shield size={14} className="text-white" />
             </div>
-            <span className="text-sm font-semibold text-gatepass-900">Gatepass</span>
+            <span className="text-sm font-semibold text-gatepass-900">
+              Gatepass
+            </span>
           </div>
           <button
             onClick={() => setMobileOpen(false)}
@@ -142,52 +145,51 @@ export function Sidebar() {
           </button>
         </div>
 
-        {/* Desktop brand area */}
-        <div className="hidden md:flex flex-col border-b border-gatepass-200 px-4 py-5 dark:border-gatepass-800">
+        {/* Brand area */}
+        <div className="hidden md:flex flex-col border-b border-gatepass-200 px-4 py-5">
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#0D9488]">
               <Shield size={18} className="text-white" />
             </div>
             <div className="flex flex-col">
-              <span className="text-base font-bold text-gatepass-900 dark:text-gatepass-100">Gatepass</span>
-              <span className="text-xs text-gatepass-500 capitalize">
-                {org ? `${org.planTier} tier` : "Precision AppSec"}
+              <span className="text-sm font-bold text-gatepass-900">
+                Gatepass
+              </span>
+              <span className="text-xs text-gatepass-500">
+                {org
+                  ? `${org.planTier} tier · ${org.id}`
+                  : "Deterministic AppSec"}
               </span>
             </div>
           </div>
-          {org && (
-            <div className="mt-3 flex items-center gap-2">
-              <span className="text-xs font-medium text-gatepass-500">{org.id}</span>
-              <span
-                className={`rounded px-1.5 py-0.5 text-[10px] font-medium uppercase ${planBadgeColors[org.planTier] ?? planBadgeColors.free}`}
-              >
-                {org.planTier}
-              </span>
-            </div>
-          )}
         </div>
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto px-3 py-4">
-          <ul className="space-y-1">{NAV_ITEMS.map(renderNavItem)}</ul>
+          <ul className="space-y-0.5">{NAV_ITEMS.map(renderNavItem)}</ul>
         </nav>
 
         {/* Footer */}
-        <div className="mt-auto border-t border-gatepass-200 px-3 py-4 dark:border-gatepass-800">
-          <ul className="space-y-1 mb-4">
+        <div className="mt-auto border-t border-gatepass-200 px-3 py-3">
+          <ul className="space-y-0.5 mb-3">
             {FOOTER_ITEMS.map((item) => {
               const isActive = pathname.startsWith(item.href);
               return (
                 <li key={item.href}>
                   <Link
                     href={item.href}
-                    className={`flex items-center gap-3 rounded-md px-4 py-2.5 text-sm font-medium transition-colors duration-150 ${
+                    className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                       isActive
                         ? "text-[#0D9488]"
-                        : "text-gatepass-600 hover:bg-gatepass-50 hover:text-gatepass-900 dark:text-gatepass-300 dark:hover:bg-gatepass-800 dark:hover:text-gatepass-100"
+                        : "text-gatepass-500 hover:bg-gatepass-50 hover:text-gatepass-900"
                     }`}
                   >
-                    <item.icon size={18} className={`shrink-0 ${isActive ? "text-[#0D9488]" : "text-gatepass-400"}`} />
+                    <item.icon
+                      size={16}
+                      className={
+                        isActive ? "text-[#0D9488]" : "text-gatepass-400"
+                      }
+                    />
                     <span>{item.label}</span>
                   </Link>
                 </li>
@@ -195,10 +197,18 @@ export function Sidebar() {
             })}
           </ul>
 
-          <button className="flex w-full items-center justify-center gap-2 rounded-md bg-[#0D9488] px-4 py-2.5 text-sm font-semibold text-white transition-colors duration-150 hover:bg-[#0F766E]">
-            <Upload size={16} />
-            Upgrade Plan
-          </button>
+          {org && (
+            <div className="flex items-center gap-2 rounded-lg bg-gatepass-50 px-3 py-2 text-xs">
+              <span
+                className={`rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase ${
+                  planBadgeColors[org.planTier] ?? planBadgeColors.free
+                }`}
+              >
+                {org.planTier}
+              </span>
+              <span className="text-gatepass-600">plan active</span>
+            </div>
+          )}
         </div>
       </aside>
     </>

@@ -106,10 +106,15 @@ export async function createServer(opts: ServerOptions = {}): Promise<{ server: 
     const p = url.pathname.split("/").filter(Boolean);
     const q = url.searchParams;
 
-    // Liveness probe for PaaS health checks — before rate limiting and body parsing.
-    if (url.pathname === "/healthz") {
+    // Liveness probe & root status response
+    if (url.pathname === "/" || url.pathname === "/healthz") {
       res.writeHead(200, { "content-type": "application/json" });
-      res.end(JSON.stringify({ ok: true }));
+      res.end(JSON.stringify({
+        status: "ok",
+        service: "Gatepass Security API Engine",
+        webAppUrl: "http://localhost:3001/dashboard",
+        version: "1.0.0",
+      }));
       return;
     }
 

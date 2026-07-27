@@ -9,13 +9,10 @@ import {
   Info,
   ChevronDown,
   ChevronRight,
-  Search,
-  ExternalLink,
   Code2,
   Eye,
   Shield,
   Globe,
-  Smartphone,
   Apple,
   Monitor,
 } from "lucide-react";
@@ -71,7 +68,7 @@ export default function ComplianceClient({ result }: Props) {
       });
   }, [result.byDomain]);
 
-  const statusCount = (status: ComplianceCheck["status"]) => result.checks.filter((c) => c.status === status).length;
+  const _statusCount = (status: ComplianceCheck["status"]) => result.checks.filter((c) => c.status === status).length;
 
   return (
     <div className="space-y-6">
