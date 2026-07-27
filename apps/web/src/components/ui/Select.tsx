@@ -1,5 +1,8 @@
-import { type SelectHTMLAttributes, forwardRef } from "react";
+"use client";
+
+import { type SelectHTMLAttributes, forwardRef, useId } from "react";
 import { ChevronDown } from "lucide-react";
+import { cx } from "@/lib/utils";
 
 interface SelectOption {
   value: string;
@@ -16,12 +19,13 @@ interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
 
 export const Select = forwardRef<HTMLSelectElement, SelectProps>(
   ({ label, error, options, placeholder, className = "", id, ...props }, ref) => {
-    const selectId = id ?? (label ? label.toLowerCase().replace(/\s+/g, "-") : undefined);
+    const auto = useId();
+    const selectId = id ?? auto;
 
     return (
       <div className="flex flex-col gap-1.5">
         {label && (
-          <label htmlFor={selectId} className="text-sm font-medium text-gatepass-700 dark:text-gatepass-300">
+          <label htmlFor={selectId} className="text-[0.78rem] font-medium text-fg-secondary">
             {label}
           </label>
         )}
@@ -29,17 +33,14 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
           <select
             ref={ref}
             id={selectId}
-            className={`h-9 w-full appearance-none rounded border bg-white px-3 pr-8 text-sm text-gatepass-900
-              focus:outline-2 focus:outline-offset-2 focus:outline-accent-600
-              disabled:cursor-not-allowed disabled:opacity-50
-              dark:bg-gatepass-800 dark:text-gatepass-100
-              ${
-                error
-                  ? "border-severity-critical focus:outline-severity-critical"
-                  : "border-gatepass-300 dark:border-gatepass-600"
-              }
-              ${className}`}
-            aria-invalid={error ? "true" : undefined}
+            className={cx(
+              "h-10 w-full cursor-pointer appearance-none rounded-[0.6rem] border bg-sunken pr-9 pl-3",
+              "text-[0.855rem] text-fg transition-colors duration-150",
+              "disabled:cursor-not-allowed disabled:opacity-50",
+              error ? "border-critical-line" : "border-line hover:border-line-strong",
+              className,
+            )}
+            aria-invalid={error ? true : undefined}
             aria-describedby={error ? `${selectId}-error` : undefined}
             {...props}
           >
@@ -54,10 +55,13 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
               </option>
             ))}
           </select>
-          <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gatepass-400" />
+          <ChevronDown
+            className="pointer-events-none absolute top-1/2 right-3 h-4 w-4 -translate-y-1/2 text-fg-muted"
+            aria-hidden="true"
+          />
         </div>
         {error && (
-          <p id={`${selectId}-error`} className="text-xs text-severity-critical">
+          <p id={`${selectId}-error`} role="alert" className="text-[0.72rem] text-critical">
             {error}
           </p>
         )}

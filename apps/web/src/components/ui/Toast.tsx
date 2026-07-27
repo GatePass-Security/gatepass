@@ -1,107 +1,100 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { CheckCircle2, XCircle, Info, X } from "lucide-react";
+import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
+import { CheckCircle2, AlertTriangle, Info, X } from "lucide-react";
+import { cx } from "@/lib/utils";
 
-type ToastVariant = "success" | "error" | "info";
+type ToastKind = "success" | "error" | "info";
 
-interface Toast {
-  id: string;
-  variant: ToastVariant;
+interface ToastRecord {
+  id: number;
+  kind: ToastKind;
   message: string;
 }
 
 interface ToastContextValue {
-  toasts: Toast[];
-  addToast: (variant: ToastVariant, message: string) => void;
-  removeToast: (id: string) => void;
+  toast: (message: string, kind?: ToastKind) => void;
 }
 
-const ToastContext = createContext<ToastContextValue | null>(null);
+const ToastContext = createContext<ToastContextValue>({ toast: () => {} });
 
-const variantConfig: Record<ToastVariant, { icon: typeof CheckCircle2; bg: string; border: string; text: string }> = {
-  success: {
-    icon: CheckCircle2,
-    bg: "bg-posture-passing-light dark:bg-posture-passing/20",
-    border: "border-posture-passing",
-    text: "text-posture-passing-dark dark:text-posture-passing",
-  },
-  error: {
-    icon: XCircle,
-    bg: "bg-severity-critical-light dark:bg-severity-critical/20",
-    border: "border-severity-critical",
-    text: "text-severity-critical-dark dark:text-severity-critical",
-  },
-  info: {
-    icon: Info,
-    bg: "bg-tier-research-light dark:bg-tier-research/20",
-    border: "border-tier-research",
-    text: "text-tier-research-dark dark:text-tier-research",
-  },
+const KIND_STYLES: Record<ToastKind, { border: string; icon: ReactNode }> = {
+  success: { border: "border-verified-line", icon: <CheckCircle2 size={16} className="text-verified" /> },
+  error: { border: "border-critical-line", icon: <AlertTriangle size={16} className="text-critical" /> },
+  info: { border: "border-line-strong", icon: <Info size={16} className="text-fg-muted" /> },
 };
 
-function ToastItem({ toast, onRemove }: { toast: Toast; onRemove: (id: string) => void }) {
-  const config = variantConfig[toast.variant];
-  const Icon = config.icon;
-
-  useEffect(() => {
-    const timer = setTimeout(() => onRemove(toast.id), 5000);
-    return () => clearTimeout(timer);
-  }, [toast.id, onRemove]);
-
-  return (
-    <div
-      className={`animate-toast-enter flex items-start gap-3 rounded-lg border p-4 shadow-md
-        ${config.bg} ${config.border}`}
-      role="alert"
-    >
-      <Icon className={`mt-0.5 h-5 w-5 shrink-0 ${config.text}`} />
-      <p className="flex-1 text-sm text-gatepass-900 dark:text-gatepass-100">{toast.message}</p>
-      <button
-        onClick={() => onRemove(toast.id)}
-        className="shrink-0 text-gatepass-400 hover:text-gatepass-600 dark:hover:text-gatepass-200"
-        aria-label="Dismiss notification"
-      >
-        <X className="h-4 w-4" />
-      </button>
-    </div>
-  );
-}
+let nextId = 0;
 
 export function ToastProvider({ children }: { children: ReactNode }) {
-  const [toasts, setToasts] = useState<Toast[]>([]);
+  const [toasts, setToasts] = useState<ToastRecord[]>([]);
 
-  const removeToast = useCallback((id: string) => {
+  const dismiss = useCallback((id: number) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
-  const addToast = useCallback((variant: ToastVariant, message: string) => {
-    const id = crypto.randomUUID();
-    setToasts((prev) => [...prev, { id, variant, message }]);
-  }, []);
+  const toast = useCallback(
+    (message: string, kind: ToastKind = "info") => {
+      const id = nextId++;
+      setToasts((prev) => [...prev, { id, kind, message }]);
+      // Failures stay put. Auto-dismissing the one message the user needs to act
+      // on is how a failed write ends up looking like a successful one.
+      if (kind !== "error") setTimeout(() => dismiss(id), 5000);
+    },
+    [dismiss],
+  );
 
-  const contextValue = useMemo(() => ({ toasts, addToast, removeToast }), [toasts, addToast, removeToast]);
+  const value = useMemo(() => ({ toast }), [toast]);
 
   return (
-    <ToastContext.Provider value={contextValue}>
+    <ToastContext.Provider value={value}>
       {children}
-      <div
-        aria-live="polite"
-        aria-label="Notifications"
-        className="pointer-events-none fixed bottom-4 right-4 z-50 flex w-80 flex-col gap-2"
-      >
-        {toasts.map((toast) => (
-          <ToastItem key={toast.id} toast={toast} onRemove={removeToast} />
-        ))}
+      {/*
+        Two regions, not one. A screen reader learns the outcome of an action it
+        cannot see — but a failure queued politely behind a success announcement
+        and then auto-dismissed is a failure the user never hears about, so
+        errors get their own assertive region.
+      */}
+      <div className="pointer-events-none fixed right-4 bottom-4 z-[60] flex w-full max-w-sm flex-col gap-2">
+        <div role="alert" aria-live="assertive" className="flex flex-col gap-2">
+          {toasts
+            .filter((t) => t.kind === "error")
+            .map((t) => (
+              <ToastCard key={t.id} toast={t} onDismiss={dismiss} />
+            ))}
+        </div>
+        <div role="status" aria-live="polite" className="flex flex-col gap-2">
+          {toasts
+            .filter((t) => t.kind !== "error")
+            .map((t) => (
+              <ToastCard key={t.id} toast={t} onDismiss={dismiss} />
+            ))}
+        </div>
       </div>
     </ToastContext.Provider>
   );
 }
 
-export function useToast() {
-  const context = useContext(ToastContext);
-  if (!context) {
-    throw new Error("useToast must be used within a ToastProvider");
-  }
-  return context;
+function ToastCard({ toast, onDismiss }: { toast: ToastRecord; onDismiss: (id: number) => void }) {
+  return (
+    <div
+      className={cx(
+        "animate-gp-toast-in gp-chrome pointer-events-auto flex items-start gap-2.5 rounded-[0.8rem] border px-3.5 py-3 shadow-lg shadow-black/20",
+        KIND_STYLES[toast.kind].border,
+      )}
+    >
+      <span className="mt-0.5 shrink-0">{KIND_STYLES[toast.kind].icon}</span>
+      <p className="flex-1 text-[0.82rem] leading-snug text-fg">{toast.message}</p>
+      <button
+        type="button"
+        onClick={() => onDismiss(toast.id)}
+        aria-label="Dismiss notification"
+        className="shrink-0 cursor-pointer rounded p-0.5 text-fg-muted transition-colors hover:text-fg"
+      >
+        <X size={14} aria-hidden="true" />
+      </button>
+    </div>
+  );
 }
+
+export const useToast = () => useContext(ToastContext);

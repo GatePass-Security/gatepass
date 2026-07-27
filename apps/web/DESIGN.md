@@ -1,211 +1,183 @@
 # Gatepass Dashboard Design System
 
-**Brand:** Measured precision — trustworthiness, not hype.
+The dashboard is the same product as the marketing site, so it looks like it: a near-black
+canvas, neutral greys, a mint accent held back for state and data, and a high-contrast pill as
+the primary action. Everything below is derived from that surface — no palette or type choice
+here is decorative.
 
-## Design Principles
+**Brand:** measured precision. The product's claim is determinism; the interface should read as
+instrument, not as pitch.
 
-1. **Precision over polish** — Every pixel serves a purpose. No decorative elements that don't convey information.
-2. **Severity is immediate** — Color communicates risk level before any text is read.
-3. **Tier distinction is binary** — Verified findings (emerald/green) and research findings (blue) must be visually distinct at a glance.
-4. **Dark mode is first-class** — Not an afterthought. Security teams work in dark environments.
-5. **Accessible by default** — WCAG AA contrast ratios, focus-visible states, semantic HTML.
+---
 
-## Color Palette
+## 1. Architecture — semantic tokens, never `dark:`
 
-### Gatepass Slate (Primary Neutral)
-
-| Token | Light | Dark | Usage |
-|-------|-------|------|-------|
-| `gatepass-50` | `#f8fafc` | — | Page background |
-| `gatepass-100` | `#f1f5f9` | — | Card backgrounds, secondary surfaces |
-| `gatepass-200` | `#e2e8f0` | `#334155` | Borders, dividers |
-| `gatepass-300` | `#cbd5e1` | `#475569` | Subtle borders, disabled text |
-| `gatepass-400` | `#94a3b8` | `#64748b` | Placeholder text, icons |
-| `gatepass-500` | `#64748b` | `#94a3b8` | Secondary text, muted labels |
-| `gatepass-600` | `#475569` | `#cbd5e1` | Body text (light mode) |
-| `gatepass-700` | `#334155` | `#e2e8f0` | Headings, strong text |
-| `gatepass-800` | `#1e293b` | `#f1f5f9` | Dark mode cards |
-| `gatepass-900` | `#0f172a` | `#f8fafc` | Primary text, headings |
-| `gatepass-950` | `#020617` | — | Dark mode page background |
-
-### Blue Accent (Interactive)
-
-| Token | Value | Usage |
-|-------|-------|-------|
-| `accent-50` | `#eff6ff` | Hover backgrounds |
-| `accent-100` | `#dbeafe` | Selected states |
-| `accent-500` | `#3b82f6` | Links, interactive elements |
-| `accent-600` | `#2563eb` | Primary buttons, focus rings |
-| `accent-700` | `#1d4ed8` | Button hover |
-
-### Severity Colors
-
-| Level | Color | Light BG | Dark BG | Usage |
-|-------|-------|----------|---------|-------|
-| Critical | `#dc2626` | `#fef2f2` | `#991b1b` | CVSS 9-10, active exploits |
-| High | `#ea580c` | `#fff7ed` | `#9a3412` | CVSS 7-8.9 |
-| Medium | `#d97706` | `#fffbeb` | `#92400e` | CVSS 4-6.9 |
-| Low | `#64748b` | `#f8fafc` | `#334155` | CVSS 0-3.9, informational |
-
-### Tier Colors
-
-| Tier | Color | Light BG | Icon | Usage |
-|------|-------|----------|------|-------|
-| Verified | `#059669` | `#d1fae5` | Green checkmark | Deterministic findings with reproductions |
-| Research | `#3b82f6` | `#dbeafe` | Blue beaker | Semantic analysis, confidence-scored |
-
-### Posture Colors
-
-| Posture | Color | Light BG | Usage |
-|---------|-------|----------|-------|
-| Passing | `#059669` | `#d1fae5` | All checks pass |
-| Warning | `#d97706` | `#fef3c7` | Some issues found |
-| Failing | `#dc2626` | `#fee2e2` | Critical issues present |
-| Unknown | `#64748b` | `#f1f5f9` | No data / not scanned |
-
-## Typography
-
-### Font Stack
-
-```css
---font-sans: "Inter", "Geist", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
-  "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
---font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
-  "Liberation Mono", monospace;
-```
-
-### Type Scale
-
-| Class | Size | Line Height | Usage |
-|-------|------|-------------|-------|
-| `text-xs` | 0.75rem (12px) | 1rem | Captions, badges, timestamps |
-| `text-sm` | 0.875rem (14px) | 1.25rem | Secondary text, table cells |
-| `text-base` | 1rem (16px) | 1.5rem | Body text, default |
-| `text-lg` | 1.125rem (18px) | 1.75rem | Section headings |
-| `text-xl` | 1.25rem (20px) | 1.75rem | Page titles |
-| `text-2xl` | 1.5rem (24px) | 2rem | Hero headings |
-| `text-3xl` | 1.875rem (30px) | 2.25rem | Dashboard metrics |
-
-## Spacing
-
-4px grid system using Tailwind defaults:
-
-| Token | Value | Usage |
-|-------|-------|-------|
-| `p-1` / `m-1` | 4px | Tight spacing, icon gaps |
-| `p-2` / `m-2` | 8px | Compact padding |
-| `p-3` / `m-3` | 12px | Default input padding |
-| `p-4` / `m-4` | 16px | Card padding, section gaps |
-| `p-5` / `m-5` | 20px | Medium spacing |
-| `p-6` / `m-6` | 24px | Large card padding |
-| `p-8` / `m-8` | 32px | Section spacing |
-| `p-10` / `m-10` | 40px | Page margins |
-| `p-12` / `m-12` | 48px | Large section spacing |
-
-## Border Radius
-
-| Token | Value | Usage |
-|-------|-------|-------|
-| `rounded-sm` | 4px | Badges, tags, small elements |
-| `rounded` | 6px | Buttons, inputs, form controls |
-| `rounded-lg` | 8px | Cards, panels, modals |
-| `rounded-xl` | 12px | Large modals, overlays |
-
-## Shadows
-
-| Token | Usage |
-|-------|-------|
-| `shadow-xs` | Subtle depth for flat elements |
-| `shadow-sm` | Cards, elevated surfaces |
-| `shadow-md` | Dropdowns, popovers |
-| `shadow-lg` | Modals, dialogs |
-
-## Dark Mode
-
-Class-based toggle via `.dark` class on `<html>`:
-
-```tsx
-<html className={darkMode ? 'dark' : ''}>
-```
-
-All color tokens have dark mode variants defined in `globals.css`. Components use `dark:` Tailwind prefix.
-
-## Icon Set
-
-**Lucide React** — `lucide-react` package. SVG icons only, never emojis.
-
-Common icons:
-- `Shield` — security/posture
-- `ShieldCheck` — verified findings
-- `ShieldAlert` — unverified/risky findings
-- `CheckCircle2` — passing status
-- `XCircle` — failing status
-- `AlertTriangle` — warning status
-- `Search` — scan actions
-- `Filter` — filtering
-- `ChevronDown` — dropdowns
-- `ArrowUpDown` — sortable columns
-- `Loader2` — loading states
-- `Plus` — add actions
-- `Trash2` — delete actions
-- `ExternalLink` — external links
-
-## Component Primitives
-
-All primitives live in `src/components/ui/`. Pure Tailwind + React, no external libraries.
-
-| Component | File | Purpose |
-|-----------|------|---------|
-| Button | `Button.tsx` | Primary/secondary/ghost/danger actions |
-| Badge | `Badge.tsx` | Tier, severity, posture, plan labels |
-| Card | `Card.tsx` | Content containers with optional header/footer |
-| Table | `Table.tsx` | Accessible data table with sorting |
-| Input | `Input.tsx` | Form text input with label/error |
-| Select | `Select.tsx` | Form select with label/error |
-| Skeleton | `Skeleton.tsx` | Loading placeholder |
-| EmptyState | `EmptyState.tsx` | No-data states with icon + action |
-| Toast | `Toast.tsx` | Notification system with auto-dismiss |
-
-## Layout Patterns
-
-### Dashboard Grid
+Colour lives in `src/app/globals.css` as CSS custom properties. `:root` holds light values,
+`.dark` overrides them, and `@theme inline` maps each one to a Tailwind utility.
 
 ```
-┌─────────────────────────────────────┐
-│  Top Nav (h-16)                     │
-├─────────────────────────────────────┤
-│  Page Header (px-6 py-4)           │
-├─────────────────────────────────────┤
-│  Metrics Row (grid-cols-4 gap-4)   │
-├─────────────────────────────────────┤
-│  Content Area (grid-cols-3 gap-6)  │
-│  ┌─────────┬─────────┬───────────┐ │
-│  │ Finding │ Finding │ Posture   │ │
-│  │ List    │ Detail  │ Panel     │ │
-│  │ (col-2) │ (col-2) │ (col-1)   │ │
-│  └─────────┴─────────┴───────────┘ │
-└─────────────────────────────────────┘
+--gp-surface  ──▶  @theme inline: --color-surface  ──▶  class: bg-surface
 ```
 
-### Finding Card Layout
+**Components never write a `dark:` variant.** One class name is correct in both themes because
+the *value* moves, not the class. This is not a preference — the previous system required a
+`dark:` twin on every utility and `FindingsClient.tsx`, `docs/page.tsx` and `support/page.tsx`
+all shipped without them, rendering dark text on dark surfaces. A token that can only be wrong
+in one place cannot drift.
+
+Dark is the default. The pre-paint script in `layout.tsx` applies `.dark` unless the user has
+explicitly stored `theme=light`.
+
+### Token reference
+
+| Utility | Purpose |
+|---|---|
+| `bg-canvas` | Page background |
+| `bg-surface` | Cards, panels, the rail |
+| `bg-raised` | Hover, nested panels, chips |
+| `bg-sunken` | Inputs, table headers, code blocks |
+| `border-line` / `border-line-strong` | Hairline / emphasised borders |
+| `text-fg` | Primary text |
+| `text-fg-secondary` | Body text |
+| `text-fg-muted` | Labels, captions, metadata |
+| `text-fg-faint` | Non-informational only — below 4.5:1 |
+| `text-accent` / `bg-accent-solid` / `bg-accent-soft` / `border-accent-line` | Mint accent |
+| `bg-action` / `text-action-text` | Primary action pill |
+
+Data tones — `verified`, `research`, `critical`, `high`, `medium`, `low` — each expose
+`text-*`, `bg-*`, `bg-*-soft`, `border-*-line`.
+
+### Measured contrast (dark theme, on `--gp-canvas` `#000`)
+
+| Token | Value | Ratio |
+|---|---|---|
+| `--gp-text` | `#FFFFFF` | 21:1 |
+| `--gp-text-secondary` | `#A3A3A8` | 8.3:1 |
+| `--gp-text-muted` | `#7A7A80` | 4.9:1 |
+| `--gp-accent` | `#2DD4BF` | 11.3:1 |
+| `--gp-critical` | `#FF5F5F` | 6.9:1 |
+| `--gp-research` | `#6BA6FF` | 8.3:1 |
+
+`--gp-text-faint` (`#55555C`, 3.1:1) clears the 3:1 non-text threshold and is restricted to
+decoration. In light mode the accent darkens to `#0B7F72` (4.9:1 on white) — the bright mint is
+unreadable there, so it is not reused.
+
+---
+
+## 2. Colour semantics
+
+**Severity is ordinal**, so it gets a monotonic ramp — red → orange → amber → neutral grey. It
+never borrows a hue from elsewhere. The old code mapped `medium` to blue in one file and amber
+in another; the ramp is now single-sourced through `severityToken()` in `lib/utils.ts`.
+
+**Tier is categorical**, so it gets distinct hues: `verified` mint, `research` blue. Verified
+sharing the brand accent is deliberate — verified findings *are* the Gatepass guarantee.
+
+**Posture** maps onto those existing tones (`POSTURE_TOKEN`) rather than introducing a fifth
+palette.
+
+Colour is never the only channel. Every badge carries a text label; diffs carry `+`/`-`; sort
+state carries a direction arrow and `aria-sort`.
+
+---
+
+## 3. Typography
+
+**Geist** and **Geist Mono**, self-hosted through `next/font/google` (variable, zero layout
+shift). Geist is the free typeface closest to the marketing site's geometric grotesque —
+tall x-height, tight apertures, medium-weight display type. If the licensed marketing face is
+ever added to the repo, swapping it is the two `next/font` calls in `layout.tsx` and nothing
+else.
+
+| Role | Size | Weight | Tracking |
+|---|---|---|---|
+| Page title | 1.6rem | 500 | −0.03em |
+| Card title | 0.82rem | 500 | −0.021em |
+| Stat value | 1.75rem | 500 | −0.03em |
+| Body | 0.855rem | 400 | — |
+| Caption / metadata | 0.72–0.78rem | 400–500 | — |
+| Overline label | 0.72rem | 500 | +0.05em, uppercase |
+
+Display type is **medium, not bold** — the marketing headline is set at medium weight, and
+weight is not how this brand signals importance; contrast and space are.
+
+Numerals are `tabular-nums` on every table and any element marked `data-numeric`. Columns of
+counts must align or they cannot be compared at a glance.
+
+---
+
+## 4. Shape and motion
+
+Pills (`rounded-full`) for anything actionable — buttons, badges, nav items, filters, the search
+field. Cards use `--radius-card` (0.875rem); code panels 0.75rem; inputs 0.6rem.
+
+Motion is 150–220ms on `transform`/`opacity`/colour only, never on layout properties. Hover
+never changes size — a control that grows under the cursor shifts everything around it.
+`prefers-reduced-motion: reduce` collapses all of it.
+
+One ambient element: the `.gp-glow` radial behind the shell header, fixed, `pointer-events-none`.
+It appears once. A second would make it wallpaper.
+
+---
+
+## 5. Primitives
+
+All in `src/components/ui/`, exported from `index.ts`. Pages compose these; pages do not invent
+card, badge, or stat markup.
+
+| Component | Notes |
+|---|---|
+| `Button` | `primary` (contrast pill) · `secondary` · `ghost` · `accent` · `danger` |
+| `IconButton` | `label` prop is **required** — icons have no accessible name |
+| `Badge` | Tone + optional dot; label always carries the meaning |
+| `Card` / `CardTitle` | Optional header/footer bands |
+| `Stat` | The one metric tile. `caption` must be derived from data |
+| `Table` | Sortable headers with `aria-sort`, `sr-only` caption |
+| `Input` / `Textarea` / `Select` | Label, hint, `role="alert"` errors, `aria-describedby` |
+| `Toggle` | `role="switch"` + `aria-checked` + a real `<label>` |
+| `FilterPill` / `SegmentedControl` | `aria-pressed` / `role="radio"` |
+| `CodeBlock` | Terminal panel, copy button, optional diff tinting |
+| `EmptyState` / `ErrorState` | Consistent zero and failure surfaces |
+| `Skeleton` / `PageSkeleton` | Placeholder geometry matches the real layout |
+| `Toast` | `aria-live="polite"` region |
+
+`Stat.tsx` owns `TONE_TEXT` / `TONE_FILL` / `TONE_SOFT` / `TONE_VAR` as **literal** class maps.
+Never build a class with `text-${tone}` — Tailwind only generates names it can see as literals,
+so an interpolated one compiles to nothing.
+
+---
+
+## 6. Rules
+
+1. **No `dark:` variants.** Use a semantic token.
+2. **No hardcoded hex** in components. `TONE_VAR` covers the inline-SVG cases.
+3. **No invented numbers.** Every figure on screen traces to an API response. A caption like
+   "95.3% compliance rate" with nothing behind it is worse than no caption — this is a product
+   whose entire claim is that its output is checkable.
+4. **Icons are Lucide SVGs**, never emoji.
+5. **Every interactive element** gets `cursor-pointer`, a visible `:focus-visible` ring, and an
+   accessible name.
+6. **Empty means empty.** Render an `EmptyState`, never placeholder data.
+7. **Async state is announced** — `aria-live` or `role="alert"`, not colour alone.
+
+---
+
+## 7. Layout
 
 ```
-┌─────────────────────────────────────┐
-│ [Badge: verified] [Badge: critical]│
-│ Finding Title                       │
-│ Description text...                 │
-│ ─────────────────────────────────── │
-│ File: path/to/file.ts:42           │
-│ Rule: sql-injection                │
-│ Confidence: 98% (if research)      │
-└─────────────────────────────────────┘
+┌──────────┬────────────────────────────────────────┐
+│          │  TopNavBar (h-16, sticky, translucent) │
+│  Rail    ├────────────────────────────────────────┤
+│  16.5rem │  PageHeader — title · description ·    │
+│          │               actions                  │
+│  (drawer │  Stat row — grid, 2 → 4 columns        │
+│   below  │  Content — cards / tables              │
+│   md)    │                                        │
+└──────────┴────────────────────────────────────────┘
 ```
 
-## Anti-Patterns
+Container is `max-w-[88rem]`, padding `px-5 sm:px-7 lg:px-9 py-7`. Routes render into that —
+a page must not add its own competing max-width.
 
-- **Never use emojis as icons** — Always use Lucide SVG icons
-- **Never hardcode colors** — Use Tailwind tokens (`bg-accent-600`, not `bg-[#2563eb]`)
-- **Never skip dark mode** — Every component must have dark variants
-- **Never use shadow-xl+** — Security tools stay subtle, not flashy
-- **Never animate layout properties** — Use transform/opacity only
-- **Never use generic fonts** — Inter for UI, JetBrains Mono for code
+Breakpoints verified at 375 / 768 / 1024 / 1440. Wide content scrolls inside its own
+`overflow-x-auto`; the page body never scrolls sideways.

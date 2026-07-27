@@ -1,72 +1,77 @@
-import { HelpCircle, Mail, MessageSquare, BookOpen } from "lucide-react";
+import Link from "next/link";
+import { BookOpen, HelpCircle, Mail, MessageSquare } from "lucide-react";
+/*
+ * Imported by module rather than through the `@/components/ui` barrel: the
+ * barrel also re-exports Input/Select/Table, which call hooks without a
+ * "use client" directive, so pulling it into a Server Component fails the
+ * build. Same pattern layout.tsx already uses for ToastProvider.
+ */
+import { Button } from "@/components/ui/Button";
+import { Card, CardTitle } from "@/components/ui/Card";
+import { PageHeader } from "@/components/ui/PageHeader";
+
+/*
+ * `Button` renders a `<button>`, but two of the three channel actions navigate
+ * (a mailto and an internal route), so those have to be anchors. The classes
+ * mirror Button's `secondary` variant at size `sm` so all three controls read
+ * as one set. Every class name is a literal here — nothing is built from a
+ * fragment at runtime, which is what Tailwind's scanner requires.
+ */
+const PILL_SECONDARY =
+  "inline-flex h-9 cursor-pointer items-center justify-center gap-1.5 rounded-full border border-line-strong " +
+  "bg-surface px-3.5 text-[0.8rem] font-medium whitespace-nowrap text-fg transition-colors duration-150 hover:bg-raised";
 
 export default function SupportPage() {
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gatepass-900">Support</h1>
-        <p className="mt-1 text-sm text-gatepass-500">Get help with Gatepass and the AI-native security stack.</p>
-      </div>
+      <PageHeader title="Support" description="Get help with Gatepass and the AI-native security stack." />
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <div className="rounded-lg border border-gatepass-200 bg-white p-6">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0891b2]/10">
-            <MessageSquare size={20} className="text-[#0891b2]" />
-          </div>
-          <h2 className="mt-4 text-lg font-semibold text-gatepass-900">Live Chat</h2>
-          <p className="mt-1 text-sm text-gatepass-500">
+      {/* Two columns before three: at the `sm` breakpoint a third column leaves
+          the support address too narrow to sit on one line. */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <Card header={<CardTitle icon={<MessageSquare size={15} aria-hidden="true" />}>Live Chat</CardTitle>}>
+          <p className="max-w-prose text-[0.855rem] leading-relaxed text-fg-secondary">
             Chat with our support team in real-time during business hours.
           </p>
-          <button className="mt-4 rounded-md bg-[#0891b2] px-4 py-2 text-sm font-medium text-white hover:bg-[#0e7490] transition-colors">
+          {/*
+            No chat integration is wired up, so the control is disabled and says
+            why. It previously rendered as a live primary button with no onClick
+            — a button that looks clickable and does nothing is worse than one
+            that admits it is not ready.
+          */}
+          <Button variant="primary" size="sm" className="mt-4" disabled title="Live chat is not connected yet">
             Start Chat
-          </button>
-        </div>
+          </Button>
+          <p className="mt-2 text-[0.72rem] text-fg-faint">Not connected yet — use email below.</p>
+        </Card>
 
-        <div className="rounded-lg border border-gatepass-200 bg-white p-6">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0891b2]/10">
-            <Mail size={20} className="text-[#0891b2]" />
-          </div>
-          <h2 className="mt-4 text-lg font-semibold text-gatepass-900">Email Us</h2>
-          <p className="mt-1 text-sm text-gatepass-500">
+        <Card header={<CardTitle icon={<Mail size={15} aria-hidden="true" />}>Email Us</CardTitle>}>
+          <p className="max-w-prose text-[0.855rem] leading-relaxed text-fg-secondary">
             Send a detailed ticket and we&apos;ll respond within 24 hours.
           </p>
-          <a
-            href="mailto:support@gatepass.dev"
-            className="mt-4 inline-block rounded-md border border-gatepass-300 px-4 py-2 text-sm font-medium text-gatepass-700 hover:bg-gatepass-50 transition-colors"
-          >
+          <a href="mailto:support@gatepass.dev" className={`${PILL_SECONDARY} mt-4`}>
             support@gatepass.dev
           </a>
-        </div>
+        </Card>
 
-        <div className="rounded-lg border border-gatepass-200 bg-white p-6">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0891b2]/10">
-            <BookOpen size={20} className="text-[#0891b2]" />
-          </div>
-          <h2 className="mt-4 text-lg font-semibold text-gatepass-900">Knowledge Base</h2>
-          <p className="mt-1 text-sm text-gatepass-500">
+        <Card header={<CardTitle icon={<BookOpen size={15} aria-hidden="true" />}>Knowledge Base</CardTitle>}>
+          <p className="max-w-prose text-[0.855rem] leading-relaxed text-fg-secondary">
             Browse our guides, FAQs, and best practices for the platform.
           </p>
-          <a
-            href="/docs"
-            className="mt-4 inline-block rounded-md border border-gatepass-300 px-4 py-2 text-sm font-medium text-gatepass-700 hover:bg-gatepass-50 transition-colors"
-          >
+          <Link href="/docs" className={`${PILL_SECONDARY} mt-4`}>
             Visit Docs
-          </a>
-        </div>
+          </Link>
+        </Card>
       </div>
 
-      <div className="rounded-lg border border-amber-200 bg-amber-50 p-6">
-        <div className="flex items-start gap-3">
-          <HelpCircle size={20} className="mt-0.5 shrink-0 text-amber-600" />
-          <div>
-            <p className="text-sm font-medium text-amber-800">Enterprise Support</p>
-            <p className="mt-1 text-sm text-amber-700">
-              Enterprise tier customers get priority support with a dedicated engineer and guaranteed 4-hour response
-              time.
-            </p>
-          </div>
-        </div>
-      </div>
+      {/* Neutral surface, not an amber one: the severity ramp is ordinal and
+          reserved for finding severity, so a support-tier note must not borrow
+          a colour that means "medium severity" everywhere else in the product. */}
+      <Card header={<CardTitle icon={<HelpCircle size={15} aria-hidden="true" />}>Enterprise Support</CardTitle>}>
+        <p className="max-w-prose text-[0.855rem] leading-relaxed text-fg-secondary">
+          Enterprise tier customers get priority support with a dedicated engineer and guaranteed 4-hour response time.
+        </p>
+      </Card>
     </div>
   );
 }

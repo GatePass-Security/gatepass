@@ -1,50 +1,65 @@
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
 import { OrgProvider } from "@/providers/OrgProvider";
 import { Sidebar } from "@/components/Sidebar";
 import { TopNavBar } from "@/components/TopNavBar";
+import { ToastProvider } from "@/components/ui/Toast";
 import "./globals.css";
 
-const jakarta = Plus_Jakarta_Sans({
+const geistSans = Geist({
   subsets: ["latin"],
-  variable: "--font-jakarta",
+  variable: "--font-geist-sans",
   display: "swap",
 });
 
-const jetbrains = JetBrains_Mono({
+const geistMono = Geist_Mono({
   subsets: ["latin"],
-  variable: "--font-jetbrains",
+  variable: "--font-geist-mono",
   display: "swap",
 });
 
 export const metadata: Metadata = {
   title: "Gatepass — Precision AppSec",
-  description: "Precision application security for the AI-native stack",
+  description: "Deterministic security scanning for AI-native and agentic codebases.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning className={`${jakarta.variable} ${jetbrains.variable}`}>
+    <html lang="en" suppressHydrationWarning className={`${geistSans.variable} ${geistMono.variable}`}>
       <head>
-        {/* Apply saved theme before first paint so dark mode never flashes light. */}
+        {/*
+          Resolve the theme before first paint. Dark is the product's canonical
+          appearance (it is what the marketing site ships), so anything other
+          than an explicit stored "light" resolves to dark — including a first
+          visit on a light-preference OS.
+        */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('theme');var d=t?t==='dark':window.matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.classList.toggle('dark',d);}catch(e){}})();`,
+            __html: `(function(){try{document.documentElement.classList.toggle('dark',localStorage.getItem('theme')!=='light');}catch(e){document.documentElement.classList.add('dark');}})();`,
           }}
         />
       </head>
-      <body className="bg-page">
-        <OrgProvider>
-          <div className="flex min-h-screen">
-            <Sidebar />
-            <div className="flex flex-1 flex-col">
-              <TopNavBar />
-              <main className="flex-1 overflow-auto bg-page">
-                <div className="mx-auto max-w-7xl px-6 py-6">{children}</div>
-              </main>
+      <body className="bg-canvas text-fg">
+        <div className="gp-glow" aria-hidden="true" />
+        <a
+          href="#main"
+          className="sr-only focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:z-[80] focus:rounded-full focus:bg-action focus:px-4 focus:py-2 focus:text-[0.82rem] focus:font-medium focus:text-action-text"
+        >
+          Skip to content
+        </a>
+        <ToastProvider>
+          <OrgProvider>
+            <div className="relative z-10 flex min-h-screen">
+              <Sidebar />
+              <div className="flex min-w-0 flex-1 flex-col">
+                <TopNavBar />
+                <main id="main" className="flex-1 overflow-x-hidden">
+                  <div className="mx-auto w-full max-w-[88rem] px-5 py-7 sm:px-7 lg:px-9">{children}</div>
+                </main>
+              </div>
             </div>
-          </div>
-        </OrgProvider>
+          </OrgProvider>
+        </ToastProvider>
       </body>
     </html>
   );

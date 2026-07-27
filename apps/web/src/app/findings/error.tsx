@@ -1,16 +1,21 @@
 "use client";
 
-export default function FindingsError({ error, reset }: { error: Error; reset: () => void }) {
+import { ErrorState } from "@/components/ui/EmptyState";
+import { PageHeader } from "@/components/ui/PageHeader";
+
+export default function FindingsError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   return (
-    <div className="flex min-h-[40vh] flex-col items-center justify-center gap-4">
-      <h2 className="text-lg font-semibold text-gatepass-900 dark:text-white">Something went wrong</h2>
-      <p className="text-sm text-gatepass-500">{error.message}</p>
-      <button
-        onClick={reset}
-        className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-      >
-        Try again
-      </button>
+    <div className="space-y-6">
+      <PageHeader
+        title="Findings"
+        description="Two-tier results from the latest scan. Verified findings carry a reproduction; research findings carry a confidence score."
+      />
+      <ErrorState
+        title="Could not load findings"
+        // `digest` is all the client gets for a server-side throw in production.
+        message={error.message || `The findings request failed${error.digest ? ` (${error.digest})` : ""}.`}
+        onRetry={reset}
+      />
     </div>
   );
 }

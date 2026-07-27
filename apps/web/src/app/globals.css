@@ -1,250 +1,347 @@
 @import "tailwindcss";
 
-@theme {
-  /* ── Gatepass Slate Scale (primary neutral) ── */
-  --color-gatepass-50: #f8fafc;
-  --color-gatepass-100: #f1f5f9;
-  --color-gatepass-200: #e2e8f0;
-  --color-gatepass-300: #cbd5e1;
-  --color-gatepass-400: #94a3b8;
-  --color-gatepass-500: #64748b;
-  --color-gatepass-600: #475569;
-  --color-gatepass-700: #334155;
-  --color-gatepass-800: #1e293b;
-  --color-gatepass-900: #0f172a;
-  --color-gatepass-950: #020617;
+/*
+ * ═══════════════════════════════════════════════════════════════════════════
+ * Gatepass Dashboard — semantic token layer
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * Values are lifted from the Gatepass marketing site: a near-black canvas,
+ * neutral (not blue-tinted) greys, a mint accent reserved for state and data,
+ * and a white pill as the primary action. See DESIGN.md for the derivation.
+ *
+ * Architecture: components NEVER write `dark:` variants. Every colour is a
+ * semantic token whose *value* flips with the theme, so a component written
+ * once is correct in both. This is deliberate — the previous system required
+ * a `dark:` twin on every utility and several files silently shipped without
+ * them (findings, docs, support rendered light-on-light in dark mode).
+ *
+ * Dark is the default: `:root` carries light values, `.dark` overrides them,
+ * and the pre-paint script in layout.tsx adds `.dark` unless the user has
+ * explicitly stored "light".
+ */
 
-  /* ── Blue Accent (interactive / links) ── */
-  --color-accent-50: #eff6ff;
-  --color-accent-100: #dbeafe;
-  --color-accent-200: #bfdbfe;
-  --color-accent-300: #93c5fd;
-  --color-accent-400: #60a5fa;
-  --color-accent-500: #3b82f6;
-  --color-accent-600: #2563eb;
-  --color-accent-700: #1d4ed8;
+:root {
+  /* ── Surfaces ── */
+  --gp-canvas: #fbfbfa;
+  --gp-surface: #ffffff;
+  --gp-surface-raised: #f4f4f3;
+  --gp-surface-sunken: #efefed;
+  --gp-line: rgb(9 9 11 / 0.1);
+  --gp-line-strong: rgb(9 9 11 / 0.18);
 
-  /* ── Teal (primary / active UI) ── */
-  --color-teal-50: #e0f4f5;
-  --color-teal-100: #ccf0f1;
-  --color-teal-200: #99e1e3;
-  --color-teal-300: #66d2d5;
-  --color-teal-400: #33c3c7;
-  --color-teal-500: #0d9488;
-  --color-teal-600: #0891b2;
-  --color-teal-700: #067a94;
-  --color-teal-800: #04627a;
-  --color-teal-900: #024a60;
+  /* ── Text (all ≥ 4.5:1 on --gp-surface except --gp-text-faint, which is
+        restricted to non-informational decoration) ── */
+  --gp-text: #0a0a0b;
+  --gp-text-secondary: #46464c;
+  --gp-text-muted: #6b6b72;
+  --gp-text-faint: #9a9aa1;
 
-  /* ── Severity: Critical (red) ── */
-  --color-severity-critical: #dc2626;
-  --color-severity-critical-light: #fef2f2;
-  --color-severity-critical-dark: #991b1b;
+  /* ── Brand accent — mint. Used for state and data, never for chrome. ── */
+  --gp-accent: #0b7f72;
+  --gp-accent-solid: #0b7f72;
+  --gp-accent-contrast: #ffffff;
+  --gp-accent-soft: rgb(11 127 114 / 0.1);
+  --gp-accent-line: rgb(11 127 114 / 0.28);
 
-  /* ── Severity: High (orange) ── */
-  --color-severity-high: #ea580c;
-  --color-severity-high-light: #fff7ed;
-  --color-severity-high-dark: #9a3412;
+  /* ── Primary action — the marketing site's high-contrast pill ── */
+  --gp-action: #0a0a0b;
+  --gp-action-text: #ffffff;
+  --gp-action-hover: #303036;
 
-  /* ── Severity: Medium (amber) ── */
-  --color-severity-medium: #d97706;
-  --color-severity-medium-light: #fffbeb;
-  --color-severity-medium-dark: #92400e;
+  /* ── Severity ramp (ordinal: critical → low) ── */
+  --gp-critical: #c4292b;
+  --gp-critical-soft: rgb(196 41 43 / 0.1);
+  --gp-critical-line: rgb(196 41 43 / 0.26);
+  --gp-high: #b45309;
+  --gp-high-soft: rgb(180 83 9 / 0.1);
+  --gp-high-line: rgb(180 83 9 / 0.26);
+  --gp-medium: #8a6100;
+  --gp-medium-soft: rgb(138 97 0 / 0.1);
+  --gp-medium-line: rgb(138 97 0 / 0.26);
+  --gp-low: #5f5f66;
+  --gp-low-soft: rgb(95 95 102 / 0.1);
+  --gp-low-line: rgb(95 95 102 / 0.26);
 
-  /* ── Severity: Low (slate) ── */
-  --color-severity-low: #64748b;
-  --color-severity-low-light: #f8fafc;
-  --color-severity-low-dark: #334155;
+  /* ── Tier (categorical: distinct hue, never a severity colour) ── */
+  --gp-verified: #0b7f72;
+  --gp-verified-soft: rgb(11 127 114 / 0.1);
+  --gp-verified-line: rgb(11 127 114 / 0.28);
+  --gp-research: #1d5fd0;
+  --gp-research-soft: rgb(29 95 208 / 0.1);
+  --gp-research-line: rgb(29 95 208 / 0.28);
 
-  /* ── Tier: Verified (emerald green) ── */
-  --color-tier-verified: #059669;
-  --color-tier-verified-light: #d1fae5;
-  --color-tier-verified-dark: #065f46;
+  /* ── Ambient glow behind the shell header ── */
+  --gp-glow: rgb(13 148 136 / 0.1);
 
-  /* ── Tier: Research (blue) ── */
-  --color-tier-research: #3b82f6;
-  --color-tier-research-light: #dbeafe;
-  --color-tier-research-dark: #1e40af;
+  /* ── Brand mark. The one gradient in the product, so its stops live here
+        rather than inline: the mark is fixed brand identity and does NOT flip
+        with the theme, but it must still be changeable in one place. ── */
+  --gp-mark-from: #5eead4;
+  --gp-mark-via: #14b8a6;
+  --gp-mark-to: #0d9488;
+  --gp-mark-ink: rgb(0 0 0 / 0.85);
 
-  /* ── Posture Colors ── */
-  --color-posture-passing: #059669;
-  --color-posture-passing-light: #d1fae5;
-  --color-posture-warning: #d97706;
-  --color-posture-warning-light: #fef3c7;
-  --color-posture-failing: #dc2626;
-  --color-posture-failing-light: #fee2e2;
-  --color-posture-unknown: #64748b;
-  --color-posture-unknown-light: #f1f5f9;
+  --gp-ring: var(--gp-accent);
+}
 
-  /* ── Border Radius ── */
-  --radius-sm: 0.25rem;
-  --radius-md: 0.375rem;
-  --radius-lg: 0.5rem;
-  --radius-xl: 0.75rem;
+.dark {
+  --gp-canvas: #000000;
+  --gp-surface: #0b0b0c;
+  --gp-surface-raised: #141416;
+  --gp-surface-sunken: #060607;
+  --gp-line: rgb(255 255 255 / 0.09);
+  --gp-line-strong: rgb(255 255 255 / 0.16);
 
-  /* ── Box Shadows ── */
-  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --gp-text: #ffffff;
+  --gp-text-secondary: #a3a3a8;
+  --gp-text-muted: #7a7a80;
+  --gp-text-faint: #55555c;
 
-  /* ── Typography ── */
-  --font-sans: var(
-    --font-jakarta,
-    "Inter",
-    ui-sans-serif,
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    Roboto,
-    "Helvetica Neue",
-    Arial,
-    "Noto Sans",
-    sans-serif,
-    "Apple Color Emoji",
-    "Segoe UI Emoji"
-  );
-  --font-mono: var(
-    --font-jetbrains,
-    "JetBrains Mono",
-    ui-monospace,
-    SFMono-Regular,
-    "SF Mono",
-    Menlo,
-    Consolas,
-    "Liberation Mono",
-    monospace
-  );
+  --gp-accent: #2dd4bf;
+  --gp-accent-solid: #14b8a6;
+  --gp-accent-contrast: #00110e;
+  --gp-accent-soft: rgb(45 212 191 / 0.11);
+  --gp-accent-line: rgb(45 212 191 / 0.28);
 
-  /* ── Line Heights ── */
-  --leading-tight: 1.25;
-  --leading-normal: 1.5;
-  --leading-relaxed: 1.625;
+  --gp-action: #ffffff;
+  --gp-action-text: #0a0a0b;
+  --gp-action-hover: #e4e4e7;
 
-  /* ── Transition Timing ── */
-  --duration-fast: 100ms;
-  --duration-normal: 200ms;
-  --duration-slow: 300ms;
+  --gp-critical: #ff5f5f;
+  --gp-critical-soft: rgb(255 95 95 / 0.12);
+  --gp-critical-line: rgb(255 95 95 / 0.3);
+  --gp-high: #ffa057;
+  --gp-high-soft: rgb(255 160 87 / 0.12);
+  --gp-high-line: rgb(255 160 87 / 0.3);
+  --gp-medium: #f2c14e;
+  --gp-medium-soft: rgb(242 193 78 / 0.12);
+  --gp-medium-line: rgb(242 193 78 / 0.3);
+  --gp-low: #8e8e96;
+  --gp-low-soft: rgb(142 142 150 / 0.14);
+  --gp-low-line: rgb(142 142 150 / 0.3);
+
+  --gp-verified: #2dd4bf;
+  --gp-verified-soft: rgb(45 212 191 / 0.12);
+  --gp-verified-line: rgb(45 212 191 / 0.3);
+  --gp-research: #6ba6ff;
+  --gp-research-soft: rgb(107 166 255 / 0.12);
+  --gp-research-line: rgb(107 166 255 / 0.3);
+
+  --gp-glow: rgb(16 185 129 / 0.13);
 }
 
 /*
- * Dark variant with real specificity. The Tailwind default uses :where() (zero specificity),
- * which lets a base color utility (e.g. text-gatepass-900) win over its dark: override on
- * source order — silently breaking dark mode on any element that sets both. Using :is(.dark *)
- * gives dark: one extra class of specificity so it reliably wins under .dark.
+ * `@theme inline` (not plain `@theme`) so utilities emit the indirection
+ * `var(--gp-*)` rather than freezing the light value at build time — that is
+ * what lets one class name resolve correctly under both themes.
  */
+@theme inline {
+  --color-canvas: var(--gp-canvas);
+  --color-surface: var(--gp-surface);
+  --color-raised: var(--gp-surface-raised);
+  --color-sunken: var(--gp-surface-sunken);
+  --color-line: var(--gp-line);
+  --color-line-strong: var(--gp-line-strong);
+
+  --color-fg: var(--gp-text);
+  --color-fg-secondary: var(--gp-text-secondary);
+  --color-fg-muted: var(--gp-text-muted);
+  --color-fg-faint: var(--gp-text-faint);
+
+  --color-accent: var(--gp-accent);
+  --color-accent-solid: var(--gp-accent-solid);
+  --color-accent-contrast: var(--gp-accent-contrast);
+  --color-accent-soft: var(--gp-accent-soft);
+  --color-accent-line: var(--gp-accent-line);
+
+  --color-action: var(--gp-action);
+  --color-action-text: var(--gp-action-text);
+  --color-action-hover: var(--gp-action-hover);
+
+  --color-critical: var(--gp-critical);
+  --color-critical-soft: var(--gp-critical-soft);
+  --color-critical-line: var(--gp-critical-line);
+  --color-high: var(--gp-high);
+  --color-high-soft: var(--gp-high-soft);
+  --color-high-line: var(--gp-high-line);
+  --color-medium: var(--gp-medium);
+  --color-medium-soft: var(--gp-medium-soft);
+  --color-medium-line: var(--gp-medium-line);
+  --color-low: var(--gp-low);
+  --color-low-soft: var(--gp-low-soft);
+  --color-low-line: var(--gp-low-line);
+
+  --color-verified: var(--gp-verified);
+  --color-verified-soft: var(--gp-verified-soft);
+  --color-verified-line: var(--gp-verified-line);
+  --color-research: var(--gp-research);
+  --color-research-soft: var(--gp-research-soft);
+  --color-research-line: var(--gp-research-line);
+
+  /* ── Typography ──
+     Geist / Geist Mono, wired in layout.tsx via next/font (self-hosted,
+     no layout shift). The marketing site's display type is a geometric
+     grotesque at medium weight with tight tracking; Geist is that lineage. */
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* ── Radii — the marketing site pairs full pills with softly rounded cards ── */
+  --radius-chip: 0.375rem;
+  --radius-control: 0.5rem;
+  --radius-card: 0.875rem;
+  --radius-panel: 1.125rem;
+
+  /* ── Motion ── */
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @layer base {
   *,
   *::before,
   *::after {
-    @apply border-gatepass-200 dark:border-gatepass-700;
+    border-color: var(--gp-line);
+  }
+
+  html {
+    color-scheme: light;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  .dark {
+    color-scheme: dark;
   }
 
   body {
-    @apply bg-page text-gatepass-900 dark:bg-gatepass-950 dark:text-gatepass-100 antialiased;
+    background-color: var(--gp-canvas);
+    color: var(--gp-text);
     font-family: var(--font-sans);
+    font-feature-settings: "cv11", "ss01";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
-  /* ── Distinctive selection color (not default blue) ── */
+  /* Headings inherit the marketing site's tight display tracking. */
+  h1,
+  h2,
+  h3 {
+    letter-spacing: -0.021em;
+  }
+
+  /* Every number in a security dashboard is compared against another number
+     in the row above it — lining figures keep the columns honest. */
+  table,
+  [data-numeric] {
+    font-variant-numeric: tabular-nums;
+  }
+
   ::selection {
-    background-color: #0369a1;
-    color: #ffffff;
-  }
-  .dark ::selection {
-    background-color: #0ea5e9;
-    color: #0f172a;
+    background-color: var(--gp-accent-solid);
+    color: var(--gp-accent-contrast);
   }
 
-  /* ── Focus ring: thicker, brand-colored ── */
   :focus-visible {
-    @apply outline-2 outline-offset-2 outline-accent-600;
-    outline-style: solid;
+    outline: 2px solid var(--gp-ring);
+    outline-offset: 2px;
+    border-radius: 2px;
   }
 
   ::-webkit-scrollbar {
-    @apply w-2.5 h-2.5;
+    width: 10px;
+    height: 10px;
   }
   ::-webkit-scrollbar-track {
-    @apply bg-transparent;
+    background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    @apply bg-gatepass-300 dark:bg-gatepass-600 rounded-full;
+    background: var(--gp-line-strong);
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    background-clip: content-box;
   }
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-gatepass-400 dark:bg-gatepass-500;
+    background: var(--gp-text-faint);
+    background-clip: content-box;
   }
 }
 
-/* ── Gradient brand utilities (fight AI slop: use intentional, opinionated gradients) ── */
-@utility bg-brand-gradient {
-  background: linear-gradient(135deg, #2563eb 0%, #0369a1 50%, #0891b2 100%);
+/* ── Ambient glow: one instance, fixed behind the shell, never interactive ── */
+@utility gp-glow {
+  position: fixed;
+  inset-inline: 0;
+  top: 0;
+  height: 30rem;
+  pointer-events: none;
+  z-index: 0;
+  background: radial-gradient(58% 100% at 50% 0%, var(--gp-glow) 0%, transparent 72%);
 }
 
-@utility text-brand-gradient {
-  background: linear-gradient(135deg, #2563eb, #0891b2);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+/* ── Translucent chrome: the marketing nav pill ── */
+@utility gp-chrome {
+  background-color: color-mix(in srgb, var(--gp-surface) 78%, transparent);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
 }
 
-/* ── Subtle grain overlay texture (fights "too clean" AI look) ── */
-@utility bg-grain {
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
-  background-repeat: repeat;
-  background-size: 256px 256px;
+/* ── Hairline card: the flat, borderless-shadow look of the marketing cards ── */
+@utility gp-card {
+  background-color: var(--gp-surface);
+  border: 1px solid var(--gp-line);
+  border-radius: var(--radius-card);
 }
 
-/* ── Page background — theme-aware so every surface using it darkens together ── */
-@utility bg-page {
-  background-color: #f5f5f4;
-}
-.dark .bg-page {
-  background-color: #020617;
-}
-
-@keyframes skeleton-pulse {
+@keyframes gp-pulse {
   0%,
   100% {
     opacity: 1;
   }
   50% {
-    opacity: 0.5;
+    opacity: 0.45;
   }
 }
 
-.animate-skeleton {
-  animation: skeleton-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-
-@keyframes toast-enter {
+@keyframes gp-rise {
   from {
-    transform: translateX(100%);
     opacity: 0;
+    transform: translateY(4px);
   }
   to {
-    transform: translateX(0);
     opacity: 1;
+    transform: none;
   }
 }
 
-@keyframes toast-exit {
+@keyframes gp-toast-in {
   from {
-    transform: translateX(0);
-    opacity: 1;
+    opacity: 0;
+    transform: translateX(16px);
   }
   to {
-    transform: translateX(100%);
-    opacity: 0;
+    opacity: 1;
+    transform: none;
   }
 }
 
-.animate-toast-enter {
-  animation: toast-enter 300ms var(--duration-normal) forwards;
+.animate-gp-pulse {
+  animation: gp-pulse 1.8s var(--ease-out-quart) infinite;
 }
 
-.animate-toast-exit {
-  animation: toast-exit 200ms var(--duration-fast) forwards;
+.animate-gp-rise {
+  animation: gp-rise 220ms var(--ease-out-quart) both;
+}
+
+.animate-gp-toast-in {
+  animation: gp-toast-in 220ms var(--ease-out-quart) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

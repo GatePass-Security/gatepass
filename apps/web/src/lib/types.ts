@@ -5,7 +5,13 @@ export type { Severity };
 import type { PlanTier } from "@gatepass/shared";
 export type { PlanTier };
 
-// Dashboard-specific response shapes (not in packages)
+/*
+ * Dashboard wire shapes. Each mirrors what `apps/api` actually returns — the
+ * cited file:line is the source of truth, and these declarations exist only so
+ * the dashboard does not take a runtime dependency on server-only packages.
+ */
+
+/** `GET /v1/orgs/:org` — apps/api/src/store.ts:10 */
 export interface OrgRecord {
   id: string;
   planTier: PlanTier;
@@ -13,6 +19,7 @@ export interface OrgRecord {
   agentLoopEnabled: boolean;
 }
 
+/** `GET /v1/orgs/:org/repos` — apps/api/src/handlers.ts:444 */
 export interface RepoRecord {
   name: string;
   visibility: string;
@@ -23,6 +30,7 @@ export interface RepoRecord {
   lastScanId?: string;
 }
 
+/** `POST /v1/orgs/:org/scans` — apps/api/src/handlers.ts:118 */
 export interface ScanResult {
   scanId: string;
   frameworks: string[];
@@ -30,7 +38,14 @@ export interface ScanResult {
   research: number;
 }
 
-/** Per-scan summary from GET /v1/orgs/:org/scans (dashboard overview). */
+/** `POST /v1/orgs/:org/scan-remote` — ScanResult plus clone provenance (handlers.ts:172). */
+export interface RemoteScanResult extends ScanResult {
+  repo: string;
+  ref: string;
+  sha: string;
+}
+
+/** `GET /v1/orgs/:org/scans` — apps/api/src/handlers.ts:147 */
 export interface ScanSummary {
   id: string;
   createdAt?: string;
@@ -40,6 +55,9 @@ export interface ScanSummary {
   bySeverity: Partial<Record<Severity, number>>;
 }
 
+export type FleetPosture = "unscanned" | "passing" | "findings_open" | "critical";
+
+/** apps/api/src/store.ts:26 */
 export interface FleetServer {
   id: string;
   orgId: string;
@@ -47,7 +65,7 @@ export interface FleetServer {
   endpointOrRepo: string;
   configHash: string;
   lastScanId?: string;
-  posture: "unscanned" | "passing" | "findings_open" | "critical";
+  posture: FleetPosture;
 }
 
 export interface FleetRollup {
@@ -58,11 +76,13 @@ export interface FleetRollup {
   critical: number;
 }
 
+/** `GET /v1/orgs/:org/fleet` */
 export interface FleetView {
   servers: FleetServer[];
   rollup: FleetRollup;
 }
 
+/** `GET /v1/orgs/:org/scans/:id/agent-guidance` — apps/api/src/handlers.ts:290 */
 export interface AgentGuidance {
   fingerprint: string;
   guidance: {
@@ -71,21 +91,53 @@ export interface AgentGuidance {
   };
 }
 
+/**
+ * `GET /v1/orgs/:org/evidence` returns `evaluatePosture(scan)`, i.e. control
+ * coverage — not a list of export jobs. Mirrors packages/evidence/src/controls.ts:71.
+ */
 export interface EvidenceExport {
-  id: string;
+  controlId: string;
+  soc2: string;
+  iso27001: string;
+  status: "pass" | "fail";
+  description: string;
+  failingFingerprints: string[];
   scanId: string;
-  format: string;
+  rulesetVersion: string;
+  controlMapVersion: string;
+}
+
+/** packages/evidence/src/exporters.ts:13 */
+export type CompliancePlatform = "vanta" | "drata";
+
+/** `POST /v1/orgs/:org/evidence/export` — packages/evidence/src/exporters.ts:15 */
+export interface EvidenceExportResult {
+  platform: CompliancePlatform;
+  delivered: number;
+  externalIds: string[];
+}
+
+/** `POST /v1/orgs/:org/questionnaires` returns DraftedAnswer[] — packages/evidence/src/questionnaire.ts:14 */
+export interface DraftedAnswer {
+  questionId: string;
+  question: string;
+  status: "answered" | "needs_human_input";
+  answer?: string;
+  citations: { controlId: string; scanId: string }[];
+  reviewStatus: "draft";
+}
+
+export type QuestionnaireDraft = DraftedAnswer[];
+
+/** `GET /v1/orgs/:org/compliance/results/:scanId` — apps/api/src/store.ts:181 wraps the result. */
+export interface ComplianceScanRecord {
+  scanId: string;
+  orgId: string;
+  result: unknown;
   createdAt: string;
-  status: string;
 }
 
-export interface QuestionnaireDraft {
-  id: string;
-  scanId: string;
-  status: "draft" | "review" | "completed";
-  answers: Array<{ question: string; answer: string; needsReview: boolean }>;
-}
-
+/** `GET /v1/public/benchmark` */
 export interface BenchmarkData {
   corpusVersion: string;
   publishedAt: string;

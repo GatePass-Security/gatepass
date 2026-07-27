@@ -2,29 +2,31 @@
 
 import { useEffect, useState } from "react";
 import { Sun, Moon } from "lucide-react";
+import { IconButton } from "./ui/Button";
 
 export function ThemeToggle() {
-  const [dark, setDark] = useState(false);
+  // Dark is the product's canonical appearance; the pre-paint script in
+  // layout.tsx has already applied it, so this only mirrors what is on <html>.
+  const [dark, setDark] = useState(true);
 
   useEffect(() => {
-    const isDark = document.documentElement.classList.contains("dark");
-    setDark(isDark);
+    setDark(document.documentElement.classList.contains("dark"));
   }, []);
 
   function toggle() {
     const next = !dark;
     setDark(next);
     document.documentElement.classList.toggle("dark", next);
-    localStorage.setItem("theme", next ? "dark" : "light");
+    try {
+      localStorage.setItem("theme", next ? "dark" : "light");
+    } catch {
+      /* storage unavailable (private mode) — the class still applies this session */
+    }
   }
 
   return (
-    <button
-      onClick={toggle}
-      className="rounded-lg p-2 text-gatepass-500 hover:bg-gatepass-100 hover:text-gatepass-700 dark:text-gatepass-400 dark:hover:bg-gatepass-800 dark:hover:text-gatepass-200 transition-colors"
-      aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
-    >
-      {dark ? <Sun size={18} /> : <Moon size={18} />}
-    </button>
+    <IconButton label={dark ? "Switch to light theme" : "Switch to dark theme"} size="sm" onClick={toggle}>
+      {dark ? <Sun size={16} /> : <Moon size={16} />}
+    </IconButton>
   );
 }

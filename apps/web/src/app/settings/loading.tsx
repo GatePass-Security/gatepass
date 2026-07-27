@@ -1,11 +1,6 @@
-import { Skeleton } from "@/components/ui/Skeleton";
+import { PageSkeleton } from "@/components/ui/Skeleton";
 
+/** Settings has no stat row — two stacked cards, so the placeholder is rows only. */
 export default function SettingsLoading() {
-  return (
-    <div className="space-y-8">
-      <Skeleton variant="text" className="h-8 w-32" />
-      <Skeleton variant="card" className="h-32" />
-      <Skeleton variant="card" className="h-48" />
-    </div>
-  );
+  return <PageSkeleton stats={0} rows={4} />;
 }

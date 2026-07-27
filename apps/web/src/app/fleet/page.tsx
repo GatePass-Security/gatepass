@@ -1,67 +1,167 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useId, useState, type FormEvent } from "react";
+import {
+  AlertTriangle,
+  ChevronDown,
+  Clock,
+  Plus,
+  RefreshCw,
+  ScanLine,
+  Server,
+  ShieldAlert,
+  ShieldCheck,
+} from "lucide-react";
 import { api } from "@/lib/api-client";
 import { ORG_ID } from "@/lib/constants";
-import type { FleetView } from "@/lib/types";
-import { EmptyState } from "@/components/ui/EmptyState";
-import { Server, Loader2, Plus, RefreshCw, AlertTriangle, ShieldCheck, Clock, TrendingUp } from "lucide-react";
+import type { FleetPosture, FleetServer, FleetView } from "@/lib/types";
+import {
+  Badge,
+  Button,
+  Card,
+  CardTitle,
+  EmptyState,
+  ErrorState,
+  FilterPill,
+  IconButton,
+  Input,
+  PageHeader,
+  PageSkeleton,
+  Stat,
+  useToast,
+  type Tone,
+} from "@/components/ui";
+import { POSTURE_LABEL, POSTURE_TOKEN, cx, pluralize, sharePercent } from "@/lib/utils";
 
-const POSTURE_COLORS: Record<string, string> = {
-  unscanned: "bg-gatepass-100 text-gatepass-600 border-gatepass-200",
-  passing: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  findings_open: "bg-amber-50 text-amber-700 border-amber-200",
-  critical: "bg-red-50 text-red-700 border-red-200",
-};
+type PostureFilter = FleetPosture | "all";
+
+const EMPTY_FORM = { name: "", endpointOrRepo: "", configHash: "" };
+
+/** Filter order is worst-first, matching how the severity ramp reads everywhere else. */
+const FILTERS: readonly FleetPosture[] = ["critical", "findings_open", "passing", "unscanned"];
+
+/**
+ * Share of the registered fleet. `sharePercent` never rounds a partial count up
+ * to 100% (or a non-zero one down to 0%) — a posture tile claiming the whole
+ * fleet passes when one server does not is the exact class of unearned number
+ * this product exists to eliminate.
+ */
+function shareOfFleet(count: number, total: number): string | undefined {
+  const pct = sharePercent(count, total);
+  return pct && `${pct} of fleet`;
+}
 
 export default function FleetPage() {
   const [data, setData] = useState<FleetView | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
-  const [formData, setFormData] = useState({ name: "", endpointOrRepo: "", configHash: "" });
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [registering, setRegistering] = useState(false);
+  const [registerError, setRegisterError] = useState<string | null>(null);
   const [expandedServer, setExpandedServer] = useState<string | null>(null);
+  const [rescanningId, setRescanningId] = useState<string | null>(null);
+  const [filter, setFilter] = useState<PostureFilter>("all");
+  const { toast } = useToast();
+  const formId = useId();
 
-  async function loadFleet() {
+  const loadFleet = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await api.getFleet(ORG_ID);
-      setData(result);
+      setData(await api.getFleet(ORG_ID));
+      setError(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load fleet");
     } finally {
       setLoading(false);
     }
-  }
-
-  useEffect(() => {
-    loadFleet();
   }, []);
 
-  async function handleRegister(e: React.FormEvent) {
+  useEffect(() => {
+    void loadFleet();
+  }, [loadFleet]);
+
+  async function handleRegister(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    setRegistering(true);
+    setRegisterError(null);
     try {
-      await api.registerFleetServer(ORG_ID, formData);
+      const created = await api.registerFleetServer(ORG_ID, form);
+      toast(`Registered ${created.name}`, "success");
+      setForm(EMPTY_FORM);
       setShowForm(false);
-      setFormData({ name: "", endpointOrRepo: "", configHash: "" });
-      loadFleet();
+      await loadFleet();
     } catch (err) {
-      console.error("Failed to register server", err);
+      // Surfaced inline rather than only logged — a failed registration used to
+      // look identical to a successful one.
+      setRegisterError(err instanceof Error ? err.message : "Could not register the server.");
+    } finally {
+      setRegistering(false);
     }
   }
 
-  if (loading) {
-    return (
-      <div className="flex min-h-[40vh] items-center justify-center">
-        <Loader2 size={32} className="animate-spin text-gatepass-400" />
-      </div>
-    );
+  async function handleRescan(server: FleetServer) {
+    setRescanningId(server.id);
+    try {
+      const updated = await api.rescanFleetServer(server.id, server.endpointOrRepo);
+      toast(
+        `${updated.name} — ${POSTURE_LABEL[updated.posture]}`,
+        updated.posture === "critical" ? "error" : "success",
+      );
+      await loadFleet();
+    } catch (err) {
+      toast(err instanceof Error ? err.message : `Rescan of ${server.name} failed`, "error");
+    } finally {
+      setRescanningId(null);
+    }
   }
 
-  if (error) {
+  const servers = data?.servers ?? [];
+  const visible = filter === "all" ? servers : servers.filter((s) => s.posture === filter);
+
+  // Counted off the same array the cards render from, so a pill's count can
+  // never disagree with the number of cards below it.
+  const postureCounts = servers.reduce<Record<FleetPosture, number>>(
+    (acc, s) => {
+      acc[s.posture] += 1;
+      return acc;
+    },
+    { critical: 0, findings_open: 0, passing: 0, unscanned: 0 },
+  );
+
+  const header = (
+    <PageHeader
+      title="Fleet"
+      description="MCP servers registered to this org, their last recorded posture, and the scan behind it."
+      actions={
+        <>
+          <IconButton label="Refresh fleet" onClick={() => void loadFleet()} disabled={loading}>
+            <RefreshCw size={16} className={cx(loading && "animate-spin")} aria-hidden="true" />
+          </IconButton>
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => setShowForm((open) => !open)}
+            aria-expanded={showForm}
+            aria-controls={formId}
+          >
+            <Plus size={15} aria-hidden="true" />
+            Add server
+          </Button>
+        </>
+      }
+    />
+  );
+
+  if (loading && !data) {
+    return <PageSkeleton stats={5} rows={3} />;
+  }
+
+  if (error && !data) {
     return (
-      <div className="rounded-lg border border-red-200 bg-red-50 p-6 dark:border-red-900 dark:bg-red-950">
-        <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
+      <div className="space-y-6">
+        {header}
+        <ErrorState title="Could not load the fleet" message={error} onRetry={() => void loadFleet()} />
       </div>
     );
   }
@@ -70,210 +170,257 @@ export default function FleetPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gatepass-900 dark:text-white">Fleet Monitoring</h1>
-          <p className="mt-1 text-sm text-gatepass-500">Real-time status and posture of connected assets.</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={loadFleet}
-            className="rounded-lg border border-gatepass-300 bg-white p-2 text-gatepass-500 hover:bg-gatepass-50 transition-colors"
-            title="Refresh fleet"
-          >
-            <RefreshCw size={16} />
-          </button>
-          <button
-            onClick={() => setShowForm(!showForm)}
-            className="inline-flex items-center gap-2 rounded-lg bg-[#0891b2] px-4 py-2 text-sm font-medium text-white hover:bg-[#0e7490] transition-colors"
-          >
-            <Plus size={16} />
-            Add Server
-          </button>
-        </div>
-      </div>
+      {header}
 
-      {/* Rollup metrics */}
+      <span aria-live="polite" className="sr-only">
+        {loading ? "Refreshing fleet" : `${servers.length} ${pluralize(servers.length, "server")} loaded`}
+      </span>
+
+      {/* A refresh that fails while stale data is still on screen must say so. */}
+      {error && <ErrorState title="Could not refresh the fleet" message={error} onRetry={() => void loadFleet()} />}
+
       {rollup && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          {/* Total Nodes */}
-          <div className="rounded-lg border border-gatepass-200 bg-white p-5">
-            <div className="flex items-center justify-between">
-              <p className="text-xs font-medium uppercase tracking-wider text-gatepass-500">Total Nodes</p>
-              <Server size={18} className="text-gatepass-400" />
-            </div>
-            <p className="mt-2 text-3xl font-bold text-gatepass-900">{rollup.total}</p>
-            <div className="mt-2 flex items-center gap-1 text-xs text-emerald-600">
-              <TrendingUp size={12} />
-              <span>All connected</span>
-            </div>
-          </div>
-
-          {/* Critical */}
-          <div className="rounded-lg border border-gatepass-200 bg-white p-5">
-            <div className="flex items-center justify-between">
-              <p className="text-xs font-medium uppercase tracking-wider text-gatepass-500">Critical</p>
-              <AlertTriangle size={18} className="text-red-500" />
-            </div>
-            <p className="mt-2 text-3xl font-bold text-red-600">{rollup.critical}</p>
-            <p className="mt-2 text-xs text-gatepass-500">Requires immediate action</p>
-          </div>
-
-          {/* Passing */}
-          <div className="rounded-lg border border-gatepass-200 bg-white p-5">
-            <div className="flex items-center justify-between">
-              <p className="text-xs font-medium uppercase tracking-wider text-gatepass-500">Passing</p>
-              <ShieldCheck size={18} className="text-emerald-500" />
-            </div>
-            <p className="mt-2 text-3xl font-bold text-gatepass-900">{rollup.passing}</p>
-            <p className="mt-2 text-xs text-gatepass-500">95.3% compliance rate</p>
-          </div>
-
-          {/* Unscanned */}
-          <div className="rounded-lg border border-gatepass-200 bg-white p-5">
-            <div className="flex items-center justify-between">
-              <p className="text-xs font-medium uppercase tracking-wider text-gatepass-500">Unscanned</p>
-              <Clock size={18} className="text-gatepass-400" />
-            </div>
-            <p className="mt-2 text-3xl font-bold text-gatepass-900">{rollup.unscanned}</p>
-            <p className="mt-2 text-xs text-gatepass-500">Pending agent sync</p>
-          </div>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+          <Stat
+            label="Registered"
+            value={rollup.total}
+            icon={<Server size={16} aria-hidden="true" />}
+            caption={rollup.total > 0 ? `${rollup.total - rollup.unscanned} of ${rollup.total} scanned` : undefined}
+          />
+          <Stat
+            label="Passing"
+            value={rollup.passing}
+            tone="verified"
+            icon={<ShieldCheck size={16} aria-hidden="true" />}
+            caption={shareOfFleet(rollup.passing, rollup.total)}
+          />
+          <Stat
+            label="Findings open"
+            value={rollup.findings_open}
+            tone="medium"
+            icon={<AlertTriangle size={16} aria-hidden="true" />}
+            caption={shareOfFleet(rollup.findings_open, rollup.total)}
+          />
+          <Stat
+            label="Critical"
+            value={rollup.critical}
+            tone="critical"
+            icon={<ShieldAlert size={16} aria-hidden="true" />}
+            caption={shareOfFleet(rollup.critical, rollup.total)}
+          />
+          <Stat
+            label="Unscanned"
+            value={rollup.unscanned}
+            tone="low"
+            icon={<Clock size={16} aria-hidden="true" />}
+            caption={shareOfFleet(rollup.unscanned, rollup.total)}
+          />
         </div>
       )}
 
-      {/* Filter bar */}
-      {data?.servers && data.servers.length > 0 && (
-        <div className="flex items-center justify-between">
-          <select className="rounded-md border border-gatepass-300 bg-white px-4 py-2 text-sm text-gatepass-700 focus:border-[#0891b2] focus:outline-none focus:ring-1 focus:ring-[#0891b2]">
-            <option>All Postures</option>
-            <option>Critical</option>
-            <option>Passing</option>
-            <option>Unscanned</option>
-            <option>Findings Open</option>
-          </select>
-          <span className="text-sm text-gatepass-500">
-            Showing {data.servers.length} of {data.servers.length}
-          </span>
-        </div>
-      )}
-
-      {/* Register form */}
-      {showForm && (
-        <div className="rounded-lg border border-gatepass-200 bg-white p-6">
-          <form onSubmit={handleRegister} className="space-y-4">
-            <h3 className="font-medium text-gatepass-900">Register MCP Server</h3>
-            <div>
-              <label className="block text-sm font-medium text-gatepass-700">Name</label>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="mt-1 block w-full rounded-lg border border-gatepass-300 bg-white px-4 py-2 text-sm text-gatepass-900 focus:border-[#0891b2] focus:outline-none focus:ring-1 focus:ring-[#0891b2]"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gatepass-700">Endpoint or repo path</label>
-              <input
-                type="text"
-                value={formData.endpointOrRepo}
-                onChange={(e) => setFormData({ ...formData, endpointOrRepo: e.target.value })}
-                className="mt-1 block w-full rounded-lg border border-gatepass-300 bg-white px-4 py-2 text-sm text-gatepass-900 focus:border-[#0891b2] focus:outline-none focus:ring-1 focus:ring-[#0891b2]"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gatepass-700">Config hash (optional)</label>
-              <input
-                type="text"
-                value={formData.configHash}
-                onChange={(e) => setFormData({ ...formData, configHash: e.target.value })}
-                className="mt-1 block w-full rounded-lg border border-gatepass-300 bg-white px-4 py-2 text-sm text-gatepass-900 focus:border-[#0891b2] focus:outline-none focus:ring-1 focus:ring-[#0891b2]"
-              />
-            </div>
-            <button
-              type="submit"
-              className="rounded-lg bg-[#0891b2] px-4 py-2 text-sm font-medium text-white hover:bg-[#0e7490] transition-colors"
+      {/* Hidden rather than unmounted: `aria-controls` on the trigger stays valid
+          and a half-typed registration survives an accidental collapse. */}
+      <Card
+        hidden={!showForm}
+        id={formId}
+        header={<CardTitle icon={<Server size={15} />}>Register MCP server</CardTitle>}
+      >
+        <form onSubmit={handleRegister} className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Input
+              label="Name"
+              required
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              placeholder="payments-mcp"
+              autoComplete="off"
+            />
+            <Input
+              label="Endpoint or repo path"
+              required
+              value={form.endpointOrRepo}
+              onChange={(e) => setForm({ ...form, endpointOrRepo: e.target.value })}
+              placeholder="/srv/repos/payments-mcp"
+              hint="Rescan reads this path directly on the API host."
+              autoComplete="off"
+            />
+          </div>
+          <Input
+            label="Config hash"
+            value={form.configHash}
+            onChange={(e) => setForm({ ...form, configHash: e.target.value })}
+            placeholder="sha256 prefix"
+            hint="Optional — stored so a later change to the config can be detected."
+            autoComplete="off"
+          />
+          {registerError && <ErrorState title="Registration failed" message={registerError} />}
+          <div className="flex flex-wrap items-center gap-2">
+            <Button type="submit" variant="primary" size="sm" isLoading={registering}>
+              Register server
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setShowForm(false);
+                setRegisterError(null);
+              }}
             >
-              Register
-            </button>
-          </form>
+              Cancel
+            </Button>
+          </div>
+        </form>
+      </Card>
+
+      {servers.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <FilterPill active={filter === "all"} onClick={() => setFilter("all")} count={servers.length}>
+              All
+            </FilterPill>
+            {FILTERS.map((posture) => (
+              <FilterPill
+                key={posture}
+                active={filter === posture}
+                onClick={() => setFilter(posture)}
+                tone={POSTURE_TOKEN[posture] as Tone}
+                count={postureCounts[posture]}
+              >
+                {POSTURE_LABEL[posture]}
+              </FilterPill>
+            ))}
+          </div>
+          <p className="text-[0.78rem] text-fg-muted">
+            Showing {visible.length} of {servers.length} {pluralize(servers.length, "server")}
+          </p>
         </div>
       )}
 
-      {/* Server cards */}
-      {data?.servers && data.servers.length > 0 ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {data.servers.map((server) => (
-            <div
+      {servers.length === 0 ? (
+        <EmptyState
+          icon={<Server size={20} />}
+          title="No servers registered"
+          description="Register an MCP server to record its config and track the posture of its last scan."
+          action={{ label: "Add server", onClick: () => setShowForm(true) }}
+        />
+      ) : visible.length === 0 ? (
+        <EmptyState
+          icon={<Server size={20} />}
+          title={`No ${POSTURE_LABEL[filter as FleetPosture].toLowerCase()} servers`}
+          description="No registered server currently has this posture."
+          action={{ label: "Show all servers", onClick: () => setFilter("all") }}
+        />
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {visible.map((server) => (
+            <ServerCard
               key={server.id}
-              className="rounded-lg border border-gatepass-200 bg-white p-5 hover:shadow-sm transition-shadow"
-            >
-              {/* Header: name + status badge */}
-              <div className="flex items-start justify-between">
-                <h3 className="font-medium text-gatepass-900">{server.name}</h3>
-                <span
-                  className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium ${
-                    POSTURE_COLORS[server.posture] ?? POSTURE_COLORS.unscanned
-                  }`}
-                >
-                  {server.posture}
-                </span>
-              </div>
-
-              {/* Endpoint */}
-              <p className="mt-1 text-xs text-gatepass-500 font-mono">{server.endpointOrRepo}</p>
-
-              {/* Divider */}
-              <div className="mt-4 border-t border-gatepass-100" />
-
-              {/* Metadata row */}
-              <div className="mt-3 flex items-center justify-between text-xs text-gatepass-500">
-                <span>Config: {server.configHash.slice(0, 8)}</span>
-                {server.lastScanId && <span>Scan: {server.lastScanId.slice(0, 8)}</span>}
-              </div>
-
-              {/* Action link — toggle expanded detail */}
-              <div className="mt-3">
-                <button
-                  type="button"
-                  onClick={() => setExpandedServer(expandedServer === server.id ? null : server.id)}
-                  className="cursor-pointer text-sm font-medium text-[#0891b2] hover:underline"
-                >
-                  {expandedServer === server.id ? "Hide details" : "View details"}
-                </button>
-              </div>
-              {expandedServer === server.id && (
-                <div className="mt-3 rounded-lg border border-gatepass-100 bg-gatepass-50 p-3 text-xs text-gatepass-600 space-y-1.5">
-                  <div className="flex justify-between">
-                    <span className="font-medium text-gatepass-500">Server ID</span>
-                    <span className="font-mono">{server.id}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="font-medium text-gatepass-500">Config Hash</span>
-                    <span className="font-mono">{server.configHash}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="font-medium text-gatepass-500">Last Scan</span>
-                    <span className="font-mono">{server.lastScanId ?? "N/A"}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="font-medium text-gatepass-500">Org</span>
-                    <span>{ORG_ID}</span>
-                  </div>
-                </div>
-              )}
-            </div>
+              server={server}
+              expanded={expandedServer === server.id}
+              onToggle={() => setExpandedServer(expandedServer === server.id ? null : server.id)}
+              rescanning={rescanningId === server.id}
+              onRescan={handleRescan}
+            />
           ))}
         </div>
-      ) : (
-        <EmptyState
-          icon={<Server size={48} />}
-          title="No servers registered"
-          description="Register an MCP server to start monitoring its security posture"
-        />
       )}
+    </div>
+  );
+}
+
+function ServerCard({
+  server,
+  expanded,
+  onToggle,
+  rescanning,
+  onRescan,
+}: {
+  server: FleetServer;
+  expanded: boolean;
+  onToggle: () => void;
+  rescanning: boolean;
+  onRescan: (server: FleetServer) => void;
+}) {
+  const panelId = useId();
+  const tone = POSTURE_TOKEN[server.posture] as Tone;
+
+  return (
+    <Card>
+      <div className="flex items-start justify-between gap-3">
+        <h3 className="min-w-0 truncate text-[0.9rem] font-medium text-fg" title={server.name}>
+          {server.name}
+        </h3>
+        <Badge tone={tone} dot>
+          {POSTURE_LABEL[server.posture]}
+        </Badge>
+      </div>
+
+      <p className="mt-1.5 truncate font-mono text-[0.72rem] text-fg-muted" title={server.endpointOrRepo}>
+        {server.endpointOrRepo}
+      </p>
+
+      <dl className="mt-4 space-y-1.5 border-t border-line pt-3 text-[0.72rem]">
+        <div className="flex items-center justify-between gap-3">
+          <dt className="shrink-0 text-fg-muted">Config hash</dt>
+          <dd className="truncate font-mono text-fg-secondary">
+            {server.configHash ? server.configHash.slice(0, 12) : "Not set"}
+          </dd>
+        </div>
+        <div className="flex items-center justify-between gap-3">
+          <dt className="shrink-0 text-fg-muted">Last scan</dt>
+          <dd className="truncate font-mono text-fg-secondary">
+            {server.lastScanId ? server.lastScanId.slice(0, 12) : "Never scanned"}
+          </dd>
+        </div>
+      </dl>
+
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        <Button
+          variant="secondary"
+          size="sm"
+          isLoading={rescanning}
+          onClick={() => onRescan(server)}
+          aria-label={`Rescan ${server.name}`}
+        >
+          {!rescanning && <ScanLine size={14} aria-hidden="true" />}
+          {rescanning ? "Rescanning" : "Rescan"}
+        </Button>
+        <Button variant="ghost" size="sm" onClick={onToggle} aria-expanded={expanded} aria-controls={panelId}>
+          Details
+          <ChevronDown
+            size={14}
+            className={cx("transition-transform duration-150", expanded && "rotate-180")}
+            aria-hidden="true"
+          />
+        </Button>
+      </div>
+
+      {/* Rendered but hidden rather than unmounted, so `aria-controls` always
+          resolves to a real element. */}
+      <div hidden={!expanded} id={panelId} className="mt-3 rounded-[0.75rem] border border-line bg-sunken p-3">
+        <dl className="space-y-2.5">
+          <DetailRow label="Server ID" value={server.id} mono />
+          <DetailRow label="Endpoint or repo" value={server.endpointOrRepo} mono />
+          <DetailRow label="Config hash" value={server.configHash || "Not set"} mono={Boolean(server.configHash)} />
+          <DetailRow
+            label="Last scan ID"
+            value={server.lastScanId ?? "Never scanned"}
+            mono={Boolean(server.lastScanId)}
+          />
+          <DetailRow label="Organisation" value={server.orgId} />
+        </dl>
+      </div>
+    </Card>
+  );
+}
+
+/** Stacked label/value — long ids and paths wrap instead of forcing the card wide. */
+function DetailRow({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
+  return (
+    <div>
+      <dt className="text-[0.7rem] text-fg-muted">{label}</dt>
+      <dd className={cx("mt-0.5 text-[0.72rem] break-all text-fg-secondary", mono && "font-mono")}>{value}</dd>
     </div>
   );
 }

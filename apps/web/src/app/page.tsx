@@ -1,13 +1,60 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { AlertTriangle, FileText, FlaskConical, Plus, Radar, ShieldCheck, TrendingUp } from "lucide-react";
 import { api } from "@/lib/api-client";
-import { ORG_ID } from "@/lib/constants";
-import type { ScanSummary, Finding } from "@/lib/types";
-import { Loader2, Plus, TrendingUp, AlertTriangle, Shield, FileText, ShieldCheck, FlaskConical } from "lucide-react";
+import { API_BASE, ORG_ID } from "@/lib/constants";
+import type { Finding, ScanSummary } from "@/lib/types";
+import {
+  SEVERITY_ORDER,
+  confidencePercent,
+  cx,
+  formatDate,
+  pluralize,
+  relativeTime,
+  repoLabel,
+  severityLabel,
+  sharePercent,
+} from "@/lib/utils";
+import {
+  Badge,
+  Card,
+  CardTitle,
+  EmptyState,
+  ErrorState,
+  PageHeader,
+  PageSkeleton,
+  Stat,
+  TONE_FILL,
+  TONE_VAR,
+} from "@/components/ui";
 
-const MAX_BAR_HEIGHT = 160;
+/*
+ * Chart geometry. The bars are HTML boxes rather than a stretched SVG so that a
+ * history of one scan renders a single clean column instead of a bar smeared
+ * across the card — the distortion the previous SVG version produced.
+ */
+const BAR_AREA = 160;
+const COLUMN_WIDTH = 44;
+/**
+ * A count of 1 against a tall maximum rounds to sub-pixel and disappears. The
+ * floor keeps a real finding visible; the exact figures are still carried by the
+ * column's title and by the sr-only table, so nothing is overstated.
+ */
+const MIN_SEGMENT = 2;
+
+/** The overview shows a slice of the latest scan; /findings has the whole set. */
+const MAX_ROWS = 8;
+
+const PILL_LINK =
+  "inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-line px-3 py-1.5 " +
+  "text-[0.78rem] font-medium text-fg-secondary transition-colors duration-150 " +
+  "hover:border-line-strong hover:bg-raised hover:text-fg";
+
+const PRIMARY_LINK =
+  "inline-flex h-10 cursor-pointer items-center gap-2 rounded-full bg-action px-4 text-[0.855rem] " +
+  "font-medium text-action-text transition-colors duration-150 hover:bg-action-hover";
 
 interface Overview {
   scans: ScanSummary[];
@@ -15,281 +62,378 @@ interface Overview {
   latestRepo?: string;
 }
 
-const SEVERITY_ORDER = ["critical", "high", "medium", "low"] as const;
-const SEVERITY_BAR: Record<string, string> = {
-  critical: "#DC2626",
-  high: "#F97316",
-  medium: "#F59E0B",
-  low: "#CBD5E1",
-};
-const RISK_BADGE: Record<string, string> = {
-  critical: "bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300",
-  high: "bg-orange-50 text-orange-700 dark:bg-orange-950 dark:text-orange-300",
-  medium: "bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300",
-  low: "bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300",
-};
+type Status = "loading" | "ready" | "unreachable";
 
-function relativeTime(iso?: string): string {
-  if (!iso) return "";
-  const secs = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
-  if (secs < 60) return "just now";
-  if (secs < 3600) return `${Math.floor(secs / 60)}m ago`;
-  if (secs < 86400) return `${Math.floor(secs / 3600)}h ago`;
-  return `${Math.floor(secs / 86400)}d ago`;
+function scanTotal(scan: ScanSummary): number {
+  return SEVERITY_ORDER.reduce((n, severity) => n + (scan.bySeverity[severity] ?? 0), 0);
+}
+
+/** Hover text for a bar — the exact breakdown the bar only approximates. */
+function describeScan(scan: ScanSummary, index: number): string {
+  const total = scanTotal(scan);
+  const when = scan.createdAt ? formatDate(scan.createdAt) : `Scan ${index + 1}`;
+  const parts = SEVERITY_ORDER.filter((severity) => (scan.bySeverity[severity] ?? 0) > 0).map(
+    (severity) => `${scan.bySeverity[severity]} ${severity}`,
+  );
+  const breakdown = parts.length > 0 ? ` (${parts.join(", ")})` : "";
+  return `${when} — ${total} ${pluralize(total, "finding")}${breakdown}`;
 }
 
 export default function Home() {
   const [data, setData] = useState<Overview | null>(null);
-  const [ready, setReady] = useState<boolean | null>(null);
+  const [status, setStatus] = useState<Status>("loading");
 
-  useEffect(() => {
-    (async () => {
-      try {
-        await api.getOrg(ORG_ID);
-        const scans = await api.listScans(ORG_ID);
-        const sorted = [...scans].sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""));
-        const latest = sorted[0];
-        const latestFindings = latest ? await api.getFindings(latest.id) : [];
-        setData({ scans: sorted, latestFindings, latestRepo: latest?.repo });
-        setReady(true);
-      } catch {
-        setReady(false);
-      }
-    })();
+  const load = useCallback(async () => {
+    setStatus("loading");
+    try {
+      await api.getOrg(ORG_ID);
+      const scans = await api.listScans(ORG_ID);
+      // Newest first — "the latest scan" everything below refers to is scans[0].
+      const sorted = [...scans].sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""));
+      const latest = sorted[0];
+      const latestFindings = latest ? await api.getFindings(latest.id) : [];
+      setData({ scans: sorted, latestFindings, latestRepo: latest?.repo });
+      setStatus("ready");
+    } catch {
+      setStatus("unreachable");
+    }
   }, []);
 
-  if (ready === null) {
-    return (
-      <div className="flex min-h-[40vh] items-center justify-center">
-        <Loader2 size={32} className="animate-spin text-gatepass-400" />
-      </div>
-    );
-  }
+  useEffect(() => {
+    void load();
+  }, [load]);
 
-  if (!ready) {
+  if (status === "loading") return <PageSkeleton stats={4} rows={6} />;
+
+  const description = "Finding totals and recent scan activity for this organization, summed across every scan.";
+
+  if (status === "unreachable") {
     return (
-      <main className="px-6 py-10">
-        <h1 className="text-2xl font-bold text-gatepass-900 dark:text-gatepass-100">Gatepass Dashboard</h1>
-        <p className="mt-1 text-sm text-gatepass-500">Application security posture for the AI-native stack</p>
-        <div className="mt-12 mx-auto max-w-lg rounded-lg border border-gatepass-200 bg-white p-12 text-center dark:border-gatepass-800 dark:bg-gatepass-900">
-          <p className="text-sm text-gatepass-500">Could not reach the Gatepass API. Is it running on port 3000?</p>
-        </div>
-      </main>
+      <div className="space-y-6">
+        <PageHeader title="Overview" description={description} />
+        <ErrorState
+          title="Gatepass API unreachable"
+          message={`No response from the API at ${API_BASE}. Every figure on this page is read from that host, so nothing can be shown until it answers.`}
+          onRetry={() => void load()}
+        />
+      </div>
     );
   }
 
   const scans = data?.scans ?? [];
-  const totalScanned = scans.length;
-  const totalVerified = scans.reduce((n, s) => n + s.verified, 0);
-  const totalResearch = scans.reduce((n, s) => n + s.research, 0);
-  const critical = scans.reduce((n, s) => n + (s.bySeverity.critical ?? 0), 0);
+  const latestFindings = data?.latestFindings ?? [];
 
-  // No scans yet — a real, honest empty state, not fabricated metrics.
-  if (totalScanned === 0) {
+  if (scans.length === 0) {
     return (
-      <main className="px-6 py-10">
-        <h1 className="text-2xl font-bold text-gatepass-900 dark:text-gatepass-100">Gatepass Dashboard</h1>
-        <p className="mt-1 text-sm text-gatepass-500">Application security posture for the AI-native stack</p>
-        <div className="mt-12 mx-auto max-w-lg rounded-lg border border-gatepass-200 bg-white p-12 text-center dark:border-gatepass-800 dark:bg-gatepass-900">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gatepass-100 dark:bg-gatepass-800">
-            <Shield size={32} className="text-gatepass-400" />
-          </div>
-          <h2 className="mt-6 text-xl font-semibold text-gatepass-900 dark:text-gatepass-100">No scans yet</h2>
-          <p className="mx-auto mt-2 max-w-sm text-sm text-gatepass-500">
-            Connect a repository or trigger a scan. Verified findings and posture will appear here.
-          </p>
-          <Link
-            href="/fleet"
-            className="mt-8 inline-flex items-center gap-2 rounded-md bg-[#0D9488] px-6 py-2.5 text-sm font-medium text-white hover:bg-[#0F766E]"
-          >
-            <Plus size={16} />
-            Register a server
-          </Link>
-        </div>
-      </main>
+      <div className="space-y-6">
+        <PageHeader title="Overview" description={description} />
+        <EmptyState
+          icon={<Radar className="h-5 w-5" aria-hidden="true" />}
+          title="No scans yet"
+          description="Nothing has been scanned for this organization. Register a server or trigger a scan and its findings will appear here."
+          action={
+            <Link href="/fleet" className={PRIMARY_LINK}>
+              <Plus size={16} aria-hidden="true" />
+              Register a server
+            </Link>
+          }
+        />
+      </div>
     );
   }
 
-  return (
-    <main className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gatepass-900 dark:text-gatepass-100">Gatepass Dashboard</h1>
-        <p className="mt-1 text-sm text-gatepass-500">Application security posture for the AI-native stack</p>
-      </div>
+  const totalScans = scans.length;
+  const totalVerified = scans.reduce((n, s) => n + s.verified, 0);
+  const totalResearch = scans.reduce((n, s) => n + s.research, 0);
+  const totalCritical = scans.reduce((n, s) => n + (s.bySeverity.critical ?? 0), 0);
+  const scansWithCritical = scans.filter((s) => (s.bySeverity.critical ?? 0) > 0).length;
+  const totalFindings = totalVerified + totalResearch;
+  const latestScannedAt = scans[0]?.createdAt;
 
-      {/* Row 1: finding tallies (all real, summed across scans) */}
-      <div className="grid gap-4 sm:grid-cols-4">
-        <MetricCard
+  const share = (part: number) => {
+    const pct = sharePercent(part, totalFindings);
+    return pct && `${pct} of all findings`;
+  };
+
+  const repo = repoLabel(data?.latestRepo);
+
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        title="Overview"
+        description={description}
+        actions={
+          <Link href="/findings" className={PILL_LINK}>
+            All findings
+          </Link>
+        }
+      />
+
+      {/* Totals summed across every scan — no figure here is estimated. */}
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <Stat
           label="Verified findings"
           value={totalVerified}
-          icon={<ShieldCheck size={18} className="text-emerald-500" />}
-          accent="text-emerald-600 dark:text-emerald-400"
+          tone="verified"
+          icon={<ShieldCheck size={16} aria-hidden="true" />}
+          caption={share(totalVerified)}
         />
-        <MetricCard
+        <Stat
           label="Research findings"
           value={totalResearch}
-          icon={<FlaskConical size={18} className="text-blue-500" />}
-          accent="text-blue-600 dark:text-blue-400"
+          tone="research"
+          icon={<FlaskConical size={16} aria-hidden="true" />}
+          caption={share(totalResearch)}
         />
-        <MetricCard label="Critical" value={critical} accent="text-red-600 dark:text-red-400" />
-        <MetricCard label="Scans" value={totalScanned} accent="text-gatepass-700 dark:text-gatepass-200" />
+        <Stat
+          label="Critical"
+          value={totalCritical}
+          tone="critical"
+          icon={<AlertTriangle size={16} aria-hidden="true" />}
+          caption={
+            totalCritical > 0 ? `In ${scansWithCritical} of ${totalScans} ${pluralize(totalScans, "scan")}` : undefined
+          }
+        />
+        <Stat
+          label="Scans"
+          value={totalScans}
+          tone="neutral"
+          icon={<Radar size={16} aria-hidden="true" />}
+          caption={latestScannedAt ? `Latest ${relativeTime(latestScannedAt)}` : undefined}
+        />
       </div>
 
-      {/* Row 2: per-scan severity chart (real counts, chronological) */}
-      <div className="rounded-lg border border-gatepass-200 bg-white p-6 dark:border-gatepass-800 dark:bg-gatepass-900">
-        <div className="flex items-center gap-2">
-          <TrendingUp size={16} className="text-gatepass-400" />
-          <p className="text-sm font-medium text-gatepass-700 dark:text-gatepass-200">Findings by scan</p>
-        </div>
-        <SeverityChart scans={[...scans].reverse()} />
-        <div className="mt-4 flex items-center gap-4 text-xs text-gatepass-500">
-          {SEVERITY_ORDER.map((s) => (
-            <span key={s} className="flex items-center gap-1.5 capitalize">
-              <span className="h-2.5 w-2.5 rounded-sm" style={{ background: SEVERITY_BAR[s] }} />
-              {s}
-            </span>
-          ))}
-        </div>
-      </div>
-
-      {/* Row 3: real findings from the latest scan */}
-      <div className="rounded-lg border border-gatepass-200 bg-white dark:border-gatepass-800 dark:bg-gatepass-900">
-        <div className="flex items-center justify-between border-b border-gatepass-200 px-6 py-4 dark:border-gatepass-800">
-          <div className="flex items-center gap-2">
-            <FileText size={16} className="text-gatepass-400" />
-            <h2 className="text-sm font-semibold text-gatepass-900 dark:text-gatepass-100">
-              Latest findings{data?.latestRepo ? ` — ${data.latestRepo.split(/[\\/]/).pop()}` : ""}
-            </h2>
-          </div>
-          <Link
-            href="/findings"
-            className="flex items-center gap-1 rounded-md px-3 py-1.5 text-xs font-medium text-[#0D9488] hover:bg-gatepass-50 dark:hover:bg-gatepass-800"
+      <Card
+        header={
+          <CardTitle
+            icon={<TrendingUp size={15} aria-hidden="true" />}
+            action={
+              <span data-numeric className="shrink-0 text-[0.72rem] text-fg-muted">
+                {totalScans} {pluralize(totalScans, "scan")}
+              </span>
+            }
           >
-            View all
-          </Link>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-gatepass-50 dark:bg-gatepass-800/50">
-                {["Vulnerability", "Path", "Tier", "Risk"].map((h) => (
-                  <th
-                    key={h}
-                    className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gatepass-500"
-                  >
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {data!.latestFindings.slice(0, 8).map((f) => {
-                const loc = f.locations[0];
-                return (
-                  <tr
-                    key={f.fingerprint}
-                    className="border-b border-gatepass-100 last:border-b-0 hover:bg-gatepass-50/50 dark:border-gatepass-800 dark:hover:bg-gatepass-800/40"
-                  >
-                    <td className="px-6 py-3 font-medium text-gatepass-900 dark:text-gatepass-100">{f.classId}</td>
-                    <td className="px-6 py-3 font-mono text-xs text-gatepass-500">
-                      {loc ? `${loc.path}:${loc.startLine}` : "—"}
-                    </td>
-                    <td className="px-6 py-3">
-                      <span
-                        className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${f.tier === "verified" ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300" : "bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300"}`}
-                      >
-                        {f.tier === "verified"
-                          ? "verified"
-                          : `research${typeof f.confidence === "number" ? ` ${Math.round(f.confidence * 100)}%` : ""}`}
-                      </span>
-                    </td>
-                    <td className="px-6 py-3">
-                      <span
-                        className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium capitalize ${RISK_BADGE[f.severity] ?? RISK_BADGE.low}`}
-                      >
-                        {f.severity}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
-              {data!.latestFindings.length === 0 && (
-                <tr>
-                  <td colSpan={4} className="px-6 py-8 text-center text-sm text-gatepass-500">
-                    <AlertTriangle size={16} className="mx-auto mb-2 text-gatepass-400" />
-                    No findings in the latest scan.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </main>
-  );
-}
+            Findings by scan
+          </CardTitle>
+        }
+      >
+        <ScanChart scans={scans} />
+      </Card>
 
-function MetricCard({
-  label,
-  value,
-  icon,
-  accent,
-}: {
-  label: string;
-  value: number;
-  icon?: React.ReactNode;
-  accent: string;
-}) {
-  return (
-    <div className="rounded-lg border border-gatepass-200 bg-white p-6 dark:border-gatepass-800 dark:bg-gatepass-900">
-      <div className="flex items-center justify-between">
-        <p className="text-sm font-medium text-gatepass-500">{label}</p>
-        {icon}
-      </div>
-      <p className={`mt-2 text-3xl font-bold ${accent}`}>{value.toLocaleString()}</p>
+      <Card
+        padding={false}
+        header={
+          <CardTitle
+            icon={<FileText size={15} aria-hidden="true" />}
+            action={
+              <Link href="/findings" className={PILL_LINK}>
+                View all
+              </Link>
+            }
+          >
+            {repo ? `Latest findings — ${repo}` : "Latest findings"}
+          </CardTitle>
+        }
+        footer={
+          latestFindings.length > MAX_ROWS ? (
+            <p className="text-[0.72rem] text-fg-muted">
+              Showing {MAX_ROWS} of {latestFindings.length} findings from this scan.{" "}
+              <Link href="/findings" className="cursor-pointer text-accent hover:underline">
+                View all
+              </Link>
+            </p>
+          ) : undefined
+        }
+      >
+        <LatestFindingsTable findings={latestFindings} />
+      </Card>
     </div>
   );
 }
 
-function SeverityChart({ scans }: { scans: ScanSummary[] }) {
-  // HTML bars (not stretched SVG) so a single scan renders a clean fixed-width column
-  // and axis labels never distort. Each bar stacks severities to its real total.
-  const totals = scans.map((s) => SEVERITY_ORDER.reduce((n, sev) => n + (s.bySeverity[sev] ?? 0), 0));
-  const maxVal = Math.max(1, ...totals);
-  const labelEvery = Math.ceil((scans.length || 1) / 8);
+function ScanChart({ scans }: { scans: ScanSummary[] }) {
+  // Oldest first, so the chart reads left-to-right in time. The caller keeps its
+  // own newest-first ordering for everything else on the page.
+  const chronological = [...scans].reverse();
+  const totals = chronological.map(scanTotal);
+  const maxTotal = Math.max(1, ...totals);
+  // Thin the axis labels out rather than letting them collide once history grows.
+  const labelEvery = Math.max(1, Math.ceil(chronological.length / 8));
 
   return (
-    <div className="mt-4 flex items-end gap-2 overflow-x-auto" style={{ height: MAX_BAR_HEIGHT + 28 }}>
-      {scans.map((s, i) => {
-        const total = totals[i]!;
-        return (
-          <div
-            key={s.id}
-            className="flex shrink-0 flex-col items-center"
-            style={{ width: 34 }}
-            title={`${total} finding${total === 1 ? "" : "s"}`}
-          >
-            <div className="flex w-full flex-col-reverse justify-start rounded-t-sm" style={{ height: MAX_BAR_HEIGHT }}>
-              {SEVERITY_ORDER.slice()
-                .reverse()
-                .map((sev) => {
-                  const count = s.bySeverity[sev] ?? 0;
-                  if (count === 0) return null;
-                  return (
-                    <div
-                      key={sev}
-                      style={{ height: (count / maxVal) * MAX_BAR_HEIGHT, background: SEVERITY_BAR[sev] }}
-                      className="w-full first:rounded-t-sm"
-                    />
-                  );
-                })}
-            </div>
-            <span className="mt-2 h-4 truncate text-[9px] text-gatepass-400">
-              {i % labelEvery === 0 ? relativeTime(s.createdAt) || `#${i + 1}` : ""}
-            </span>
-          </div>
-        );
-      })}
+    <div>
+      {/*
+        Focusable and labelled because it scrolls: a keyboard user must be able
+        to reach the scroll container. The bars themselves are hidden from
+        assistive tech — the table below carries the same numbers losslessly.
+      */}
+      <div
+        role="group"
+        tabIndex={0}
+        aria-label="Findings by scan, oldest first. The same figures are listed in the table that follows."
+        className="overflow-x-auto pb-1"
+      >
+        <div className="flex items-end gap-2" aria-hidden="true">
+          {chronological.map((scan, i) => {
+            const total = totals[i] ?? 0;
+            // `flex-col-reverse` places the first child at the bottom, so walk
+            // the ordinal ramp backwards to stack critical on top.
+            const segments = [...SEVERITY_ORDER]
+              .reverse()
+              .map((severity) => ({ severity, count: scan.bySeverity[severity] ?? 0 }))
+              .filter((segment) => segment.count > 0);
+
+            return (
+              <div
+                key={scan.id}
+                className="flex shrink-0 flex-col items-center"
+                style={{ width: COLUMN_WIDTH }}
+                title={describeScan(scan, i)}
+              >
+                <div className="flex w-full flex-col-reverse justify-start" style={{ height: BAR_AREA }}>
+                  {total === 0 ? (
+                    // A clean scan still happened; a baseline says so without
+                    // implying a count.
+                    <div className="w-full rounded-[2px] bg-line-strong" style={{ height: MIN_SEGMENT }} />
+                  ) : (
+                    segments.map((segment) => (
+                      <div
+                        key={segment.severity}
+                        className="w-full last:rounded-t-[3px]"
+                        style={{
+                          height: Math.max(MIN_SEGMENT, (segment.count / maxTotal) * BAR_AREA),
+                          // Severity names are exactly the data-tone names, so
+                          // the ramp maps 1:1 onto the token variables.
+                          backgroundColor: TONE_VAR[segment.severity],
+                        }}
+                      />
+                    ))
+                  )}
+                </div>
+                <span className="mt-2 h-4 w-full truncate text-center text-[0.7rem] text-fg-muted">
+                  {i % labelEvery === 0 ? relativeTime(scan.createdAt) || `#${i + 1}` : ""}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* A bar chart is not readable by a screen reader. Same counts, verbatim. */}
+      <table className="sr-only">
+        <caption>Findings by scan and severity, oldest first</caption>
+        <thead>
+          <tr>
+            <th scope="col">Scan</th>
+            {SEVERITY_ORDER.map((severity) => (
+              <th key={severity} scope="col">
+                {severityLabel(severity)}
+              </th>
+            ))}
+            <th scope="col">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          {chronological.map((scan, i) => (
+            <tr key={scan.id}>
+              <th scope="row">{scan.createdAt ? formatDate(scan.createdAt) : `Scan ${i + 1}`}</th>
+              {SEVERITY_ORDER.map((severity) => (
+                <td key={severity}>{scan.bySeverity[severity] ?? 0}</td>
+              ))}
+              <td>{totals[i] ?? 0}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      <ul className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
+        {SEVERITY_ORDER.map((severity) => (
+          <li key={severity} className="flex items-center gap-1.5 text-[0.72rem] text-fg-muted">
+            <span className={cx("h-2.5 w-2.5 shrink-0 rounded-[2px]", TONE_FILL[severity])} aria-hidden="true" />
+            {severityLabel(severity)}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/** Tier is the product's core claim, so it is spelled out rather than colour-coded. */
+function TierBadge({ finding }: { finding: Finding }) {
+  if (finding.tier === "verified") {
+    return (
+      <Badge tone="verified" dot>
+        Verified
+      </Badge>
+    );
+  }
+  return (
+    <Badge tone="research" dot>
+      Research {confidencePercent(finding.confidence)}
+    </Badge>
+  );
+}
+
+function LatestFindingsTable({ findings }: { findings: Finding[] }) {
+  const rows = findings.slice(0, MAX_ROWS);
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-[38rem] text-[0.855rem]">
+        <caption className="sr-only">Findings from the most recent scan</caption>
+        <thead>
+          <tr className="border-b border-line bg-sunken">
+            {["Vulnerability", "Path", "Tier", "Severity"].map((heading) => (
+              <th
+                key={heading}
+                scope="col"
+                className="px-4 py-2.5 text-left text-[0.68rem] font-medium tracking-[0.06em] text-fg-muted uppercase"
+              >
+                {heading}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.length === 0 ? (
+            <tr>
+              <td colSpan={4} className="px-4 py-10 text-center text-[0.82rem] text-fg-muted">
+                No findings in the latest scan.
+              </td>
+            </tr>
+          ) : (
+            rows.map((finding) => {
+              const location = finding.locations[0];
+              const where = location ? `${location.path}:${location.startLine}` : undefined;
+              return (
+                <tr
+                  key={finding.fingerprint}
+                  className="border-b border-line transition-colors last:border-b-0 hover:bg-raised/60"
+                >
+                  <td className="px-4 py-3 font-medium text-fg">{finding.classId}</td>
+                  <td className="px-4 py-3 text-fg-muted">
+                    {where ? (
+                      <span className="block max-w-[20rem] truncate font-mono text-[0.76rem]" title={where}>
+                        {where}
+                      </span>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    <TierBadge finding={finding} />
+                  </td>
+                  <td className="px-4 py-3">
+                    <Badge tone={finding.severity} dot>
+                      {severityLabel(finding.severity)}
+                    </Badge>
+                  </td>
+                </tr>
+              );
+            })
+          )}
+        </tbody>
+      </table>
     </div>
   );
 }

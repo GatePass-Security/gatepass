@@ -1,4 +1,13 @@
-import { FileText, Code, Shield, Server, Search, BookOpen, ExternalLink } from "lucide-react";
+import Link from "next/link";
+import { BookOpen, Code, FileText, Search, Server, Shield } from "lucide-react";
+/*
+ * Imported by module rather than through the `@/components/ui` barrel: the
+ * barrel also re-exports Input/Select/Table, which call hooks without a
+ * "use client" directive, so pulling it into a Server Component fails the
+ * build. Same pattern layout.tsx already uses for ToastProvider.
+ */
+import { Card, CardTitle } from "@/components/ui/Card";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 const DOC_SECTIONS = [
   {
@@ -27,73 +36,66 @@ const DOC_SECTIONS = [
   },
 ];
 
+/*
+ * `Button` renders a `<button>`, but these actions navigate, so they have to be
+ * anchors. The classes mirror Button's `primary` / `secondary` variants at size
+ * `md` so the control is indistinguishable from a real one on screen. Every
+ * class name appears as a literal in this file, which is what Tailwind's
+ * scanner needs — nothing is assembled from a fragment at runtime.
+ */
+const PILL_BASE =
+  "inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-full px-4 " +
+  "text-[0.855rem] font-medium whitespace-nowrap transition-[background-color,color,border-color] duration-150";
+const PILL_PRIMARY = `${PILL_BASE} bg-action text-action-text hover:bg-action-hover`;
+
 export default function DocsPage() {
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gatepass-900">Documentation</h1>
-        <p className="mt-1 text-sm text-gatepass-500">
-          Guides, API references, and best practices for the Gatepass platform.
-        </p>
-      </div>
+      <PageHeader
+        title="Documentation"
+        description="Guides, API references, and best practices for the Gatepass platform."
+      />
 
       <div className="grid gap-4 sm:grid-cols-2">
         {DOC_SECTIONS.map((section) => (
-          <div key={section.title} className="rounded-lg border border-gatepass-200 bg-white p-6">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#0891b2]/10">
-                <section.icon size={20} className="text-[#0891b2]" />
-              </div>
-              <div>
-                <h2 className="text-lg font-semibold text-gatepass-900">{section.title}</h2>
-                <p className="text-sm text-gatepass-500">{section.description}</p>
-              </div>
-            </div>
+          <Card
+            key={section.title}
+            header={<CardTitle icon={<section.icon size={15} aria-hidden="true" />}>{section.title}</CardTitle>}
+          >
+            <p className="max-w-prose text-[0.855rem] leading-relaxed text-fg-secondary">{section.description}</p>
 
-            <ul className="mt-4 space-y-2">
+            {/*
+              These articles are not written yet. Rendering them as anchors to
+              "#" made every row look like navigation and quietly asserted the
+              page existed — a titled, hoverable, focusable row in a docs index
+              is a promise. Until there is somewhere to go they are plain text,
+              and the section says so once rather than 16 times.
+            */}
+            <ul className="mt-4 space-y-1.5">
               {section.articles.map((article) => (
-                <li key={article}>
-                  <a
-                    href="#"
-                    className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-gatepass-700 hover:bg-gatepass-50 transition-colors"
-                  >
-                    <FileText size={14} className="shrink-0 text-gatepass-400" />
-                    {article}
-                    <ExternalLink size={12} className="ml-auto shrink-0 text-gatepass-300" />
-                  </a>
+                <li key={article} className="flex items-center gap-2.5 text-[0.82rem] text-fg-muted">
+                  <FileText size={14} className="shrink-0 text-fg-faint" aria-hidden="true" />
+                  <span className="truncate">{article}</span>
                 </li>
               ))}
             </ul>
-          </div>
+            <p className="mt-3 text-[0.72rem] text-fg-faint">Not published yet.</p>
+          </Card>
         ))}
       </div>
 
-      <div className="rounded-lg border border-gatepass-200 bg-white p-6">
-        <div className="flex items-start gap-3">
-          <BookOpen size={20} className="mt-0.5 shrink-0 text-[#0891b2]" />
-          <div>
-            <p className="text-sm font-medium text-gatepass-900">Need more help?</p>
-            <p className="mt-1 text-sm text-gatepass-500">
-              Check the support page for live chat and ticket options, or browse our API reference for programmatic
-              access.
-            </p>
-            <div className="mt-3 flex gap-3">
-              <a
-                href="/support"
-                className="rounded-md bg-[#0891b2] px-4 py-2 text-sm font-medium text-white hover:bg-[#0e7490] transition-colors"
-              >
-                Contact Support
-              </a>
-              <a
-                href="#"
-                className="rounded-md border border-gatepass-300 px-4 py-2 text-sm font-medium text-gatepass-700 hover:bg-gatepass-50 transition-colors"
-              >
-                API Reference
-              </a>
-            </div>
-          </div>
+      <Card header={<CardTitle icon={<BookOpen size={15} aria-hidden="true" />}>Need more help?</CardTitle>}>
+        <p className="max-w-prose text-[0.855rem] leading-relaxed text-fg-secondary">
+          Contact support for help with the platform. The API reference is not published yet — until it is, the route
+          table in <span className="font-mono text-[0.8rem] text-fg">specs/001-gatepass-platform/contracts/api.md</span>{" "}
+          is the authoritative list of endpoints.
+        </p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Link href="/support" className={PILL_PRIMARY}>
+            Contact Support
+          </Link>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }

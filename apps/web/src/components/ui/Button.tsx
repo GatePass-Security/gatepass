@@ -1,7 +1,8 @@
 import { type ButtonHTMLAttributes, forwardRef } from "react";
 import { Loader2 } from "lucide-react";
+import { cx } from "@/lib/utils";
 
-type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
+type ButtonVariant = "primary" | "secondary" | "ghost" | "accent" | "danger";
 type ButtonSize = "sm" | "md" | "lg";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -10,19 +11,24 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   isLoading?: boolean;
 }
 
+/*
+ * The marketing site's primary action is a high-contrast pill — white on
+ * black — and the mint accent is spent on state and data instead. `primary`
+ * follows that; reach for `accent` only when the action IS the accent story
+ * (running a scan), so the accent keeps its meaning everywhere else.
+ */
 const variantStyles: Record<ButtonVariant, string> = {
-  primary: "bg-teal-600 text-white hover:bg-teal-700 active:bg-teal-700/90 dark:bg-teal-500 dark:hover:bg-teal-600",
-  secondary:
-    "border border-gatepass-300 bg-white text-gatepass-700 hover:bg-gatepass-50 active:bg-gatepass-100 dark:border-gatepass-600 dark:bg-transparent dark:text-gatepass-200 dark:hover:bg-gatepass-800",
-  ghost:
-    "bg-transparent text-gatepass-600 hover:bg-gatepass-100 active:bg-gatepass-100/80 dark:text-gatepass-400 dark:hover:bg-gatepass-800",
-  danger: "bg-severity-critical text-white hover:bg-severity-critical-dark active:bg-severity-critical-dark/90",
+  primary: "bg-action text-action-text hover:bg-action-hover",
+  secondary: "border border-line-strong bg-surface text-fg hover:bg-raised",
+  ghost: "text-fg-secondary hover:bg-raised hover:text-fg",
+  accent: "bg-accent-solid text-accent-contrast hover:opacity-90",
+  danger: "border border-critical-line bg-critical-soft text-critical hover:opacity-80",
 };
 
 const sizeStyles: Record<ButtonSize, string> = {
-  sm: "h-8 px-3 text-sm gap-1.5 rounded",
-  md: "h-9 px-4 text-sm gap-2 rounded",
-  lg: "h-11 px-6 text-base gap-2.5 rounded-lg",
+  sm: "h-9 px-3.5 text-[0.8rem] gap-1.5",
+  md: "h-10 px-4 text-[0.855rem] gap-2",
+  lg: "h-11 px-5 text-[0.9rem] gap-2",
 };
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
@@ -33,15 +39,18 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       <button
         ref={ref}
         disabled={isDisabled}
-        className={`inline-flex items-center justify-center font-medium transition-colors duration-150
-          focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600
-          disabled:opacity-50 disabled:cursor-not-allowed
-          ${variantStyles[variant]}
-          ${sizeStyles[size]}
-          ${className}`}
+        aria-busy={isLoading || undefined}
+        className={cx(
+          "inline-flex cursor-pointer touch-manipulation items-center justify-center rounded-full font-medium whitespace-nowrap",
+          "transition-[background-color,color,opacity,border-color] duration-150",
+          "disabled:cursor-not-allowed disabled:opacity-45",
+          variantStyles[variant],
+          sizeStyles[size],
+          className,
+        )}
         {...props}
       >
-        {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
+        {isLoading && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
         {children}
       </button>
     );
@@ -49,3 +58,32 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 );
 
 Button.displayName = "Button";
+
+interface IconButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  /** Required — an icon on its own has no accessible name. */
+  label: string;
+  size?: "sm" | "md";
+}
+
+export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
+  ({ label, size = "md", className = "", children, ...props }, ref) => (
+    <button
+      ref={ref}
+      type="button"
+      aria-label={label}
+      title={label}
+      className={cx(
+        "inline-flex cursor-pointer touch-manipulation items-center justify-center rounded-full",
+        "text-fg-muted transition-colors duration-150 hover:bg-raised hover:text-fg",
+        "disabled:cursor-not-allowed disabled:opacity-45",
+        size === "sm" ? "h-9 w-9" : "h-10 w-10",
+        className,
+      )}
+      {...props}
+    >
+      {children}
+    </button>
+  ),
+);
+
+IconButton.displayName = "IconButton";

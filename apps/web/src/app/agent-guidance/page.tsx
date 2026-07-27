@@ -1,201 +1,298 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Lightbulb, ListFilter, Lock } from "lucide-react";
+
 import { api } from "@/lib/api-client";
 import { ORG_ID } from "@/lib/constants";
+import { ApiError, type Finding, type ScanSummary } from "@/lib/types";
+import {
+  confidencePercent,
+  cx,
+  pluralize,
+  relativeTime,
+  repoLabel,
+  severityLabel,
+  severityToken,
+  tierToken,
+} from "@/lib/utils";
+import {
+  Badge,
+  Button,
+  Card,
+  CardTitle,
+  CodeBlock,
+  EmptyState,
+  ErrorState,
+  PageHeader,
+  Select,
+  Skeleton,
+  TONE_VAR,
+  type Tone,
+} from "@/components/ui";
 
-import { EmptyState } from "@/components/ui/EmptyState";
-import { Loader2, AlertTriangle, Lightbulb, Lock, Sparkles, CheckCircle2, Copy } from "lucide-react";
+const DESCRIPTION = "Fetch the agent loop's remediation guidance for a finding from one of this organization's scans.";
+
+/** `severityToken`/`tierToken` return token *names*; `Tone` is that same
+ *  vocabulary narrowed for the primitives, so the cast is total by construction. */
+const asTone = (token: string): Tone => token as Tone;
+
+/** Every part of the label is a field the scan summary actually returned —
+ *  repo path tail, age, and the verified + research total. */
+function scanOptionLabel(scan: ScanSummary): string {
+  const parts: string[] = [repoLabel(scan.repo) ?? scan.id];
+  const age = relativeTime(scan.createdAt);
+  if (age) parts.push(age);
+  const total = scan.verified + scan.research;
+  parts.push(`${total} ${pluralize(total, "finding")}`);
+  return parts.join(" · ");
+}
+
+type Outcome =
+  | { kind: "guidance"; fingerprint: string; guidance: { kind: string; content: string } }
+  | { kind: "gated" }
+  | { kind: "error"; message: string };
 
 export default function AgentGuidancePage() {
-  const [scanId, setScanId] = useState("");
-  const [fingerprint, setFingerprint] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [guidance, setGuidance] = useState<{ content: string; kind: string } | null>(null);
+  const router = useRouter();
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  const [scans, setScans] = useState<ScanSummary[] | null>(null);
+  const [scansError, setScansError] = useState<string | null>(null);
+  const [scanId, setScanId] = useState("");
+
+  const [findings, setFindings] = useState<Finding[] | null>(null);
+  const [findingsError, setFindingsError] = useState<string | null>(null);
+  const [fingerprint, setFingerprint] = useState("");
+
+  const [loading, setLoading] = useState(false);
+  const [outcome, setOutcome] = useState<Outcome | null>(null);
+
+  const loadScans = useCallback(async () => {
+    setScansError(null);
+    setScans(null);
+    try {
+      const list = await api.listScans(ORG_ID);
+      // Newest first: the scan someone wants guidance on is nearly always the
+      // last one that ran, so it is what the Select opens on.
+      const sorted = [...list].sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""));
+      setScans(sorted);
+      setScanId((current) => current || (sorted[0]?.id ?? ""));
+    } catch (err) {
+      setScansError(err instanceof Error ? err.message : "Could not load scans");
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadScans();
+  }, [loadScans]);
+
+  // Findings follow the selected scan. A fingerprint from the previous scan is
+  // meaningless against this one, so the selection resets with the fetch.
+  useEffect(() => {
+    if (!scanId) return;
+    let cancelled = false;
+    setFindings(null);
+    setFindingsError(null);
+    setFingerprint("");
+    setOutcome(null);
+    api
+      .getFindings(scanId)
+      .then((list) => {
+        if (!cancelled) setFindings(list);
+      })
+      .catch((err) => {
+        if (!cancelled) setFindingsError(err instanceof Error ? err.message : "Could not load findings");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [scanId]);
+
+  async function requestGuidance(event?: React.FormEvent) {
+    event?.preventDefault();
     if (!scanId || !fingerprint) return;
     setLoading(true);
-    setError(null);
-    setGuidance(null);
+    setOutcome(null);
     try {
       const result = await api.getAgentGuidance(ORG_ID, scanId, fingerprint);
-      setGuidance(result.guidance);
+      setOutcome({ kind: "guidance", fingerprint: result.fingerprint, guidance: result.guidance });
     } catch (err) {
-      if (err instanceof Error && err.message.includes("Forbidden")) {
-        setError("Agent-loop guidance is not enabled for this repository.");
-      } else {
-        setError(err instanceof Error ? err.message : "Failed to fetch guidance");
-      }
+      // 403 is the opt-in gate in `agentGuidance`, not a failure. The previous
+      // version matched on the word "Forbidden", which the API never sends —
+      // the status code is the only reliable signal.
+      if (err instanceof ApiError && err.status === 403) setOutcome({ kind: "gated" });
+      else setOutcome({ kind: "error", message: err instanceof Error ? err.message : "Could not fetch guidance" });
     } finally {
       setLoading(false);
     }
   }
 
+  // ErrorState carries role="alert" of its own, so the error case is left out
+  // here rather than announced twice.
+  const status = loading
+    ? "Requesting guidance"
+    : outcome?.kind === "guidance"
+      ? "Guidance loaded"
+      : outcome?.kind === "gated"
+        ? "Agent loop is disabled for this organization"
+        : "";
+
   return (
     <div className="space-y-6">
-      {/* Page header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gatepass-900 dark:text-white">Agent Guidance</h1>
-        <p className="mt-1 text-sm text-gatepass-500">Generate automated remediation steps for security findings.</p>
-      </div>
+      <PageHeader title="Agent guidance" description={DESCRIPTION} />
 
-      {/* Card 1 — Request Remediation */}
-      <div className="rounded-lg border border-gatepass-200 bg-white p-6 dark:bg-gatepass-800/50 dark:border-gatepass-700">
-        <h2 className="text-lg font-semibold text-gatepass-900 dark:text-white">Request Remediation</h2>
-        <form onSubmit={handleSubmit} className="mt-4 space-y-4">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <label htmlFor="scan-id" className="block text-sm font-medium text-gatepass-700 dark:text-gatepass-300">
-                Scan ID
-              </label>
-              <input
-                id="scan-id"
-                type="text"
+      <p role="status" aria-live="polite" className="sr-only">
+        {status}
+      </p>
+
+      {scansError ? (
+        <ErrorState title="Could not load scans" message={scansError} onRetry={() => void loadScans()} />
+      ) : scans === null ? (
+        <div className="space-y-2" aria-busy="true" aria-live="polite">
+          <span className="sr-only">Loading scans</span>
+          <Skeleton variant="row" />
+          <Skeleton variant="card" />
+        </div>
+      ) : scans.length === 0 ? (
+        <EmptyState
+          icon={<Lightbulb className="h-5 w-5" />}
+          title="No scans yet"
+          description="Guidance is generated from a finding in a completed scan, and this organization has no scans."
+        />
+      ) : (
+        <>
+          <Card header={<CardTitle icon={<ListFilter size={15} />}>Select a finding</CardTitle>}>
+            <form onSubmit={requestGuidance} className="space-y-5">
+              <Select
+                label="Scan"
                 value={scanId}
                 onChange={(e) => setScanId(e.target.value)}
-                placeholder="Enter scan ID..."
-                className="mt-1 block w-full rounded-md border border-gatepass-300 bg-white px-4 py-2.5 text-sm text-gatepass-900 placeholder-gatepass-400 focus:border-[#0891b2] focus:outline-none focus:ring-1 focus:ring-[#0891b2] dark:border-gatepass-600 dark:bg-gatepass-900 dark:text-white dark:placeholder-gatepass-500"
-                required
+                options={scans.map((scan) => ({ value: scan.id, label: scanOptionLabel(scan) }))}
               />
-            </div>
-            <div>
-              <label
-                htmlFor="finding-fingerprint"
-                className="block text-sm font-medium text-gatepass-700 dark:text-gatepass-300"
-              >
-                Finding Fingerprint
-              </label>
-              <input
-                id="finding-fingerprint"
-                type="text"
-                value={fingerprint}
-                onChange={(e) => setFingerprint(e.target.value)}
-                placeholder="sha256:..."
-                className="mt-1 block w-full rounded-md border border-gatepass-300 bg-white px-4 py-2.5 text-sm text-gatepass-900 placeholder-gatepass-400 focus:border-[#0891b2] focus:outline-none focus:ring-1 focus:ring-[#0891b2] dark:border-gatepass-600 dark:bg-gatepass-900 dark:text-white dark:placeholder-gatepass-500"
-                required
-              />
-            </div>
-          </div>
-          <div className="flex justify-end">
-            <button
-              type="submit"
-              disabled={loading || !scanId || !fingerprint}
-              className="inline-flex items-center gap-2 rounded-md bg-[#0891b2] px-6 py-2.5 text-sm font-medium text-white hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
-            >
-              {loading ? (
-                <>
-                  <Loader2 size={16} className="animate-spin" />
-                  Loading...
-                </>
-              ) : (
-                <>
-                  <Sparkles size={16} />
-                  Get Guidance
-                </>
-              )}
-            </button>
-          </div>
-        </form>
-      </div>
 
-      {/* Error / 403 state */}
-      {error && (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-6 dark:border-amber-900 dark:bg-amber-950">
-          <div className="flex items-start gap-3">
-            {error.includes("not enabled") ? (
-              <Lock className="mt-0.5 h-5 w-5 text-amber-600 dark:text-amber-400" />
-            ) : (
-              <AlertTriangle className="mt-0.5 h-5 w-5 text-red-600 dark:text-red-400" />
-            )}
-            <div>
-              <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
-                {error.includes("not enabled") ? "Feature Not Available" : "Error"}
+              <fieldset className="min-w-0">
+                <legend className="text-[0.78rem] font-medium text-fg-secondary">Finding</legend>
+
+                {findingsError ? (
+                  <div className="mt-1.5">
+                    <ErrorState title="Could not load findings" message={findingsError} />
+                  </div>
+                ) : findings === null ? (
+                  <div className="mt-1.5 space-y-2" aria-busy="true" aria-live="polite">
+                    <span className="sr-only">Loading findings</span>
+                    <Skeleton variant="row" />
+                    <Skeleton variant="row" />
+                  </div>
+                ) : findings.length === 0 ? (
+                  /* Not an EmptyState: nesting that bordered surface inside a
+                     card reads as a second panel. The claim is the same. */
+                  <p className="mt-1.5 rounded-[0.6rem] border border-line bg-sunken px-3 py-6 text-center text-[0.8rem] text-fg-muted">
+                    This scan reported no findings.
+                  </p>
+                ) : (
+                  <ul className="mt-1.5 max-h-[22rem] space-y-1 overflow-y-auto rounded-[0.6rem] border border-line bg-sunken p-1.5">
+                    {findings.map((finding) => {
+                      const selected = finding.fingerprint === fingerprint;
+                      const location = finding.locations[0];
+                      const tierLabel =
+                        finding.tier === "verified" ? "Verified" : `Research ${confidencePercent(finding.confidence)}`;
+                      const inputId = `finding-${finding.fingerprint}`;
+
+                      return (
+                        <li key={finding.fingerprint}>
+                          <label
+                            htmlFor={inputId}
+                            className={cx(
+                              "flex cursor-pointer items-start gap-2.5 rounded-[0.5rem] border px-2.5 py-2 transition-colors duration-150",
+                              selected ? "border-accent-line bg-accent-soft" : "border-transparent hover:bg-raised",
+                            )}
+                          >
+                            <input
+                              id={inputId}
+                              type="radio"
+                              name="finding"
+                              value={finding.fingerprint}
+                              checked={selected}
+                              onChange={() => setFingerprint(finding.fingerprint)}
+                              className="mt-1 h-3.5 w-3.5 shrink-0 cursor-pointer"
+                              style={{ accentColor: TONE_VAR.accent }}
+                            />
+                            <span className="min-w-0 flex-1">
+                              <span className="flex flex-wrap items-center gap-1.5">
+                                <span className="text-[0.82rem] font-medium break-all text-fg">{finding.classId}</span>
+                                <Badge size="sm" tone={asTone(severityToken(finding.severity))} dot>
+                                  {severityLabel(finding.severity)}
+                                </Badge>
+                                <Badge size="sm" tone={asTone(tierToken(finding.tier))}>
+                                  {tierLabel}
+                                </Badge>
+                              </span>
+                              {location && (
+                                <span className="mt-0.5 block font-mono text-[0.7rem] break-all text-fg-muted">
+                                  {location.path}:{location.startLine}
+                                </span>
+                              )}
+                            </span>
+                          </label>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </fieldset>
+
+              <div className="flex justify-end">
+                <Button type="submit" variant="primary" isLoading={loading} disabled={!fingerprint}>
+                  Get guidance
+                </Button>
+              </div>
+            </form>
+          </Card>
+
+          {outcome?.kind === "guidance" ? (
+            <Card
+              header={
+                <CardTitle
+                  icon={<Lightbulb size={15} />}
+                  action={
+                    <Button variant="secondary" size="sm" onClick={() => setOutcome(null)}>
+                      Dismiss
+                    </Button>
+                  }
+                >
+                  Guidance
+                </CardTitle>
+              }
+            >
+              <p className="text-[0.72rem] text-fg-muted">
+                Fingerprint <span className="font-mono break-all text-fg-secondary">{outcome.fingerprint}</span>
               </p>
-              <p className="mt-1 text-sm text-amber-700 dark:text-amber-400">{error}</p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Card 2 — Generated Guidance */}
-      {guidance && (
-        <div className="rounded-lg border border-gatepass-200 bg-white p-6 dark:bg-gatepass-800/50 dark:border-gatepass-700">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="h-5 w-5 text-emerald-500" />
-            <h2 className="text-lg font-semibold text-gatepass-900 dark:text-white">Generated Guidance</h2>
-          </div>
-          <p className="mt-1 text-sm text-gatepass-500">Automated remediation steps for the selected finding.</p>
-
-          {/* Code block */}
-          <div className="mt-4 rounded-lg bg-gatepass-800 dark:bg-gatepass-950 overflow-hidden">
-            <div className="flex items-center justify-between border-b border-gatepass-700 px-4 py-2">
-              <span className="text-sm text-gatepass-300">{guidance.kind}</span>
-              <button
-                type="button"
-                onClick={() => navigator.clipboard.writeText(guidance.content)}
-                className="rounded p-1 text-gatepass-400 hover:text-white hover:bg-gatepass-700 transition-colors"
-                title="Copy to clipboard"
-              >
-                <Copy size={14} />
-              </button>
-            </div>
-            <div className="p-4 overflow-x-auto">
-              <pre className="whitespace-pre-wrap text-sm font-mono text-gatepass-200 leading-relaxed">
-                {guidance.content.split("\n").map((line, i) => {
-                  if (line.startsWith("+") || line.startsWith("add ")) {
-                    return (
-                      <div key={i} className="bg-emerald-500/10 -mx-4 px-4">
-                        <span className="text-emerald-400">{line}</span>
-                      </div>
-                    );
-                  }
-                  if (line.startsWith("-") || line.startsWith("remove ")) {
-                    return (
-                      <div key={i} className="bg-red-500/10 -mx-4 px-4">
-                        <span className="text-red-400">{line}</span>
-                      </div>
-                    );
-                  }
-                  return (
-                    <div key={i}>
-                      <span>{line}</span>
-                    </div>
-                  );
-                })}
-              </pre>
-            </div>
-          </div>
-
-          {/* Action buttons */}
-          <div className="mt-4 flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => setGuidance(null)}
-              className="rounded-md border border-gatepass-300 px-4 py-2.5 text-sm font-medium text-gatepass-700 hover:bg-gatepass-50 dark:border-gatepass-600 dark:text-gatepass-300 dark:hover:bg-gatepass-700 transition-colors"
-            >
-              Dismiss
-            </button>
-            <button
-              type="button"
-              onClick={() => navigator.clipboard.writeText(guidance.content)}
-              className="inline-flex items-center gap-2 rounded-md bg-[#0891b2] px-6 py-2.5 text-sm font-medium text-white hover:bg-teal-700 transition-colors"
-            >
-              Apply Patch
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Empty state */}
-      {!guidance && !error && !loading && (
-        <EmptyState
-          icon={<Lightbulb size={48} />}
-          title="Enter finding details"
-          description="Provide a scan ID and finding fingerprint to retrieve guidance"
-        />
+              <div className="mt-3">
+                <CodeBlock title={outcome.guidance.kind} content={outcome.guidance.content} diff />
+              </div>
+            </Card>
+          ) : outcome?.kind === "gated" ? (
+            <EmptyState
+              icon={<Lock className="h-5 w-5" />}
+              title="Agent loop is off for this organization"
+              description="The API declined the request because agent-loop guidance is disabled. Turn on Agent loop in Settings, then try again."
+              action={{ label: "Open settings", onClick: () => router.push("/settings") }}
+            />
+          ) : outcome?.kind === "error" ? (
+            <ErrorState
+              title="Could not fetch guidance"
+              message={outcome.message}
+              onRetry={() => void requestGuidance()}
+            />
+          ) : (
+            <EmptyState
+              icon={<Lightbulb className="h-5 w-5" />}
+              title="No guidance requested"
+              description="Choose a scan and a finding above, then select Get guidance."
+            />
+          )}
+        </>
       )}
     </div>
   );

@@ -1,10 +1,6 @@
-import { Skeleton } from "@/components/ui/Skeleton";
+import { PageSkeleton } from "@/components/ui/Skeleton";
 
+/** No stat row on this page — a selector card above a result surface. */
 export default function AgentGuidanceLoading() {
-  return (
-    <div className="space-y-6">
-      <Skeleton variant="text" className="h-8 w-56" />
-      <Skeleton variant="card" className="h-48" />
-    </div>
-  );
+  return <PageSkeleton stats={0} rows={5} />;
 }

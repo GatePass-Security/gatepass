@@ -1,223 +1,275 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useOrg } from "@/providers/OrgProvider";
+import { useCallback, useEffect, useState } from "react";
+import { Building2, FolderGit2, Info } from "lucide-react";
+
 import { api } from "@/lib/api-client";
 import { ORG_ID } from "@/lib/constants";
-
-import { AlertTriangle, Building2, CheckCircle2, FolderGit2, Loader2, Pencil, X } from "lucide-react";
 import type { RepoRecord } from "@/lib/types";
+import { pluralize } from "@/lib/utils";
+import { useOrg } from "@/providers/OrgProvider";
+import {
+  Badge,
+  Card,
+  CardTitle,
+  EmptyState,
+  ErrorState,
+  PageHeader,
+  PageSkeleton,
+  Skeleton,
+  Toggle,
+  useToast,
+  type Tone,
+} from "@/components/ui";
+
+const DESCRIPTION =
+  "Organization analysis toggles, plus the repository configuration the API reports. Toggles apply immediately.";
+
+interface OrgSettings {
+  llmEnabled: boolean;
+  agentLoopEnabled: boolean;
+}
+
+type SettingKey = "llm_analysis_enabled" | "agent_loop_enabled";
+
+/*
+ * The only two fields `PATCH /v1/orgs/:org/settings` accepts (handlers.ts
+ * `updateOrgSettings`). Plan tier is set by billing and the org id is its
+ * identity, so neither is editable here — and there is deliberately no
+ * per-repo entry, because no route backs one.
+ */
+const TOGGLES = [
+  {
+    key: "llm_analysis_enabled",
+    field: "llmEnabled",
+    label: "LLM analysis",
+    description: "Research-tier semantic analysis during scans for this organization.",
+  },
+  {
+    key: "agent_loop_enabled",
+    field: "agentLoopEnabled",
+    label: "Agent loop",
+    description: "Required before the Guidance page can return remediation steps.",
+  },
+] as const satisfies ReadonlyArray<{
+  key: SettingKey;
+  field: keyof OrgSettings;
+  label: string;
+  description: string;
+}>;
+
+const SCAN_STATUS: Record<RepoRecord["scanStatus"], { label: string; tone: Tone }> = {
+  never_scanned: { label: "Never scanned", tone: "low" },
+  scanning: { label: "Scanning", tone: "research" },
+  complete: { label: "Scanned", tone: "verified" },
+  failed: { label: "Scan failed", tone: "critical" },
+};
+
+const GATE_MODE: Record<RepoRecord["gateMode"], string> = {
+  off: "Gate off",
+  block_verified: "Blocks on verified",
+  block_threshold: "Blocks on threshold",
+};
+
+const GATE_FAILURE: Record<RepoRecord["gateFailureMode"], string> = {
+  fail_open: "Fails open",
+  fail_closed: "Fails closed",
+};
 
 export default function SettingsPage() {
-  const { org, loading: orgLoading, error: orgError } = useOrg();
-  const [llmEnabled, setLlmEnabled] = useState(false);
-  const [repos, setRepos] = useState<RepoRecord[]>([]);
-  const [saving, setSaving] = useState<string | null>(null);
-  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const { org, loading: orgLoading, error: orgError, refetch } = useOrg();
+  const { toast } = useToast();
+
+  /*
+   * Local state holds only what this page has written since mount; before the
+   * first successful PATCH the org record from the provider is the truth. That
+   * ordering is what lets `refetch()` below run without ever clobbering a
+   * newer optimistic value.
+   */
+  const [written, setWritten] = useState<OrgSettings | null>(null);
+  const [pending, setPending] = useState<SettingKey | null>(null);
+
+  const [repos, setRepos] = useState<RepoRecord[] | null>(null);
+  const [reposError, setReposError] = useState<string | null>(null);
+
+  const loadRepos = useCallback(async () => {
+    setReposError(null);
+    setRepos(null);
+    try {
+      setRepos(await api.getRepos(ORG_ID));
+    } catch (err) {
+      setReposError(err instanceof Error ? err.message : "Could not load repositories");
+    }
+  }, []);
 
   useEffect(() => {
-    if (org) setLlmEnabled(org.llmEnabled);
-    api
-      .getRepos(ORG_ID)
-      .then(setRepos)
-      .catch(() => {});
-  }, [org]);
+    void loadRepos();
+  }, [loadRepos]);
 
-  async function toggleLlm() {
-    const next = !llmEnabled;
-    setLlmEnabled(next);
-    setSaving("org");
+  const settings: OrgSettings | null =
+    written ?? (org ? { llmEnabled: org.llmEnabled, agentLoopEnabled: org.agentLoopEnabled } : null);
+
+  async function setFlag(key: SettingKey, label: string, next: boolean) {
+    if (!settings) return;
+    const previous = settings;
+    const isLlm = key === "llm_analysis_enabled";
+
+    setWritten(isLlm ? { ...settings, llmEnabled: next } : { ...settings, agentLoopEnabled: next });
+    setPending(key);
     try {
-      await api.patchOrgSettings(ORG_ID, { llm_analysis_enabled: next });
-      setMessage({ type: "success", text: "Settings saved" });
-    } catch {
-      setLlmEnabled(!next);
-      setMessage({ type: "error", text: "Failed to save settings" });
+      const updated = await api.patchOrgSettings(
+        ORG_ID,
+        isLlm ? { llm_analysis_enabled: next } : { agent_loop_enabled: next },
+      );
+      // Reconcile from the returned record, not from the optimistic guess — the
+      // route ignores unknown keys, so the response is the only proof of what
+      // was actually persisted.
+      setWritten({ llmEnabled: updated.llmEnabled, agentLoopEnabled: updated.agentLoopEnabled });
+      refetch();
+      toast(`${label} ${next ? "enabled" : "disabled"}`, "success");
+    } catch (err) {
+      setWritten(previous);
+      toast(err instanceof Error ? err.message : `Could not update ${label.toLowerCase()}`, "error");
     } finally {
-      setSaving(null);
+      setPending(null);
     }
   }
 
-  async function toggleAgentLoop(repoName: string, enabled: boolean) {
-    setSaving(repoName);
-    try {
-      await api.patchRepoSettings(ORG_ID, repoName, { agent_loop_enabled: enabled });
-      setRepos(repos.map((r) => (r.name === repoName ? ({ ...r, agentLoopEnabled: enabled } as never) : r)));
-      setMessage({ type: "success", text: "Repo settings saved" });
-    } catch {
-      setMessage({ type: "error", text: "Failed to save repo settings" });
-    } finally {
-      setSaving(null);
-    }
-  }
+  if (orgLoading && !org) return <PageSkeleton stats={0} rows={4} />;
 
-  if (orgLoading) {
+  if (!org || !settings) {
     return (
-      <div className="flex min-h-[40vh] items-center justify-center">
-        <Loader2 size={32} className="animate-spin text-gatepass-400" />
-      </div>
-    );
-  }
-
-  if (orgError && !org) {
-    return (
-      <div className="rounded-lg border border-red-200 bg-red-50 p-6 dark:border-red-900 dark:bg-red-950">
-        <div className="flex items-center gap-3">
-          <AlertTriangle className="h-6 w-6 text-red-600 dark:text-red-400" />
-          <p className="text-sm text-red-700 dark:text-red-300">Could not load settings: {orgError}</p>
-        </div>
+      <div className="space-y-6">
+        <PageHeader title="Settings" description={DESCRIPTION} />
+        <ErrorState
+          title="Could not load settings"
+          message={orgError ?? "The organization record is unavailable."}
+          onRetry={refetch}
+        />
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gatepass-900 dark:text-white">Settings</h1>
-          <p className="mt-1 text-sm text-gatepass-500">
-            Manage your organization preferences and repository configurations.
+      <PageHeader title="Settings" description={DESCRIPTION} />
+
+      <Card header={<CardTitle icon={<Building2 size={15} />}>Organization</CardTitle>}>
+        <dl className="grid gap-4 sm:grid-cols-2">
+          <div className="min-w-0">
+            <dt className="text-[0.72rem] font-medium tracking-[0.05em] text-fg-muted uppercase">Organization ID</dt>
+            <dd className="mt-1.5 truncate font-mono text-[0.82rem] text-fg">{org.id}</dd>
+          </div>
+          <div className="min-w-0">
+            <dt className="text-[0.72rem] font-medium tracking-[0.05em] text-fg-muted uppercase">Plan tier</dt>
+            <dd className="mt-1.5">
+              <Badge tone="accent" className="capitalize">
+                {org.planTier}
+              </Badge>
+            </dd>
+          </div>
+        </dl>
+
+        <div className="mt-5 space-y-4 border-t border-line pt-5">
+          {TOGGLES.map((toggle) => (
+            <Toggle
+              key={toggle.key}
+              label={toggle.label}
+              description={toggle.description}
+              checked={settings[toggle.field]}
+              // Both switches lock during a write so two PATCHes can never
+              // interleave and reconcile out of order.
+              disabled={pending !== null}
+              onChange={(next) => void setFlag(toggle.key, toggle.label, next)}
+            />
+          ))}
+          <p role="status" aria-live="polite" className="h-4 text-[0.72rem] text-fg-muted">
+            {pending ? "Saving…" : ""}
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <button className="rounded-md border border-gatepass-300 px-4 py-2 text-sm text-gatepass-700 hover:bg-gatepass-50 transition-colors">
-            Cancel
-          </button>
-          <button className="rounded-md bg-[#0891b2] px-4 py-2 text-sm font-medium text-white hover:bg-[#0e7490] transition-colors">
-            Save Changes
-          </button>
-        </div>
-      </div>
+      </Card>
 
-      {/* Success banner */}
-      {message && message.type === "success" && (
-        <div className="flex items-start gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
-          <CheckCircle2 size={20} className="mt-0.5 text-emerald-500 shrink-0" />
-          <div className="flex-1">
-            <p className="text-sm font-semibold text-emerald-800">Configuration Saved</p>
-            <p className="text-sm text-emerald-700">{message.text}</p>
+      {reposError ? (
+        <ErrorState title="Could not load repositories" message={reposError} onRetry={() => void loadRepos()} />
+      ) : repos === null ? (
+        <Card header={<CardTitle icon={<FolderGit2 size={15} />}>Repositories</CardTitle>}>
+          <div className="space-y-2" aria-busy="true" aria-live="polite">
+            <span className="sr-only">Loading repositories</span>
+            <Skeleton variant="row" />
+            <Skeleton variant="row" />
+            <Skeleton variant="row" />
           </div>
-          <button
-            onClick={() => setMessage(null)}
-            className="text-emerald-500 hover:text-emerald-700 transition-colors shrink-0"
-          >
-            <X size={16} />
-          </button>
-        </div>
-      )}
-
-      {/* Error banner */}
-      {message && message.type === "error" && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">{message.text}</div>
-      )}
-
-      {/* Organization card */}
-      <div className="rounded-lg border border-gatepass-200 bg-white p-6">
-        <div className="mb-6 flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0891b2]/10">
-            <Building2 size={20} className="text-[#0891b2]" />
-          </div>
-          <h2 className="text-lg font-semibold text-gatepass-900">Organization</h2>
-        </div>
-
-        <div className="space-y-5">
-          {/* Plan tier */}
-          <div className="flex items-center justify-between">
-            <div>
-              <label className="mb-1 block text-sm font-medium text-gatepass-700">Plan Tier</label>
-              <p className="text-sm text-gatepass-500">{org?.planTier ?? "N/A"}</p>
-            </div>
-            <span className="rounded-full bg-teal-50 px-3 py-1 text-xs font-medium text-teal-700">Active</span>
-          </div>
-
-          {/* LLM toggle */}
-          <div className="flex items-center justify-between border-t border-gatepass-100 pt-5">
-            <div>
-              <p className="text-sm font-medium text-gatepass-900">LLM Analysis</p>
-              <p className="text-xs text-gatepass-500">Enable research-tier semantic analysis</p>
-            </div>
-            <button
-              onClick={toggleLlm}
-              disabled={saving === "org"}
-              className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${llmEnabled ? "bg-[#0891b2]" : "bg-gatepass-300 dark:bg-gatepass-600"}`}
+        </Card>
+      ) : repos.length === 0 ? (
+        <EmptyState
+          icon={<FolderGit2 className="h-5 w-5" />}
+          title="No repositories"
+          description="The API has not reported any repositories for this organization."
+        />
+      ) : (
+        <Card
+          header={
+            <CardTitle
+              icon={<FolderGit2 size={15} />}
+              action={
+                <span data-numeric className="shrink-0 text-[0.72rem] text-fg-muted">
+                  {repos.length} {pluralize(repos.length, "repository", "repositories")}
+                </span>
+              }
             >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${llmEnabled ? "translate-x-6" : "translate-x-1"}`}
-              />
-            </button>
-          </div>
-        </div>
-      </div>
+              Repositories
+            </CardTitle>
+          }
+        >
+          <p className="flex items-start gap-2 rounded-[0.6rem] border border-line bg-sunken px-3 py-2.5 text-[0.78rem] leading-relaxed text-fg-muted">
+            <Info size={14} className="mt-0.5 shrink-0" aria-hidden="true" />
+            <span>
+              Scan status and gate configuration are reported by the API. They cannot be changed from the dashboard.
+            </span>
+          </p>
 
-      {/* Repository configurations card */}
-      {repos.length > 0 && (
-        <div className="rounded-lg border border-gatepass-200 bg-white p-6">
-          <div className="mb-6 flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0891b2]/10">
-              <FolderGit2 size={20} className="text-[#0891b2]" />
-            </div>
-            <h2 className="text-lg font-semibold text-gatepass-900">Repository Configurations</h2>
-          </div>
-
-          <div className="space-y-4">
-            {repos.map((repo) => (
-              <div key={repo.name} className="rounded-lg border border-gatepass-200 bg-gatepass-50 p-4">
-                {/* Repo header */}
-                <div className="mb-3 flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <p className="font-medium text-gatepass-900">{repo.name}</p>
-                    <span className="rounded bg-gatepass-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gatepass-600">
-                      Private
-                    </span>
+          <ul className="mt-4 space-y-2.5">
+            {repos.map((repo) => {
+              const status = SCAN_STATUS[repo.scanStatus];
+              return (
+                <li key={repo.name} className="rounded-[0.75rem] border border-line bg-raised px-3.5 py-3">
+                  <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+                    <span className="min-w-0 flex-1 truncate text-[0.855rem] font-medium text-fg">{repo.name}</span>
+                    <Badge size="sm" tone={status.tone} dot>
+                      {status.label}
+                    </Badge>
                   </div>
-                  <button className="flex items-center gap-1 text-sm text-[#0891b2] hover:text-[#0e7490] transition-colors">
-                    <Pencil size={13} />
-                    Edit Rules
-                  </button>
-                </div>
 
-                {/* Frameworks */}
-                {(repo.frameworks ?? []).length > 0 && (
-                  <div className="mb-3">
-                    <p className="mb-1.5 text-xs font-medium text-gatepass-500">Detected Frameworks</p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {(repo.frameworks ?? []).map((fw) => (
-                        <span
-                          key={fw}
-                          className="inline-flex items-center rounded-md border border-gatepass-200 bg-white px-2.5 py-1 text-xs text-gatepass-700"
-                        >
-                          {fw}
-                        </span>
-                      ))}
+                  <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+                    <Badge size="sm">{GATE_MODE[repo.gateMode]}</Badge>
+                    <Badge size="sm">{GATE_FAILURE[repo.gateFailureMode]}</Badge>
+                  </div>
+
+                  {repo.frameworks.length > 0 && (
+                    <div className="mt-3">
+                      <p className="text-[0.72rem] font-medium tracking-[0.05em] text-fg-muted uppercase">
+                        Detected frameworks
+                      </p>
+                      <div className="mt-1.5 flex flex-wrap gap-1.5">
+                        {repo.frameworks.map((framework) => (
+                          <Badge key={framework} size="sm">
+                            {framework}
+                          </Badge>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {/* Agent Loop toggle */}
-                <div className="flex items-center justify-between border-t border-gatepass-200 pt-3">
-                  <div>
-                    <p className="text-sm font-medium text-gatepass-900">Agent Loop</p>
-                    <p className="text-xs text-gatepass-500">Opt-in fix guidance</p>
-                  </div>
-                  <button
-                    onClick={() =>
-                      toggleAgentLoop(
-                        repo.name,
-                        !(repo as unknown as Record<string, unknown>).agentLoopEnabled !== true,
-                      )
-                    }
-                    className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${(repo as unknown as Record<string, unknown>).agentLoopEnabled ? "bg-[#0891b2]" : "bg-gatepass-300 dark:bg-gatepass-600"}`}
-                  >
-                    <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${(repo as unknown as Record<string, unknown>).agentLoopEnabled ? "translate-x-6" : "translate-x-1"}`}
-                    />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+                  {repo.lastScanId && (
+                    <p className="mt-3 text-[0.72rem] text-fg-muted">
+                      Last scan <span className="font-mono break-all text-fg-secondary">{repo.lastScanId}</span>
+                    </p>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </Card>
       )}
     </div>
   );

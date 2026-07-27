@@ -1,19 +1,32 @@
 "use client";
 
 import { useState } from "react";
+import { BarChart3, Crosshair, Database, Download, Target } from "lucide-react";
 import type { BenchmarkData } from "@/lib/types";
-import { EmptyState } from "@/components/ui/EmptyState";
-import { Download, BarChart3, Database, Target, Crosshair } from "lucide-react";
+import {
+  Badge,
+  Button,
+  Card,
+  CardTitle,
+  EmptyState,
+  ErrorState,
+  PageHeader,
+  Select,
+  Stat,
+  Table,
+  TONE_FILL,
+  TONE_TEXT,
+  type Tone,
+} from "@/components/ui";
+import { cx, pluralize } from "@/lib/utils";
 
 interface Props {
   data: BenchmarkData[];
   error: string | null;
 }
 
-interface ToolRun {
-  tool: string;
-  perClass: BenchmarkData["runs"][number]["perClass"];
-}
+type ToolRun = BenchmarkData["runs"][number];
+type ClassRow = ToolRun["perClass"][number];
 
 /** A class counts as "detected" when the tool produced at least one true positive for it. */
 function detectedCount(run: ToolRun): number {
@@ -27,16 +40,30 @@ function meanPrecision(run: ToolRun): number | null {
   return scored.reduce((s, pc) => s + pc.tp / (pc.tp + pc.fp), 0) / scored.length;
 }
 
-/** Mean recall over all labeled classes. */
-function meanRecall(run: ToolRun): number {
-  if (run.perClass.length === 0) return 0;
+/**
+ * Mean recall over all labeled classes, or null when the run has no per-class
+ * results. Null rather than 0 for the same reason `meanPrecision` returns null:
+ * a run that recorded nothing has an *undefined* recall, and rendering it as
+ * "0.0%" in the failing tone scores a tool zero for data that does not exist —
+ * while the table directly below says the run recorded no per-class results.
+ */
+function meanRecall(run: ToolRun): number | null {
+  if (run.perClass.length === 0) return null;
   return run.perClass.reduce((s, pc) => s + pc.recall, 0) / run.perClass.length;
 }
 
-function rateColor(p: number): string {
-  if (p >= 0.9) return "text-emerald-600 dark:text-emerald-400";
-  if (p >= 0.7) return "text-amber-600 dark:text-amber-400";
-  return "text-red-600 dark:text-red-400";
+/**
+ * The published thresholds (>=0.9, >=0.7) expressed on the shared data ramp, so a
+ * rate on this page reads with the same weight as a severity does everywhere else.
+ */
+function rateTone(rate: number): Tone {
+  if (rate >= 0.9) return "verified";
+  if (rate >= 0.7) return "medium";
+  return "critical";
+}
+
+function ratePercent(rate: number): string {
+  return `${(rate * 100).toFixed(1)}%`;
 }
 
 export default function BenchmarkClient({ data, error }: Props) {
@@ -51,7 +78,9 @@ export default function BenchmarkClient({ data, error }: Props) {
   const totalClasses = primary?.perClass.length ?? 0;
   const primaryDetected = primary ? detectedCount(primary) : 0;
   const primaryPrecision = primary ? meanPrecision(primary) : null;
-  const primaryRecall = primary ? meanRecall(primary) : 0;
+  const primaryRecall = primary ? meanRecall(primary) : null;
+  // The precision denominator, surfaced so the headline says what it averaged over.
+  const scoredClasses = primary ? primary.perClass.filter((pc) => pc.tp + pc.fp > 0).length : 0;
 
   function handleDownload() {
     if (!current) return;
@@ -64,206 +93,226 @@ export default function BenchmarkClient({ data, error }: Props) {
     URL.revokeObjectURL(url);
   }
 
+  const header = (
+    <PageHeader
+      title="Precision benchmark"
+      description="Measured accuracy across vulnerability classes, scored identically for every tool. Headline figures describe a single run and are never averaged across tools."
+      actions={
+        current ? (
+          <div className="flex items-end gap-2">
+            <Select
+              label="Corpus version"
+              value={selectedVersion}
+              onChange={(e) => setSelectedVersion(e.target.value)}
+              options={data.map((d) => ({ value: d.corpusVersion, label: d.corpusVersion }))}
+              className="min-w-[9rem]"
+            />
+            <Button variant="secondary" onClick={handleDownload}>
+              <Download className="h-4 w-4" aria-hidden="true" />
+              Raw JSON
+            </Button>
+          </div>
+        ) : undefined
+      }
+    />
+  );
+
   if (error) {
     return (
-      <div className="rounded-lg border border-red-200 bg-red-50 p-6 dark:border-red-900 dark:bg-red-950">
-        <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
+      <div className="space-y-6">
+        {header}
+        <ErrorState title="Could not load the benchmark" message={error} />
       </div>
     );
   }
 
-  if (data.length === 0) {
+  // No corpus version, or a version carrying no runs — both mean "nothing published".
+  if (!current || !primary) {
     return (
-      <EmptyState
-        icon={<BarChart3 size={48} />}
-        title="No benchmark data"
-        description="Benchmark results will appear here once published"
-      />
+      <div className="space-y-6">
+        {header}
+        <EmptyState
+          icon={<BarChart3 className="h-5 w-5" />}
+          title="No benchmark published yet"
+          description="Nothing has been published to the public benchmark endpoint. An empty benchmark means no run has been recorded — it is not a score of zero for any tool."
+        />
+      </div>
     );
   }
+
+  const orderedRuns = [primary, ...incumbents];
+  const classWord = pluralize(totalClasses, "class", "classes");
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gatepass-900 dark:text-gatepass-100">Precision Benchmark</h1>
-          <p className="mt-1 text-sm text-gatepass-500">
-            Measured accuracy across vulnerability classes, scored identically for every tool.
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <select
-            value={selectedVersion}
-            onChange={(e) => setSelectedVersion(e.target.value)}
-            className="rounded-lg border border-gatepass-200 bg-white px-4 py-2 text-sm text-gatepass-700 hover:border-gatepass-300 dark:border-gatepass-700 dark:bg-gatepass-800 dark:text-gatepass-200"
-          >
-            {data.map((d) => (
-              <option key={d.corpusVersion} value={d.corpusVersion}>
-                {d.corpusVersion}
-              </option>
-            ))}
-          </select>
-          <button
-            onClick={handleDownload}
-            className="inline-flex items-center gap-2 rounded-lg border border-gatepass-200 bg-white px-4 py-2 text-sm font-medium text-gatepass-700 hover:bg-gatepass-50 hover:border-gatepass-300 dark:border-gatepass-700 dark:bg-gatepass-800 dark:text-gatepass-200 dark:hover:bg-gatepass-700"
-          >
-            <Download size={16} />
-            Raw JSON
-          </button>
-        </div>
-      </div>
+      {header}
 
-      {/* Headline metrics — Gatepass only (not averaged with incumbents) */}
-      {primary && (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <StatCard
-            icon={<Database size={20} className="text-[#0891b2]" />}
-            value={`${primaryDetected}/${totalClasses}`}
-            label="Classes detected (Gatepass)"
-          />
-          <StatCard
-            icon={<Target size={20} className="text-[#0891b2]" />}
-            value={primaryPrecision === null ? "—" : `${(primaryPrecision * 100).toFixed(1)}%`}
-            label="Precision (Gatepass)"
-            valueClass={primaryPrecision === null ? undefined : rateColor(primaryPrecision)}
-          />
-          <StatCard
-            icon={<Crosshair size={20} className="text-[#0891b2]" />}
-            value={`${(primaryRecall * 100).toFixed(1)}%`}
-            label="Recall (Gatepass)"
-            valueClass={rateColor(primaryRecall)}
-          />
-        </div>
-      )}
+      {/* Headline metrics — the primary run only, never averaged with incumbents. */}
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Stat
+          label={`${primary.tool} — classes detected`}
+          value={`${primaryDetected}/${totalClasses}`}
+          icon={<Database className="h-4 w-4" aria-hidden="true" />}
+          caption={`${totalClasses} labeled ${classWord} in ${current.corpusVersion}`}
+        />
+        <Stat
+          label={`${primary.tool} — mean precision`}
+          value={primaryPrecision === null ? "—" : ratePercent(primaryPrecision)}
+          tone={primaryPrecision === null ? "neutral" : rateTone(primaryPrecision)}
+          icon={<Target className="h-4 w-4" aria-hidden="true" />}
+          caption={
+            primaryPrecision === null
+              ? "This run flagged nothing, so precision is undefined"
+              : `Mean over ${scoredClasses} ${pluralize(scoredClasses, "class", "classes")} with at least one flag`
+          }
+        />
+        <Stat
+          label={`${primary.tool} — mean recall`}
+          value={primaryRecall === null ? "—" : ratePercent(primaryRecall)}
+          tone={primaryRecall === null ? "neutral" : rateTone(primaryRecall)}
+          icon={<Crosshair className="h-4 w-4" aria-hidden="true" />}
+          caption={
+            primaryRecall === null
+              ? "This run recorded no per-class results, so recall is undefined"
+              : `Mean over all ${totalClasses} labeled ${classWord}`
+          }
+        />
+      </div>
 
       {/* Head-to-head detection summary */}
       {incumbents.length > 0 && (
-        <div className="rounded-lg border border-gatepass-200 bg-white p-5 dark:border-gatepass-800 dark:bg-gatepass-900">
-          <h2 className="text-sm font-semibold text-gatepass-900 dark:text-gatepass-100">
-            Classes detected — head to head
-          </h2>
-          <div className="mt-4 space-y-3">
-            {[primary!, ...incumbents].map((run) => {
-              const d = detectedCount(run);
-              const pct = totalClasses ? (d / totalClasses) * 100 : 0;
+        <Card header={<CardTitle icon={<BarChart3 className="h-4 w-4" />}>Classes detected — head to head</CardTitle>}>
+          <ul role="list" className="space-y-4">
+            {orderedRuns.map((run) => {
+              const detected = detectedCount(run);
+              const pct = totalClasses ? (detected / totalClasses) * 100 : 0;
               const isPrimary = run === primary;
+              const tone: Tone = isPrimary ? "accent" : "low";
               return (
-                <div key={run.tool} className="flex items-center gap-3">
-                  <span
-                    className={`w-64 shrink-0 truncate text-xs ${isPrimary ? "font-semibold text-gatepass-900 dark:text-gatepass-100" : "text-gatepass-500"}`}
-                    title={run.tool}
-                  >
-                    {run.tool}
-                  </span>
-                  <div className="h-3 flex-1 overflow-hidden rounded-full bg-gatepass-100 dark:bg-gatepass-800">
-                    <div
-                      className="h-full rounded-full"
-                      style={{ width: `${pct}%`, background: isPrimary ? "#0D9488" : "#94a3b8" }}
-                    />
+                <li key={run.tool} className="space-y-1.5">
+                  <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                    <span className="flex min-w-0 items-center gap-2">
+                      <span
+                        className={cx(
+                          "truncate text-[0.8rem]",
+                          isPrimary ? "font-medium text-fg" : "text-fg-secondary",
+                        )}
+                      >
+                        {run.tool}
+                      </span>
+                      {isPrimary && (
+                        <Badge tone="accent" size="sm">
+                          Headline run
+                        </Badge>
+                      )}
+                    </span>
+                    <span
+                      data-numeric
+                      className={cx("shrink-0 text-[0.78rem]", isPrimary ? TONE_TEXT.accent : "text-fg-secondary")}
+                    >
+                      {detected}/{totalClasses}
+                      <span className="text-fg-muted"> · {pct.toFixed(0)}%</span>
+                    </span>
                   </div>
-                  <span
-                    className={`w-12 shrink-0 text-right text-xs font-medium ${isPrimary ? "text-gatepass-900 dark:text-gatepass-100" : "text-gatepass-500"}`}
-                  >
-                    {d}/{totalClasses}
+                  {/* Decoration only — the count and percentage above carry the value as text. */}
+                  <span className="block h-2 overflow-hidden rounded-full bg-sunken" aria-hidden="true">
+                    <span className={cx("block h-full rounded-full", TONE_FILL[tone])} style={{ width: `${pct}%` }} />
                   </span>
-                </div>
+                </li>
               );
             })}
-          </div>
-        </div>
+          </ul>
+        </Card>
       )}
 
       {/* Per-tool tables */}
-      {current && (
-        <div className="space-y-4">
-          <p className="text-sm text-gatepass-500">
-            Published: {new Date(current.publishedAt).toLocaleDateString()} &middot; {runs.length} tool run(s)
+      <section className="space-y-4" aria-labelledby="per-class-heading">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+          <h2 id="per-class-heading" className="text-[0.82rem] font-medium text-fg">
+            Per-class results
+          </h2>
+          <p className="text-[0.78rem] text-fg-muted">
+            Published: {new Date(current.publishedAt).toLocaleDateString()} · {runs.length} tool{" "}
+            {pluralize(runs.length, "run")}
           </p>
-          {[primary!, ...incumbents].filter(Boolean).map((run) => (
-            <div
-              key={run.tool}
-              className="rounded-lg border border-gatepass-200 bg-white dark:border-gatepass-800 dark:bg-gatepass-900"
-            >
-              <div className="flex items-center justify-between border-b border-gatepass-200 px-4 py-3 dark:border-gatepass-800">
-                <h3 className="text-sm font-semibold text-gatepass-900 dark:text-gatepass-100">{run.tool}</h3>
-                <span className="text-xs text-gatepass-500">
-                  {detectedCount(run)}/{run.perClass.length} classes
-                </span>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-gatepass-200 bg-gatepass-50 dark:border-gatepass-800 dark:bg-gatepass-800/50">
-                      {["Class", "TP", "FP", "FN", "Precision", "Recall"].map((h, i) => (
-                        <th
-                          key={h}
-                          className={`px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-gatepass-500 ${i === 0 ? "text-left" : "text-right"}`}
-                        >
-                          {h}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {run.perClass.map((pc) => {
-                      const prec = pc.tp + pc.fp > 0 ? pc.tp / (pc.tp + pc.fp) : null;
-                      return (
-                        <tr
-                          key={pc.classId}
-                          className="border-b border-gatepass-100 last:border-b-0 hover:bg-gatepass-50/50 dark:border-gatepass-800 dark:hover:bg-gatepass-800/40"
-                        >
-                          <td className="px-4 py-2.5 font-mono text-sm text-gatepass-900 dark:text-gatepass-100">
-                            {pc.classId}
-                          </td>
-                          <td className="px-4 py-2.5 text-right font-mono text-sm text-emerald-600 dark:text-emerald-400">
-                            {pc.tp}
-                          </td>
-                          <td className="px-4 py-2.5 text-right font-mono text-sm text-red-600 dark:text-red-400">
-                            {pc.fp}
-                          </td>
-                          <td className="px-4 py-2.5 text-right font-mono text-sm text-gatepass-500">{pc.fn}</td>
-                          <td
-                            className={`px-4 py-2.5 text-right font-mono text-sm font-medium ${prec === null ? "text-gatepass-400" : rateColor(prec)}`}
-                          >
-                            {prec === null ? "—" : `${(prec * 100).toFixed(1)}%`}
-                          </td>
-                          <td className="px-4 py-2.5 text-right font-mono text-sm font-medium text-gatepass-900 dark:text-gatepass-100">
-                            {(pc.recall * 100).toFixed(1)}%
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          ))}
         </div>
-      )}
-    </div>
-  );
-}
 
-function StatCard({
-  icon,
-  value,
-  label,
-  valueClass,
-}: {
-  icon: React.ReactNode;
-  value: string;
-  label: string;
-  valueClass?: string;
-}) {
-  return (
-    <div className="rounded-lg border border-gatepass-200 bg-white p-5 dark:border-gatepass-800 dark:bg-gatepass-900">
-      <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0891b2]/10">{icon}</div>
-        <div>
-          <p className={`text-2xl font-bold ${valueClass ?? "text-gatepass-900 dark:text-gatepass-100"}`}>{value}</p>
-          <p className="text-xs text-gatepass-500">{label}</p>
-        </div>
-      </div>
+        {orderedRuns.map((run) => (
+          <div key={run.tool} className="space-y-2.5">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+              <h3 className="flex items-center gap-2 text-[0.82rem] font-medium text-fg">
+                {run.tool}
+                {run === primary && (
+                  <Badge tone="accent" size="sm">
+                    Headline run
+                  </Badge>
+                )}
+              </h3>
+              <span data-numeric className="text-[0.72rem] text-fg-muted">
+                {detectedCount(run)}/{run.perClass.length} {pluralize(run.perClass.length, "class", "classes")} detected
+              </span>
+            </div>
+            <Table<ClassRow>
+              caption={`Per-class benchmark results for ${run.tool}`}
+              emptyMessage="This run recorded no per-class results."
+              data={run.perClass}
+              getRowKey={(row) => row.classId}
+              columns={[
+                {
+                  key: "classId",
+                  header: "Class",
+                  render: (value) => <span className="font-mono text-[0.8rem] text-fg">{String(value)}</span>,
+                },
+                {
+                  key: "tp",
+                  header: "TP",
+                  align: "right",
+                  render: (value) => <span className={cx("font-mono", TONE_TEXT.verified)}>{String(value)}</span>,
+                },
+                {
+                  key: "fp",
+                  header: "FP",
+                  align: "right",
+                  render: (value) => <span className={cx("font-mono", TONE_TEXT.critical)}>{String(value)}</span>,
+                },
+                {
+                  key: "fn",
+                  header: "FN",
+                  align: "right",
+                  render: (value) => <span className="font-mono text-fg-muted">{String(value)}</span>,
+                },
+                {
+                  key: "precision",
+                  header: "Precision",
+                  align: "right",
+                  // Recomputed from tp/fp rather than read off `precision`, so the column
+                  // and the headline mean are the same quantity by construction.
+                  render: (_value, row) => {
+                    const prec = row.tp + row.fp > 0 ? row.tp / (row.tp + row.fp) : null;
+                    return prec === null ? (
+                      <span className="font-mono text-fg-muted" title="No flags raised for this class">
+                        —
+                      </span>
+                    ) : (
+                      <span className={cx("font-mono font-medium", TONE_TEXT[rateTone(prec)])}>
+                        {ratePercent(prec)}
+                      </span>
+                    );
+                  },
+                },
+                {
+                  key: "recall",
+                  header: "Recall",
+                  align: "right",
+                  render: (_value, row) => (
+                    <span className="font-mono font-medium text-fg">{ratePercent(row.recall)}</span>
+                  ),
+                },
+              ]}
+            />
+          </div>
+        ))}
+      </section>
     </div>
   );
 }

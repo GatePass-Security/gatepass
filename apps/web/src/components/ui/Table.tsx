@@ -1,12 +1,16 @@
-import { type HTMLAttributes, useState, useCallback } from "react";
+"use client";
+
+import { type HTMLAttributes, type ReactNode, useState, useCallback, useMemo } from "react";
 import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { cx } from "@/lib/utils";
 
 interface Column<T> {
   key: string;
   header: string;
   sortable?: boolean;
+  align?: "left" | "right";
   className?: string;
-  render?: (value: T[keyof T], row: T) => React.ReactNode;
+  render?: (value: T[keyof T], row: T) => ReactNode;
 }
 
 interface TableProps<T> extends HTMLAttributes<HTMLTableElement> {
@@ -15,8 +19,23 @@ interface TableProps<T> extends HTMLAttributes<HTMLTableElement> {
   onSort?: (column: string, direction: "asc" | "desc") => void;
   sortColumn?: string;
   sortDirection?: "asc" | "desc";
-  striped?: boolean;
   emptyMessage?: string;
+  /** Accessible name for the table. */
+  caption?: string;
+  /**
+   * Stable identity per row. Falls back to the array index, which is only safe
+   * while the data never reorders — supply this whenever rows can be sorted.
+   */
+  getRowKey?: (row: T, index: number) => string | number;
+}
+
+/** Ordinal compare that keeps numbers numeric and everything else lexical. */
+function compareValues(a: unknown, b: unknown): number {
+  if (a === b) return 0;
+  if (a == null) return 1;
+  if (b == null) return -1;
+  if (typeof a === "number" && typeof b === "number") return a - b;
+  return String(a).localeCompare(String(b), undefined, { numeric: true });
 }
 
 export function Table<T extends Record<string, unknown>>({
@@ -25,88 +44,112 @@ export function Table<T extends Record<string, unknown>>({
   onSort,
   sortColumn,
   sortDirection = "asc",
-  striped = false,
   emptyMessage = "No data available",
+  caption,
+  getRowKey,
   className = "",
   ...props
 }: TableProps<T>) {
-  const [internalSort, setInternalSort] = useState<{
-    column: string;
-    direction: "asc" | "desc";
-  }>({ column: sortColumn ?? "", direction: sortDirection });
+  const [internalSort, setInternalSort] = useState<{ column: string; direction: "asc" | "desc" }>({
+    column: sortColumn ?? "",
+    direction: sortDirection,
+  });
 
-  const currentSort = sortColumn ? { column: sortColumn, direction: sortDirection } : internalSort;
+  const controlled = sortColumn !== undefined;
+  const currentSort = controlled ? { column: sortColumn, direction: sortDirection } : internalSort;
 
   const handleSort = useCallback(
     (column: string) => {
-      const newDirection = currentSort.column === column && currentSort.direction === "asc" ? "desc" : "asc";
-
-      if (onSort) {
-        onSort(column, newDirection);
-      } else {
-        setInternalSort({ column, direction: newDirection });
-      }
+      const next = currentSort.column === column && currentSort.direction === "asc" ? "desc" : "asc";
+      if (onSort) onSort(column, next);
+      else setInternalSort({ column, direction: next });
     },
     [currentSort, onSort],
   );
 
+  /*
+   * When the parent controls sorting it hands back already-ordered data. When it
+   * does not, the table has to do the sorting itself — previously the fallback
+   * only flipped the arrow and set aria-sort="ascending" while the rows stayed
+   * in their original order, telling a screen reader the table was sorted when
+   * it was not.
+   */
+  const rows = useMemo(() => {
+    if (controlled || !currentSort.column) return data;
+    const key = currentSort.column;
+    const dir = currentSort.direction === "asc" ? 1 : -1;
+    return [...data].sort((a, b) => compareValues(a[key], b[key]) * dir);
+  }, [data, controlled, currentSort.column, currentSort.direction]);
+
   return (
-    <div className={`overflow-x-auto rounded-lg border dark:border-gatepass-700 ${className}`}>
-      <table className="w-full text-sm" {...props}>
+    <div className={cx("gp-card overflow-x-auto", className)}>
+      <table className="w-full text-[0.855rem]" {...props}>
+        {caption && <caption className="sr-only">{caption}</caption>}
         <thead>
-          <tr className="border-b bg-gatepass-50 dark:border-gatepass-700 dark:bg-gatepass-800/50">
-            {columns.map((col) => (
-              <th
-                key={col.key}
-                className={`px-4 py-3 text-left font-medium text-gatepass-500 dark:text-gatepass-400
-                  ${col.sortable ? "cursor-pointer select-none hover:text-gatepass-700 dark:hover:text-gatepass-200" : ""}
-                  ${col.className ?? ""}`}
-                onClick={col.sortable ? () => handleSort(col.key) : undefined}
-                aria-sort={
-                  currentSort.column === col.key
-                    ? currentSort.direction === "asc"
-                      ? "ascending"
-                      : "descending"
-                    : undefined
-                }
-              >
-                <span className="inline-flex items-center gap-1.5">
-                  {col.header}
-                  {col.sortable && (
-                    <span className="inline-flex text-gatepass-400">
-                      {currentSort.column === col.key ? (
+          <tr className="border-b border-line bg-sunken">
+            {columns.map((col) => {
+              const active = currentSort.column === col.key;
+              return (
+                <th
+                  key={col.key}
+                  scope="col"
+                  className={cx(
+                    "px-4 py-2.5 text-[0.68rem] font-medium tracking-[0.06em] text-fg-muted uppercase",
+                    col.align === "right" ? "text-right" : "text-left",
+                    col.className,
+                  )}
+                  aria-sort={active ? (currentSort.direction === "asc" ? "ascending" : "descending") : undefined}
+                >
+                  {col.sortable ? (
+                    <button
+                      type="button"
+                      onClick={() => handleSort(col.key)}
+                      className={cx(
+                        "inline-flex cursor-pointer items-center gap-1.5 rounded transition-colors hover:text-fg",
+                        active && "text-fg",
+                      )}
+                    >
+                      {col.header}
+                      {active ? (
                         currentSort.direction === "asc" ? (
-                          <ArrowUp className="h-3.5 w-3.5" />
+                          <ArrowUp className="h-3 w-3" aria-hidden="true" />
                         ) : (
-                          <ArrowDown className="h-3.5 w-3.5" />
+                          <ArrowDown className="h-3 w-3" aria-hidden="true" />
                         )
                       ) : (
-                        <ArrowUpDown className="h-3.5 w-3.5" />
+                        <ArrowUpDown className="h-3 w-3 opacity-60" aria-hidden="true" />
                       )}
-                    </span>
+                    </button>
+                  ) : (
+                    col.header
                   )}
-                </span>
-              </th>
-            ))}
+                </th>
+              );
+            })}
           </tr>
         </thead>
         <tbody>
-          {data.length === 0 ? (
+          {rows.length === 0 ? (
             <tr>
-              <td colSpan={columns.length} className="px-4 py-8 text-center text-gatepass-500 dark:text-gatepass-400">
+              <td colSpan={columns.length} className="px-4 py-10 text-center text-[0.82rem] text-fg-muted">
                 {emptyMessage}
               </td>
             </tr>
           ) : (
-            data.map((row, rowIdx) => (
+            rows.map((row, rowIdx) => (
               <tr
-                key={rowIdx}
-                className={`border-b last:border-b-0 dark:border-gatepass-700
-                  ${striped && rowIdx % 2 === 1 ? "bg-gatepass-50/50 dark:bg-gatepass-800/30" : ""}
-                  hover:bg-gatepass-50 dark:hover:bg-gatepass-800/50 transition-colors`}
+                key={getRowKey ? getRowKey(row, rowIdx) : rowIdx}
+                className="border-b border-line transition-colors last:border-b-0 hover:bg-raised/60"
               >
                 {columns.map((col) => (
-                  <td key={col.key} className={`px-4 py-3 ${col.className ?? ""}`}>
+                  <td
+                    key={col.key}
+                    className={cx(
+                      "px-4 py-3 text-fg-secondary",
+                      col.align === "right" ? "text-right" : "text-left",
+                      col.className,
+                    )}
+                  >
                     {col.render ? col.render(row[col.key] as T[keyof T], row) : String(row[col.key] ?? "")}
                   </td>
                 ))}

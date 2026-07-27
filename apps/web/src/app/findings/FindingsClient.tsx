@@ -1,12 +1,39 @@
 "use client";
 
-import { useState } from "react";
-import { useSearchParams } from "next/navigation";
-import type { Finding } from "@/lib/types";
+import { useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import {
+  AlertTriangle,
+  ChevronDown,
+  ChevronRight,
+  FlaskConical,
+  Search,
+  ShieldCheck,
+  ShieldOff,
+  X,
+} from "lucide-react";
+import { api } from "@/lib/api-client";
+import type { Finding, Reproduction, Severity, Surface, Tier } from "@/lib/types";
+import { Badge } from "@/components/ui/Badge";
+import { Button, IconButton } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { EmptyState } from "@/components/ui/EmptyState";
-import { Search, AlertTriangle, ChevronDown, ChevronRight, ShieldCheck, FlaskConical, Circle } from "lucide-react";
-import { confidencePercent } from "@/lib/utils";
+import { CodeBlock } from "@/components/ui/CodeBlock";
+import { EmptyState, ErrorState } from "@/components/ui/EmptyState";
+import { FilterPill, SegmentedControl } from "@/components/ui/FilterPill";
+import { Textarea } from "@/components/ui/Input";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { Stat, TONE_FILL, TONE_SOFT, type Tone } from "@/components/ui/Stat";
+import { useToast } from "@/components/ui/Toast";
+import {
+  SEVERITY_ORDER,
+  confidencePercent,
+  cx,
+  pluralize,
+  severityLabel,
+  severityToken,
+  sharePercent,
+  tierToken,
+} from "@/lib/utils";
 
 interface Props {
   findings: Finding[];
@@ -14,352 +41,560 @@ interface Props {
   error: string | null;
 }
 
-type TierFilter = "all" | "verified" | "research";
-type SeverityFilter = "all" | "critical" | "high" | "medium" | "low";
+type TierFilter = "all" | Tier;
+type SeverityFilter = "all" | Severity;
 
-const severityDotColor: Record<string, string> = {
-  critical: "bg-red-500",
-  high: "bg-orange-500",
-  medium: "bg-blue-500",
-  low: "bg-gray-400",
+const TIER_OPTIONS: Array<{ value: TierFilter; label: string }> = [
+  { value: "all", label: "All" },
+  { value: "verified", label: "Verified" },
+  { value: "research", label: "Research" },
+];
+
+/*
+ * Worst first. Derived from SEVERITY_ORDER rather than re-listed so the display
+ * order can never drift from the canonical ramp in lib/utils.
+ */
+const SEVERITY_RANK = Object.fromEntries(SEVERITY_ORDER.map((s, i) => [s, i])) as Record<Severity, number>;
+
+/** Within one severity the reproducible claim outranks the probabilistic one. */
+const TIER_RANK: Record<Tier, number> = { verified: 0, research: 1 };
+
+const SURFACE_LABEL: Record<Surface, string> = {
+  app_code: "App code",
+  agent_code: "Agent code",
+  mcp_server: "MCP server",
+  tool_defs: "Tool definitions",
+  permission_scopes: "Permission scopes",
 };
 
-const severityIconColor = {
-  critical: { ring: "bg-red-100", fill: "text-red-500" },
-  high: { ring: "bg-orange-100", fill: "text-orange-500" },
-  medium: { ring: "bg-amber-100", fill: "text-amber-500" },
-  low: { ring: "bg-blue-100", fill: "text-blue-500" },
-} as const;
+/*
+ * severityToken()/tierToken() are the single source for the ramp, but they
+ * return `string` so lib/utils carries no dependency on the UI layer. Their
+ * outputs are exactly Tone members — this is the one place that boundary is
+ * crossed, instead of every call site guessing at a colour.
+ */
+const severityTone = (severity: Severity): Tone => severityToken(severity) as Tone;
+const tierTone = (tier: Tier): Tone => tierToken(tier) as Tone;
 
-const severityPillActive: Record<string, string> = {
-  critical: "border border-red-200 bg-red-50 text-red-700",
-  high: "border border-orange-200 bg-orange-50 text-orange-700",
-  medium: "border border-blue-200 bg-blue-50 text-blue-700",
-  low: "border border-gray-200 bg-gray-50 text-gray-700",
-};
+function medianOf(values: number[]): number {
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  if (sorted.length % 2 === 1) return sorted[mid]!;
+  return ((sorted[mid - 1] ?? 0) + (sorted[mid] ?? 0)) / 2;
+}
 
-const severityPillInactive = "border border-gatepass-300 bg-white text-gatepass-600";
+const PAGE_DESCRIPTION =
+  "Two-tier results from the latest scan. Verified findings carry a reproduction; research findings carry a confidence score.";
 
 export default function FindingsClient({ findings, scanId, error }: Props) {
+  const router = useRouter();
   const searchParams = useSearchParams();
-  const query = (searchParams.get("q") ?? "").toLowerCase();
+  const { toast } = useToast();
+
+  const rawQuery = searchParams.get("q") ?? "";
+  const query = rawQuery.toLowerCase();
+
   const [tierFilter, setTierFilter] = useState<TierFilter>("all");
   const [severityFilter, setSeverityFilter] = useState<SeverityFilter>("all");
-  const [expandedFingerprint, setExpandedFingerprint] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const [disputeFor, setDisputeFor] = useState<string | null>(null);
   const [disputing, setDisputing] = useState<string | null>(null);
-  const [disputeReason, setDisputeReason] = useState("");
-  const [disputeModal, setDisputeModal] = useState<string | null>(null);
+  const [disputeError, setDisputeError] = useState<string | null>(null);
+  /* Disputes suppress org-wide on the server, so the row is dropped locally
+     rather than left behind for a refresh to clear. */
+  const [disputed, setDisputed] = useState<ReadonlySet<string>>(() => new Set());
 
-  const totalCount = findings.length;
-  const verifiedCount = findings.filter((f) => f.tier === "verified").length;
-  const researchCount = findings.filter((f) => f.tier === "research").length;
+  const live = useMemo(() => findings.filter((f) => !disputed.has(f.fingerprint)), [findings, disputed]);
 
-  const filtered = findings.filter((f) => {
-    if (tierFilter !== "all" && f.tier !== tierFilter) return false;
-    if (severityFilter !== "all" && f.severity !== severityFilter) return false;
-    if (query) {
-      const hay =
-        `${f.classId} ${f.severity} ${f.tier} ${f.explanation ?? ""} ${f.locations.map((l) => l.path).join(" ")}`.toLowerCase();
-      if (!hay.includes(query)) return false;
-    }
-    return true;
-  });
+  const totals = useMemo(() => {
+    const verified = live.filter((f) => f.tier === "verified");
+    const research = live.filter((f) => f.tier === "research");
+    const critical = live.filter((f) => f.severity === "critical");
+    const confidences = research.map((f) => (f.tier === "research" ? f.confidence : 0));
+    return {
+      total: live.length,
+      verified: verified.length,
+      research: research.length,
+      critical: critical.length,
+      criticalVerified: critical.filter((f) => f.tier === "verified").length,
+      classes: new Set(live.map((f) => f.classId)).size,
+      medianConfidence: confidences.length > 0 ? medianOf(confidences) : null,
+    };
+  }, [live]);
 
-  async function handleDispute(fingerprint: string) {
-    setDisputing(fingerprint);
+  /* Tier + text search define the scope the severity chips count within, so a
+     chip's number is always what clicking it would actually yield. */
+  const scoped = useMemo(
+    () =>
+      live.filter((f) => {
+        if (tierFilter !== "all" && f.tier !== tierFilter) return false;
+        if (!query) return true;
+        const hay =
+          `${f.classId} ${f.severity} ${f.tier} ${f.explanation} ${f.locations.map((l) => l.path).join(" ")}`.toLowerCase();
+        return hay.includes(query);
+      }),
+    [live, tierFilter, query],
+  );
+
+  const severityCounts = useMemo(() => {
+    const counts: Record<Severity, number> = { critical: 0, high: 0, medium: 0, low: 0 };
+    for (const f of scoped) counts[f.severity] += 1;
+    return counts;
+  }, [scoped]);
+
+  const filtered = useMemo(
+    () =>
+      scoped
+        .filter((f) => severityFilter === "all" || f.severity === severityFilter)
+        .sort((a, b) => SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity] || TIER_RANK[a.tier] - TIER_RANK[b.tier]),
+    [scoped, severityFilter],
+  );
+
+  const filtersActive = tierFilter !== "all" || severityFilter !== "all" || rawQuery !== "";
+
+  /* sharePercent, not Math.round: 999 of 1000 must not caption "100%" while the
+     Research tile beside it still shows 1. */
+  const verifiedSharePct = sharePercent(totals.verified, totals.total);
+  const verifiedShare = verifiedSharePct ? `${verifiedSharePct} of findings` : undefined;
+
+  function clearFilters() {
+    setTierFilter("all");
+    setSeverityFilter("all");
+    if (rawQuery) router.replace("/findings");
+  }
+
+  async function submitDispute(finding: Finding, reason: string) {
+    if (!scanId) return;
+    setDisputing(finding.fingerprint);
+    setDisputeError(null);
     try {
-      const { api } = await import("@/lib/api-client");
-      if (scanId) {
-        await api.disputeFinding(fingerprint, scanId, disputeReason || "Disputed");
-        setDisputeModal(null);
-        setDisputeReason("");
-      }
+      await api.disputeFinding(finding.fingerprint, scanId, reason);
+      setDisputed((prev) => new Set(prev).add(finding.fingerprint));
+      setDisputeFor(null);
+      setExpanded((prev) => (prev === finding.fingerprint ? null : prev));
+      toast(`${finding.classId} disputed — suppressed for this org`, "success");
     } catch (e) {
-      console.error("Dispute failed", e);
+      const message = e instanceof Error ? e.message : "Dispute failed";
+      setDisputeError(message);
+      toast(message, "error");
     } finally {
       setDisputing(null);
     }
   }
 
+  const header = (
+    <PageHeader
+      title="Findings"
+      description={PAGE_DESCRIPTION}
+      actions={
+        scanId ? (
+          <Badge tone="neutral">
+            Scan
+            <span className="max-w-[11rem] truncate font-mono text-fg-muted">{scanId}</span>
+          </Badge>
+        ) : undefined
+      }
+    />
+  );
+
   if (error) {
     return (
-      <div className="rounded-lg border border-red-200 bg-red-50 p-6">
-        <div className="flex items-center gap-3">
-          <AlertTriangle className="h-6 w-6 text-red-600" />
-          <p className="text-sm text-red-700">{error}</p>
-        </div>
+      <div className="space-y-6">
+        {header}
+        <ErrorState title="Could not load findings" message={error} onRetry={() => router.refresh()} />
       </div>
     );
   }
 
-  if (findings.length === 0) {
+  if (live.length === 0) {
     return (
-      <EmptyState
-        icon={<Search size={48} />}
-        title="No findings yet"
-        description="Run a scan on a repository to see security findings here"
-      />
+      <div className="space-y-6">
+        {header}
+        {findings.length === 0 ? (
+          <EmptyState
+            icon={<Search className="h-5 w-5" />}
+            title="No findings yet"
+            description="Scan a repository and its verified and research findings will appear here."
+          />
+        ) : (
+          <EmptyState
+            icon={<ShieldOff className="h-5 w-5" />}
+            title="Every finding disputed"
+            description="All findings in this scan have been disputed and are suppressed for this org."
+          />
+        )}
+      </div>
     );
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-gatepass-900">Findings Intelligence</h1>
-          <p className="mt-0.5 text-sm text-gatepass-500">
-            Real-time analysis of security anomalies across your repositories.
-          </p>
-        </div>
+    <div className="space-y-6">
+      {header}
+
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <Stat
+          label="Total"
+          value={totals.total}
+          icon={<Search className="h-4 w-4" aria-hidden="true" />}
+          caption={`${totals.classes} distinct ${pluralize(totals.classes, "class", "classes")}`}
+        />
+        <Stat
+          label="Verified"
+          value={totals.verified}
+          tone="verified"
+          icon={<ShieldCheck className="h-4 w-4" aria-hidden="true" />}
+          caption={verifiedShare}
+        />
+        <Stat
+          label="Research"
+          value={totals.research}
+          tone="research"
+          icon={<FlaskConical className="h-4 w-4" aria-hidden="true" />}
+          caption={
+            totals.medianConfidence === null
+              ? undefined
+              : `Median confidence ${confidencePercent(totals.medianConfidence)}`
+          }
+        />
+        <Stat
+          label="Critical"
+          value={totals.critical}
+          tone="critical"
+          icon={<AlertTriangle className="h-4 w-4" aria-hidden="true" />}
+          caption={totals.critical > 0 ? `${totals.criticalVerified} verified` : undefined}
+        />
       </div>
 
-      {/* Summary metric cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="rounded-lg border border-gatepass-200 bg-white p-5">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gatepass-100">
-              <Search size={20} className="text-gatepass-500" />
-            </div>
-            <div>
-              <p className="text-2xl font-semibold text-gatepass-900">{totalCount}</p>
-              <p className="text-xs text-gatepass-500">Total Findings</p>
-            </div>
-          </div>
-        </div>
-        <div className="rounded-lg border border-gatepass-200 bg-white p-5">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-100">
-              <ShieldCheck size={20} className="text-emerald-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-semibold text-gatepass-900">{verifiedCount}</p>
-              <p className="text-xs text-gatepass-500">Verified</p>
-            </div>
-          </div>
-        </div>
-        <div className="rounded-lg border border-gatepass-200 bg-white p-5">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-100">
-              <FlaskConical size={20} className="text-blue-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-semibold text-gatepass-900">{researchCount}</p>
-              <p className="text-xs text-gatepass-500">Research</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
-        <span className="text-sm text-gatepass-500 mr-2 shrink-0">Filter by:</span>
-
-        {/* Tier filter buttons */}
-        <div className="flex overflow-hidden rounded-lg w-full sm:w-auto">
-          {(["all", "verified", "research"] as const).map((t) => (
-            <button
-              key={t}
-              onClick={() => setTierFilter(t)}
-              className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 text-sm font-medium transition-colors ${
-                tierFilter === t
-                  ? "bg-[#0891b2] text-white"
-                  : "border border-gatepass-300 bg-white text-gatepass-600 hover:bg-gatepass-50"
-              }`}
-            >
-              {t === "all" ? "All" : t === "verified" ? "Verified" : "Research"}
-            </button>
-          ))}
-        </div>
-
-        {/* Severity pill filters */}
-        <div className="flex flex-wrap items-center gap-2">
-          {(["critical", "high", "medium", "low"] as const).map((s) => (
-            <button
-              key={s}
-              onClick={() => setSeverityFilter(severityFilter === s ? "all" : s)}
-              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                severityFilter === s ? severityPillActive[s] : severityPillInactive
-              }`}
-            >
-              <span className={`h-2 w-2 rounded-full ${severityDotColor[s]}`} />
-              {s.charAt(0).toUpperCase() + s.slice(1)}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Findings list */}
       <div className="space-y-3">
-        {filtered.map((finding) => {
-          const sev = severityIconColor[finding.severity] ?? severityIconColor.low;
-          return (
-            <Card key={finding.fingerprint} padding={false}>
-              <div className="p-3 sm:p-4">
-                {/* Header row */}
-                <div className="flex items-start justify-between gap-2 sm:gap-4">
-                  <div className="flex items-start gap-3 flex-1 min-w-0">
-                    {/* Severity-colored circle icon */}
-                    <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${sev.ring}`}>
-                      <Circle size={16} className={sev.fill} />
-                    </span>
+        <div className="flex flex-wrap items-center gap-2">
+          <SegmentedControl label="Filter by tier" value={tierFilter} options={TIER_OPTIONS} onChange={setTierFilter} />
+          <span className="hidden h-5 w-px bg-line sm:block" aria-hidden="true" />
+          {SEVERITY_ORDER.map((s) => (
+            <FilterPill
+              key={s}
+              active={severityFilter === s}
+              tone={severityTone(s)}
+              count={severityCounts[s]}
+              onClick={() => setSeverityFilter(severityFilter === s ? "all" : s)}
+            >
+              {severityLabel(s)}
+            </FilterPill>
+          ))}
+        </div>
 
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-medium text-gatepass-900">{finding.classId}</span>
-                        {/* Severity badge */}
-                        <span
-                          className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${severityPillActive[finding.severity]}`}
-                        >
-                          {finding.severity}
-                        </span>
-                        {/* Tier label */}
-                        <span className="rounded-full px-2 py-0.5 text-[11px] font-medium text-gatepass-600 bg-gatepass-100">
-                          {finding.tier}
-                          {finding.tier === "research" &&
-                            finding.confidence !== undefined &&
-                            ` · ${confidencePercent(finding.confidence)}`}
-                        </span>
-                      </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <p role="status" aria-live="polite" className="text-[0.78rem] text-fg-muted">
+            <span data-numeric>{filtered.length}</span> of <span data-numeric>{live.length}</span>{" "}
+            {pluralize(live.length, "finding")}
+          </p>
+          {rawQuery && (
+            <>
+              <Badge tone="neutral" size="sm">
+                Search: {rawQuery}
+              </Badge>
+              <Button variant="ghost" size="sm" onClick={() => router.replace("/findings")}>
+                <X className="h-3.5 w-3.5" aria-hidden="true" />
+                Clear search
+              </Button>
+            </>
+          )}
+        </div>
+      </div>
 
-                      {/* Confidence bar for research */}
-                      {finding.tier === "research" && finding.confidence !== undefined && (
-                        <div className="mt-2 flex items-center gap-2">
-                          <div className="h-1.5 w-32 overflow-hidden rounded-full bg-gatepass-200">
-                            <div
-                              className="h-full rounded-full bg-blue-500"
-                              style={{ width: `${finding.confidence * 100}%` }}
-                            />
-                          </div>
-                          <span className="text-xs text-gatepass-500">{confidencePercent(finding.confidence)}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
+      {filtered.length === 0 ? (
+        <EmptyState
+          icon={<Search className="h-5 w-5" />}
+          title="No findings match these filters"
+          description="Widen the tier or severity filter, or clear the search, to see the rest of this scan."
+          action={{ label: "Clear filters", onClick: clearFilters }}
+        />
+      ) : (
+        <ul className="space-y-3">
+          {filtered.map((finding) => (
+            <li key={finding.fingerprint}>
+              <FindingCard
+                finding={finding}
+                expanded={expanded === finding.fingerprint}
+                onToggleExpand={() => setExpanded(expanded === finding.fingerprint ? null : finding.fingerprint)}
+                disputeOpen={disputeFor === finding.fingerprint}
+                onOpenDispute={() => {
+                  setDisputeError(null);
+                  setDisputeFor(finding.fingerprint);
+                }}
+                onCancelDispute={() => {
+                  setDisputeError(null);
+                  setDisputeFor(null);
+                }}
+                onSubmitDispute={(reason) => submitDispute(finding, reason)}
+                busy={disputing === finding.fingerprint}
+                disputeError={disputeFor === finding.fingerprint ? disputeError : null}
+                canDispute={Boolean(scanId)}
+              />
+            </li>
+          ))}
+        </ul>
+      )}
 
-                  <div className="flex items-center gap-2 shrink-0">
-                    <button
-                      onClick={() => setDisputeModal(finding.fingerprint)}
-                      className="rounded px-3 py-1.5 text-xs font-medium text-gatepass-500 hover:bg-gatepass-100 hover:text-gatepass-700 transition-colors"
-                    >
-                      Dispute
-                    </button>
-                    <button
-                      onClick={() =>
-                        setExpandedFingerprint(expandedFingerprint === finding.fingerprint ? null : finding.fingerprint)
-                      }
-                      className="rounded p-1.5 text-gatepass-400 hover:bg-gatepass-100 transition-colors"
-                    >
-                      {expandedFingerprint === finding.fingerprint ? (
-                        <ChevronDown size={16} />
-                      ) : (
-                        <ChevronRight size={16} />
-                      )}
-                    </button>
-                  </div>
-                </div>
+      {filtersActive && filtered.length > 0 && (
+        <div className="flex justify-center">
+          <Button variant="ghost" size="sm" onClick={clearFilters}>
+            Clear filters
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
 
-                {/* Expanded detail */}
-                {expandedFingerprint === finding.fingerprint && (
-                  <div className="mt-4 border-t border-gatepass-200 pt-4">
-                    <p className="text-sm text-gatepass-600">{finding.explanation}</p>
+interface FindingCardProps {
+  finding: Finding;
+  expanded: boolean;
+  onToggleExpand: () => void;
+  disputeOpen: boolean;
+  onOpenDispute: () => void;
+  onCancelDispute: () => void;
+  onSubmitDispute: (reason: string) => void;
+  busy: boolean;
+  disputeError: string | null;
+  canDispute: boolean;
+}
 
-                    {/* Locations */}
-                    {finding.locations.length > 0 && (
-                      <div className="mt-3">
-                        <h4 className="text-xs font-medium uppercase text-gatepass-500 mb-2">Locations</h4>
-                        <div className="space-y-1">
-                          {finding.locations.map((loc, i) => (
-                            <div key={i} className="flex items-center gap-2 text-xs text-gatepass-600">
-                              <span className="font-mono">
-                                {loc.path}:{loc.startLine}-{loc.endLine}
-                              </span>
-                              <span className="rounded bg-gatepass-100 px-1.5 py-0.5 text-[10px]">{loc.surface}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+const NO_SCAN_REASON = "Disputing needs a scan to record against, and no scan is loaded for these findings.";
 
-                    {/* Surfaces */}
-                    <div className="mt-3">
-                      <h4 className="text-xs font-medium uppercase text-gatepass-500 mb-2">Surfaces Affected</h4>
-                      <div className="flex flex-wrap gap-1.5">
-                        {finding.surfaces.map((s) => (
-                          <span key={s} className="rounded bg-gatepass-100 px-2 py-0.5 text-xs text-gatepass-600">
-                            {s}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
+function FindingCard({
+  finding,
+  expanded,
+  onToggleExpand,
+  disputeOpen,
+  onOpenDispute,
+  onCancelDispute,
+  onSubmitDispute,
+  busy,
+  disputeError,
+  canDispute,
+}: FindingCardProps) {
+  const sevTone = severityTone(finding.severity);
+  const detailId = `finding-detail-${finding.fingerprint}`;
+  const primary = finding.locations[0];
 
-                    {/* Reproduction (verified only) */}
-                    {finding.tier === "verified" && finding.reproduction && (
-                      <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
-                        <div className="flex items-center gap-2 mb-3">
-                          <ShieldCheck size={14} className="text-emerald-600" />
-                          <h4 className="text-sm font-medium text-emerald-800">Reproduction Steps</h4>
-                        </div>
-                        <p className="mb-2 text-xs text-emerald-700">Kind: {finding.reproduction.kind}</p>
-                        <ol className="list-inside list-decimal space-y-1 text-sm text-emerald-700">
-                          {finding.reproduction.steps.map((step, i) => (
-                            <li key={i}>{step}</li>
-                          ))}
-                        </ol>
-                        <div className="mt-3 rounded bg-emerald-100 p-3 text-sm">
-                          <span className="font-medium text-emerald-800">Expected: </span>
-                          <span className="text-emerald-700">{finding.reproduction.expected}</span>
-                        </div>
-                      </div>
-                    )}
+  const disputeButton = (
+    <Button
+      variant="ghost"
+      size="sm"
+      onClick={onOpenDispute}
+      disabled={!canDispute || disputeOpen}
+      title={canDispute ? undefined : NO_SCAN_REASON}
+    >
+      <ShieldOff className="h-3.5 w-3.5" aria-hidden="true" />
+      Dispute
+    </Button>
+  );
 
-                    {/* Suggested fix */}
-                    {finding.suggestedFix && (
-                      <div className="mt-3">
-                        <h4 className="text-xs font-medium uppercase text-gatepass-500 mb-2">Suggested Fix</h4>
-                        <pre className="rounded-lg bg-gatepass-100 p-3 text-xs text-gatepass-700 overflow-x-auto">
-                          {finding.suggestedFix.content}
-                        </pre>
-                      </div>
-                    )}
-                  </div>
+  return (
+    <Card padding={false}>
+      <div className="p-4 sm:p-5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
+              {/* Dot and title are one flex item so a long classId wrapping to the
+                  next line can never leave the severity dot stranded above it. */}
+              <span className="flex min-w-0 items-center gap-2">
+                <span className={cx("h-2 w-2 shrink-0 rounded-full", TONE_FILL[sevTone])} aria-hidden="true" />
+                <h2 className="text-[0.9rem] font-medium break-words text-fg">{finding.classId}</h2>
+              </span>
+              <Badge tone={sevTone} size="sm">
+                {severityLabel(finding.severity)}
+              </Badge>
+              <Badge tone={tierTone(finding.tier)} size="sm">
+                {finding.tier === "verified" ? "Verified" : `Research · ${confidencePercent(finding.confidence)}`}
+              </Badge>
+            </div>
+            {primary && (
+              <p className="mt-1.5 truncate font-mono text-[0.72rem] text-fg-muted" title={primary.path}>
+                {primary.path}:{primary.startLine}
+                {finding.locations.length > 1 && (
+                  <span className="font-sans">
+                    {" "}
+                    +{finding.locations.length - 1} more {pluralize(finding.locations.length - 1, "location")}
+                  </span>
                 )}
-              </div>
+              </p>
+            )}
+          </div>
 
-              {/* Dispute modal */}
-              {disputeModal === finding.fingerprint && (
-                <div className="border-t border-gatepass-200 p-4">
-                  <label className="block text-sm font-medium text-gatepass-700">Reason for dispute</label>
-                  <textarea
-                    value={disputeReason}
-                    onChange={(e) => setDisputeReason(e.target.value)}
-                    className="mt-2 block w-full rounded-lg border border-gatepass-300 bg-white px-4 py-2 text-sm text-gatepass-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    rows={3}
-                    placeholder="Explain why this finding should be suppressed..."
-                  />
-                  <div className="mt-3 flex items-center gap-3">
-                    <button
-                      onClick={() => handleDispute(finding.fingerprint)}
-                      disabled={disputing === finding.fingerprint || !disputeReason}
-                      className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
-                    >
-                      {disputing === finding.fingerprint ? "Submitting..." : "Submit dispute"}
-                    </button>
-                    <button
-                      onClick={() => {
-                        setDisputeModal(null);
-                        setDisputeReason("");
-                      }}
-                      className="rounded-lg px-4 py-2 text-sm font-medium text-gatepass-500 hover:bg-gatepass-100 transition-colors"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
+          <div className="flex shrink-0 items-center gap-1">
+            {/* A disabled button swallows pointer events in some browsers, so the
+                explanation also hangs off a wrapper that always receives them. */}
+            {canDispute ? disputeButton : <span title={NO_SCAN_REASON}>{disputeButton}</span>}
+            <IconButton
+              label={expanded ? `Collapse details for ${finding.classId}` : `Expand details for ${finding.classId}`}
+              size="sm"
+              aria-expanded={expanded}
+              aria-controls={expanded ? detailId : undefined}
+              onClick={onToggleExpand}
+            >
+              {expanded ? (
+                <ChevronDown className="h-4 w-4" aria-hidden="true" />
+              ) : (
+                <ChevronRight className="h-4 w-4" aria-hidden="true" />
               )}
-            </Card>
-          );
-        })}
+            </IconButton>
+          </div>
+        </div>
+      </div>
+
+      {expanded && (
+        <div id={detailId} className="space-y-5 border-t border-line p-4 sm:p-5">
+          <p className="text-[0.855rem] leading-relaxed text-fg-secondary">{finding.explanation}</p>
+
+          {finding.tier === "research" && <ConfidenceMeter confidence={finding.confidence} />}
+
+          {finding.tier === "verified" && <ReproductionPanel reproduction={finding.reproduction} />}
+
+          <section>
+            <SectionLabel>Locations</SectionLabel>
+            <ul className="mt-2 space-y-1.5">
+              {finding.locations.map((loc, i) => (
+                <li key={`${loc.path}:${loc.startLine}:${i}`} className="flex flex-wrap items-center gap-2">
+                  <span className="font-mono text-[0.76rem] break-all text-fg-secondary">
+                    {loc.path}:{loc.startLine}-{loc.endLine}
+                  </span>
+                  <Badge tone="neutral" size="sm">
+                    {SURFACE_LABEL[loc.surface]}
+                  </Badge>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <section>
+            <SectionLabel>Surfaces affected</SectionLabel>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {finding.surfaces.map((s) => (
+                <Badge key={s} tone="neutral" size="sm">
+                  {SURFACE_LABEL[s]}
+                </Badge>
+              ))}
+            </div>
+          </section>
+
+          {finding.suggestedFix && (
+            <section>
+              <SectionLabel>Suggested fix</SectionLabel>
+              <div className="mt-2">
+                <CodeBlock
+                  title={finding.suggestedFix.kind === "diff" ? "suggested diff" : "agent guidance"}
+                  content={finding.suggestedFix.content}
+                  diff={finding.suggestedFix.kind === "diff"}
+                />
+              </div>
+            </section>
+          )}
+        </div>
+      )}
+
+      {disputeOpen && (
+        <div className="border-t border-line p-4 sm:p-5">
+          <DisputePanel busy={busy} error={disputeError} onCancel={onCancelDispute} onSubmit={onSubmitDispute} />
+        </div>
+      )}
+    </Card>
+  );
+}
+
+function SectionLabel({ children }: { children: string }) {
+  return <h3 className="text-[0.72rem] font-medium tracking-[0.05em] text-fg-muted uppercase">{children}</h3>;
+}
+
+/**
+ * Verified findings are the product's guarantee, so the reproduction is given
+ * its own toned panel rather than being one more paragraph in the stack.
+ */
+function ReproductionPanel({ reproduction }: { reproduction: Reproduction }) {
+  return (
+    <section className={cx("rounded-[0.75rem] border p-4", TONE_SOFT.verified)}>
+      <div className="flex flex-wrap items-center gap-2">
+        <ShieldCheck className="h-4 w-4 shrink-0 text-verified" aria-hidden="true" />
+        <h3 className="text-[0.82rem] font-medium text-verified">Reproduction</h3>
+        <Badge tone="verified" size="sm">
+          {reproduction.kind}
+        </Badge>
+      </div>
+
+      <ol className="mt-3 list-decimal space-y-1.5 pl-5 text-[0.82rem] leading-relaxed text-fg-secondary marker:font-medium marker:text-verified">
+        {reproduction.steps.map((step, i) => (
+          <li key={i}>{step}</li>
+        ))}
+      </ol>
+
+      <div className="mt-3 rounded-[0.6rem] border border-verified-line bg-surface px-3 py-2.5">
+        <p className="text-[0.72rem] font-medium tracking-[0.05em] text-fg-muted uppercase">Expected</p>
+        <p className="mt-1 text-[0.82rem] leading-relaxed text-fg-secondary">{reproduction.expected}</p>
+      </div>
+    </section>
+  );
+}
+
+function ConfidenceMeter({ confidence }: { confidence: number }) {
+  const percent = Math.round(confidence * 100);
+
+  return (
+    <section>
+      <div className="flex items-center justify-between gap-3">
+        <SectionLabel>Confidence</SectionLabel>
+        <span data-numeric className="text-[0.82rem] font-medium text-research">
+          {confidencePercent(confidence)}
+        </span>
+      </div>
+      <div
+        role="meter"
+        aria-label="Research confidence"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={percent}
+        aria-valuetext={`${percent}%`}
+        className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-raised"
+      >
+        <div className={cx("h-full rounded-full", TONE_FILL.research)} style={{ width: `${percent}%` }} />
+      </div>
+    </section>
+  );
+}
+
+/** Mounted only while open, so the reason resets each time the panel is opened. */
+function DisputePanel({
+  busy,
+  error,
+  onCancel,
+  onSubmit,
+}: {
+  busy: boolean;
+  error: string | null;
+  onCancel: () => void;
+  onSubmit: (reason: string) => void;
+}) {
+  const [reason, setReason] = useState("");
+  const trimmed = reason.trim();
+
+  return (
+    <div>
+      <Textarea
+        label="Reason for dispute"
+        hint="Suppresses this finding for the whole org and is recorded against the scan."
+        placeholder="Explain why this finding is not valid…"
+        value={reason}
+        onChange={(e) => setReason(e.target.value)}
+        error={error ?? undefined}
+        disabled={busy}
+        rows={3}
+      />
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <Button variant="danger" size="sm" onClick={() => onSubmit(trimmed)} disabled={!trimmed} isLoading={busy}>
+          {busy ? "Submitting…" : "Submit dispute"}
+        </Button>
+        <Button variant="ghost" size="sm" onClick={onCancel} disabled={busy}>
+          Cancel
+        </Button>
       </div>
     </div>
   );

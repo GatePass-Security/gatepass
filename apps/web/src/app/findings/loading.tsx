@@ -1,17 +1,8 @@
-import { Skeleton } from "@/components/ui/Skeleton";
+// Imported from the module, not the `ui` barrel: this is a server component and
+// the barrel re-exports client-only primitives.
+import { PageSkeleton } from "@/components/ui/Skeleton";
 
+/** Four stat tiles and a run of finding cards — the geometry the route resolves to. */
 export default function FindingsLoading() {
-  return (
-    <div className="space-y-4">
-      <Skeleton variant="text" className="h-8 w-48" />
-      <Skeleton variant="text" className="h-5 w-72" />
-      <div className="flex gap-3">
-        <Skeleton className="h-10 w-32" />
-        <Skeleton className="h-10 w-40" />
-      </div>
-      {[1, 2, 3].map((i) => (
-        <Skeleton key={i} variant="card" className="h-32" />
-      ))}
-    </div>
-  );
+  return <PageSkeleton stats={4} rows={6} />;
 }

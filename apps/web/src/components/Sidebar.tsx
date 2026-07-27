@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Shield,
+  LayoutDashboard,
   Search,
   Server,
   BarChart3,
@@ -14,12 +14,20 @@ import {
   Lightbulb,
   HelpCircle,
   FileText,
-  Upload,
 } from "lucide-react";
 import { useOrg } from "@/providers/OrgProvider";
 import { useEffect, useState } from "react";
+import { BrandLockup } from "./Brand";
+import { cx } from "@/lib/utils";
 
-const NAV_ITEMS = [
+interface NavItem {
+  href: string;
+  label: string;
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+}
+
+const NAV_ITEMS: readonly NavItem[] = [
+  { href: "/", label: "Overview", icon: LayoutDashboard },
   { href: "/findings", label: "Findings", icon: Search },
   { href: "/agent-guidance", label: "Guidance", icon: Lightbulb },
   { href: "/fleet", label: "Fleet", icon: Server },
@@ -28,177 +36,175 @@ const NAV_ITEMS = [
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
-const FOOTER_ITEMS = [
-  { href: "/support", label: "Support", icon: HelpCircle },
+const FOOTER_ITEMS: readonly NavItem[] = [
   { href: "/docs", label: "Documentation", icon: FileText },
+  { href: "/support", label: "Support", icon: HelpCircle },
 ];
+
+const PLAN_LABEL: Record<string, string> = { free: "Free", team: "Team", scale: "Scale" };
+
+/** "/" must match exactly; every other route matches its own subtree. */
+function isActive(pathname: string, href: string): boolean {
+  return href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
+}
+
+/*
+ * Module scope, not nested inside Sidebar. A component declared in the parent
+ * body gets a new function identity every render, so React cannot reconcile it
+ * — it unmounts and remounts all nine nav links on every route change, which
+ * destroys focus mid-navigation.
+ */
+function NavLink({ item, pathname, compact = false }: { item: NavItem; pathname: string; compact?: boolean }) {
+  const active = isActive(pathname, item.href);
+  return (
+    <li>
+      <Link
+        href={item.href}
+        aria-current={active ? "page" : undefined}
+        className={cx(
+          "group flex items-center gap-3 rounded-full transition-colors duration-150",
+          compact ? "px-3.5 py-2 text-[0.8rem]" : "px-3.5 py-2.5 text-[0.855rem]",
+          active ? "bg-accent-soft font-medium text-accent" : "text-fg-secondary hover:bg-raised hover:text-fg",
+        )}
+      >
+        <item.icon
+          size={compact ? 16 : 17}
+          className={active ? "shrink-0 text-accent" : "shrink-0 text-fg-muted group-hover:text-fg-secondary"}
+        />
+        <span className="truncate">{item.label}</span>
+      </Link>
+    </li>
+  );
+}
+
+/** True while the viewport is below the `md` breakpoint the rail switches at. */
+function useIsCompactViewport(): boolean {
+  const [compact, setCompact] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)");
+    const sync = () => setCompact(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+
+  return compact;
+}
 
 export function Sidebar() {
   const pathname = usePathname();
   const { org } = useOrg();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const isCompact = useIsCompactViewport();
 
-  // Close mobile nav on route change
   useEffect(() => {
     setMobileOpen(false);
   }, [pathname]);
 
-  // Prevent body scroll when mobile nav is open
   useEffect(() => {
-    if (mobileOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
+    if (!mobileOpen) return;
+    document.body.style.overflow = "hidden";
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMobileOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
     return () => {
       document.body.style.overflow = "";
+      document.removeEventListener("keydown", onKey);
     };
   }, [mobileOpen]);
 
-  const planBadgeColors: Record<string, string> = {
-    free: "bg-gatepass-100 text-gatepass-600",
-    team: "bg-blue-100 text-blue-700",
-    scale: "bg-emerald-100 text-emerald-700",
-  };
-
-  // Shared nav item render logic
-  function renderNavItem(item: {
-    href: string;
-    label: string;
-    icon: React.ComponentType<{ size: number; className?: string }>;
-  }) {
-    const isActive = pathname.startsWith(item.href);
-
-    return (
-      <li key={item.href}>
-        <Link
-          href={item.href}
-          className={`flex items-center gap-3 rounded-md px-4 py-3 text-sm font-medium transition-colors duration-150 ${
-            isActive
-              ? "border-l-[3px] border-l-[#0D9488] bg-teal-50 text-[#0D9488] dark:bg-teal-950/40"
-              : "border-l-[3px] border-l-transparent text-gatepass-600 hover:bg-gatepass-50 hover:text-gatepass-900 dark:text-gatepass-300 dark:hover:bg-gatepass-800 dark:hover:text-gatepass-100"
-          }`}
-        >
-          <item.icon size={20} className={`shrink-0 ${isActive ? "text-[#0D9488]" : "text-gatepass-400"}`} />
-          <span>{item.label}</span>
-        </Link>
-      </li>
-    );
-  }
+  /*
+   * Translating the rail off-screen hides it visually but leaves all eleven of
+   * its controls in the tab order and the accessibility tree. `inert` takes them
+   * out properly — scoped to compact viewports, since on desktop the same
+   * element is the static, visible rail.
+   */
+  const railInert = isCompact && !mobileOpen;
 
   return (
     <>
-      {/* ── Mobile top bar ── */}
-      <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between border-b border-gatepass-200 bg-white px-4 h-14 md:hidden dark:border-gatepass-800 dark:bg-gatepass-900">
+      {/* ── Mobile header ── */}
+      <header className="gp-chrome fixed inset-x-0 top-0 z-50 flex h-14 items-center justify-between border-b border-line px-3 md:hidden">
         <button
           onClick={() => setMobileOpen(true)}
-          className="flex items-center justify-center rounded-lg p-2 -ml-2 text-gatepass-600 hover:bg-gatepass-100 transition-colors"
+          className="cursor-pointer rounded-full p-2 text-fg-secondary transition-colors hover:bg-raised hover:text-fg"
           aria-label="Open navigation menu"
+          aria-expanded={mobileOpen}
         >
-          <Menu size={20} />
+          <Menu size={18} aria-hidden="true" />
         </button>
-
-        <Link href="/" className="flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-[#0D9488]">
-            <Shield size={14} className="text-white" />
-          </div>
-          <span className="text-sm font-semibold text-gatepass-900">Gatepass</span>
+        <Link href="/" aria-label="Gatepass — overview">
+          <BrandLockup size={24} />
         </Link>
-
-        <div className="w-9" />
+        <span className="w-9" />
       </header>
-
-      {/* ── Spacer for mobile top bar ── */}
       <div className="h-14 md:hidden" />
 
-      {/* ── Mobile overlay ── */}
       {mobileOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm md:hidden"
+        <button
+          className="fixed inset-0 z-40 cursor-pointer bg-black/60 backdrop-blur-[2px] md:hidden"
           onClick={() => setMobileOpen(false)}
+          aria-label="Close navigation menu"
+          tabIndex={-1}
         />
       )}
 
-      {/* ── Sidebar ── */}
+      {/* ── Rail ── */}
       <aside
-        className={`fixed md:static inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-gatepass-200 bg-white transition-transform duration-300 ease-out dark:border-gatepass-800 dark:bg-gatepass-900 ${
-          mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
-        } shadow-xl md:shadow-none`}
+        inert={railInert}
+        aria-hidden={railInert || undefined}
+        className={cx(
+          "fixed inset-y-0 left-0 z-50 flex w-[16.5rem] flex-col border-r border-line bg-surface",
+          "transition-transform duration-300 ease-out md:static md:translate-x-0",
+          mobileOpen ? "translate-x-0" : "-translate-x-full",
+        )}
       >
-        {/* Mobile drawer header */}
-        <div className="flex items-center justify-between border-b border-gatepass-200 px-4 h-14 md:hidden">
-          <div className="flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-[#0D9488]">
-              <Shield size={14} className="text-white" />
-            </div>
-            <span className="text-sm font-semibold text-gatepass-900">Gatepass</span>
-          </div>
+        <div className="flex items-center justify-end px-3 pt-3 md:hidden">
           <button
             onClick={() => setMobileOpen(false)}
-            className="flex items-center justify-center rounded-lg p-2 text-gatepass-500 hover:bg-gatepass-100 transition-colors"
+            className="cursor-pointer rounded-full p-2 text-fg-muted transition-colors hover:bg-raised hover:text-fg"
             aria-label="Close navigation menu"
           >
-            <X size={18} />
+            <X size={18} aria-hidden="true" />
           </button>
         </div>
 
-        {/* Desktop brand area */}
-        <div className="hidden md:flex flex-col border-b border-gatepass-200 px-4 py-5 dark:border-gatepass-800">
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#0D9488]">
-              <Shield size={18} className="text-white" />
-            </div>
-            <div className="flex flex-col">
-              <span className="text-base font-bold text-gatepass-900 dark:text-gatepass-100">Gatepass</span>
-              <span className="text-xs text-gatepass-500 capitalize">
-                {org ? `${org.planTier} tier` : "Precision AppSec"}
-              </span>
-            </div>
-          </div>
+        <div className="px-4 pt-5 pb-4">
+          <Link href="/" className="inline-flex rounded-lg" aria-label="Gatepass — overview">
+            <BrandLockup size={30} subtitle="Precision AppSec" />
+          </Link>
+        </div>
+
+        <nav className="flex-1 overflow-y-auto px-3" aria-label="Primary">
+          <ul className="space-y-0.5">
+            {NAV_ITEMS.map((item) => (
+              <NavLink key={item.href} item={item} pathname={pathname} />
+            ))}
+          </ul>
+        </nav>
+
+        <div className="border-t border-line px-3 pt-3 pb-4">
+          <ul className="space-y-0.5">
+            {FOOTER_ITEMS.map((item) => (
+              <NavLink key={item.href} item={item} pathname={pathname} compact />
+            ))}
+          </ul>
+
           {org && (
-            <div className="mt-3 flex items-center gap-2">
-              <span className="text-xs font-medium text-gatepass-500">{org.id}</span>
-              <span
-                className={`rounded px-1.5 py-0.5 text-[10px] font-medium uppercase ${planBadgeColors[org.planTier] ?? planBadgeColors.free}`}
-              >
+            <div className="mt-3 flex items-center justify-between gap-2 rounded-[0.75rem] border border-line bg-raised px-3 py-2.5">
+              <span className="min-w-0">
+                <span className="block truncate text-[0.78rem] font-medium text-fg">{org.id}</span>
+                <span className="block text-[0.7rem] text-fg-muted">
+                  {PLAN_LABEL[org.planTier] ?? org.planTier} plan
+                </span>
+              </span>
+              <span className="shrink-0 rounded-full border border-accent-line bg-accent-soft px-2 py-0.5 text-[0.65rem] font-medium tracking-wide text-accent uppercase">
                 {org.planTier}
               </span>
             </div>
           )}
-        </div>
-
-        {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto px-3 py-4">
-          <ul className="space-y-1">{NAV_ITEMS.map(renderNavItem)}</ul>
-        </nav>
-
-        {/* Footer */}
-        <div className="mt-auto border-t border-gatepass-200 px-3 py-4 dark:border-gatepass-800">
-          <ul className="space-y-1 mb-4">
-            {FOOTER_ITEMS.map((item) => {
-              const isActive = pathname.startsWith(item.href);
-              return (
-                <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    className={`flex items-center gap-3 rounded-md px-4 py-2.5 text-sm font-medium transition-colors duration-150 ${
-                      isActive
-                        ? "text-[#0D9488]"
-                        : "text-gatepass-600 hover:bg-gatepass-50 hover:text-gatepass-900 dark:text-gatepass-300 dark:hover:bg-gatepass-800 dark:hover:text-gatepass-100"
-                    }`}
-                  >
-                    <item.icon size={18} className={`shrink-0 ${isActive ? "text-[#0D9488]" : "text-gatepass-400"}`} />
-                    <span>{item.label}</span>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-
-          <button className="flex w-full items-center justify-center gap-2 rounded-md bg-[#0D9488] px-4 py-2.5 text-sm font-semibold text-white transition-colors duration-150 hover:bg-[#0F766E]">
-            <Upload size={16} />
-            Upgrade Plan
-          </button>
         </div>
       </aside>
     </>

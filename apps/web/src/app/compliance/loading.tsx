@@ -1,11 +1,6 @@
-import { Skeleton } from "@/components/ui/Skeleton";
+import { PageSkeleton } from "@/components/ui/Skeleton";
 
+/** Stats row stands in for the five per-standard score cards; rows for the check list. */
 export default function ComplianceLoading() {
-  return (
-    <div className="space-y-8">
-      <Skeleton variant="text" className="h-8 w-48" />
-      <Skeleton variant="card" className="h-32" />
-      <Skeleton variant="card" className="h-48" />
-    </div>
-  );
+  return <PageSkeleton stats={4} rows={6} />;
 }

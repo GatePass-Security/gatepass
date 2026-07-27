@@ -1,55 +1,158 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { type ComponentType, useId, useMemo, useState } from "react";
 import {
-  FileCheck,
   AlertTriangle,
-  CheckCircle,
-  XCircle,
-  Info,
+  Apple,
+  CheckCircle2,
   ChevronDown,
   ChevronRight,
-  Search,
-  ExternalLink,
   Code2,
   Eye,
-  Shield,
+  FileCheck,
   Globe,
-  Smartphone,
-  Apple,
+  Info,
+  MinusCircle,
   Monitor,
+  Shield,
+  XCircle,
 } from "lucide-react";
-import type { ComplianceResult, ComplianceCheck, ComplianceDomain, ComplianceSeverity } from "@gatepass/compliance";
-
-// ── Domain icons ──────────────────────────────────────────────────────
-const domainIcon: Record<ComplianceDomain, React.ComponentType<{ size?: number; className?: string }>> = {
-  wcag: Eye,
-  ccpa: Shield,
-  app_store: Apple,
-  google_play: Monitor,
-  eu_ai_act: Globe,
-};
-
-// ── Severity styling ──────────────────────────────────────────────────
-const severityStyles: Record<
+import type {
+  ComplianceResult,
+  ComplianceCheck,
+  ComplianceDomain,
+  ComplianceFix,
   ComplianceSeverity,
-  { dot: string; badge: string; icon: React.ComponentType<{ size?: number; className?: string }> }
-> = {
-  critical: { dot: "bg-red-500", badge: "bg-red-100 text-red-700 border-red-200", icon: XCircle },
-  warning: { dot: "bg-amber-500", badge: "bg-amber-100 text-amber-700 border-amber-200", icon: AlertTriangle },
-  info: { dot: "bg-blue-500", badge: "bg-blue-100 text-blue-700 border-blue-200", icon: Info },
+  ComplianceStatus,
+} from "@gatepass/compliance";
+import {
+  Badge,
+  Card,
+  CodeBlock,
+  EmptyState,
+  FilterPill,
+  PageHeader,
+  SegmentedControl,
+  TONE_TEXT,
+  TONE_VAR,
+  type Tone,
+} from "@/components/ui";
+import { cx, formatDate, pluralize, relativeTime } from "@/lib/utils";
+
+type IconType = ComponentType<{ size?: number; className?: string }>;
+
+// ── Domain metadata ───────────────────────────────────────────────────
+// Declared locally rather than imported from `@gatepass/compliance`'s `domainMeta`
+// so this client bundle keeps a type-only dependency on the package and never
+// pulls the zod schemas across the server/client boundary.
+const DOMAIN_ORDER = ["wcag", "ccpa", "app_store", "google_play", "eu_ai_act"] as const;
+
+const DOMAIN_META: Record<ComplianceDomain, { short: string; label: string; icon: IconType }> = {
+  wcag: { short: "WCAG", label: "Web accessibility — WCAG 2.2", icon: Eye },
+  ccpa: { short: "CCPA", label: "Privacy — CCPA/CPRA", icon: Shield },
+  app_store: { short: "App Store", label: "Apple App Store", icon: Apple },
+  google_play: { short: "Play Store", label: "Google Play", icon: Monitor },
+  eu_ai_act: { short: "EU AI", label: "EU AI Act", icon: Globe },
 };
 
-// ── Props ─────────────────────────────────────────────────────────────
+// ── Tone mapping ──────────────────────────────────────────────────────
+/*
+ * Compliance severity is ordinal (critical → warning → info), so it maps onto the
+ * ordinal severity ramp and never borrows a categorical tier hue. Status uses the
+ * categorical ones instead: `manual_review` is a research-tier "a human still has
+ * to look at this", `not_applicable` is deliberately inert grey.
+ */
+const SEVERITY_TONE: Record<ComplianceSeverity, Tone> = {
+  critical: "critical",
+  warning: "high",
+  info: "medium",
+};
+
+const SEVERITY_LABEL: Record<ComplianceSeverity, string> = {
+  critical: "Critical",
+  warning: "Warning",
+  info: "Info",
+};
+
+const STATUS_LABEL: Record<ComplianceStatus, string> = {
+  pass: "Pass",
+  fail: "Fail",
+  manual_review: "Manual review",
+  not_applicable: "Not applicable",
+};
+
+const STATUS_ICON: Record<ComplianceStatus, IconType> = {
+  pass: CheckCircle2,
+  fail: XCircle,
+  manual_review: Info,
+  not_applicable: MinusCircle,
+};
+
+/** Failing rows take the icon of their severity so shape, not just colour, ranks them. */
+const SEVERITY_ICON: Record<ComplianceSeverity, IconType> = {
+  critical: XCircle,
+  warning: AlertTriangle,
+  info: Info,
+};
+
+const FIX_KIND_LABEL: Record<ComplianceFix["kind"], string> = {
+  diff: "Suggested diff",
+  file_create: "Create file",
+  config_change: "Configuration change",
+  code_change: "Code change",
+};
+
+function statusTone(check: ComplianceCheck): Tone {
+  if (check.status === "pass") return "verified";
+  if (check.status === "fail") return SEVERITY_TONE[check.severity];
+  return check.status === "manual_review" ? "research" : "low";
+}
+
+/** Score bands are the ones the previous dashboard used — kept so the ring reads the same. */
+function scoreTone(score: number): Tone {
+  return score >= 80 ? "verified" : score >= 50 ? "medium" : "critical";
+}
+
+/*
+ * The scanner returns 100 for a domain with no applicable checks (see `computeScore` —
+ * an empty denominator scores 100). Painting that mint would claim "everything passed"
+ * for a standard nothing was measured against, so an unassessed domain is rendered
+ * inert instead and its counts line says so.
+ */
+function domainTone(stats: { pass: number; fail: number; score: number }): Tone {
+  return stats.pass + stats.fail === 0 ? "low" : scoreTone(stats.score);
+}
+
+/**
+ * …and the figure itself is suppressed, not just its colour. A tile reading
+ * "100 /100" above the words "0 of 4 assessed" is the dashboard contradicting
+ * itself in the same breath; an unmeasured domain has no score, so it shows an
+ * em dash.
+ */
+function domainScoreLabel(stats: { pass: number; fail: number; score: number }): string {
+  return stats.pass + stats.fail === 0 ? "—" : String(stats.score);
+}
+
+function scoreHeadline(score: number): string {
+  if (score >= 90) return "Excellent compliance posture";
+  if (score >= 70) return "Good compliance posture";
+  if (score >= 50) return "Moderate compliance posture";
+  return "Poor compliance posture — action needed";
+}
+
+const RING_RADIUS = 42;
+const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
+const MAX_FIX_CONTENT = 800;
+
 interface Props {
   result: ComplianceResult;
 }
 
 export default function ComplianceClient({ result }: Props) {
-  const [expandedDomain, setExpandedDomain] = useState<ComplianceDomain | null>(null);
   const [expandedRule, setExpandedRule] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<"all" | "pass" | "fail">("all");
   const [filterDomain, setFilterDomain] = useState<ComplianceDomain | "all">("all");
+  const panelIdPrefix = useId();
 
   const filteredChecks = useMemo(() => {
     return result.checks.filter((c) => {
@@ -63,381 +166,364 @@ export default function ComplianceClient({ result }: Props) {
   // entries here rather than guarding at every render site.
   const domainEntries = useMemo(() => {
     type DomainStats = { total: number; pass: number; fail: number; score: number };
-    return (Object.entries(result.byDomain) as [ComplianceDomain, DomainStats | undefined][])
-      .filter((entry): entry is [ComplianceDomain, DomainStats] => entry[1] !== undefined)
-      .sort((a, b) => {
-        const order: Record<string, number> = { wcag: 0, ccpa: 1, app_store: 2, google_play: 3, eu_ai_act: 4 };
-        return (order[a[0]] ?? 99) - (order[b[0]] ?? 99);
-      });
+    return DOMAIN_ORDER.map((domain) => [domain, result.byDomain[domain]] as const).filter(
+      (entry): entry is readonly [ComplianceDomain, DomainStats] => entry[1] !== undefined,
+    );
   }, [result.byDomain]);
 
-  const statusCount = (status: ComplianceCheck["status"]) => result.checks.filter((c) => c.status === status).length;
+  const tone = scoreTone(result.score);
+  const headline = scoreHeadline(result.score);
+
+  // The score's denominator is pass + fail — not-applicable and manual-review checks are
+  // excluded by the scanner. The caption has to use the same denominator or it describes a
+  // different number than the ring above it.
+  const applicable = result.passCount + result.failCount;
+  const summary =
+    applicable === 0
+      ? `No applicable automated checks — ${result.naCount} not applicable, ${result.manualCount} awaiting manual review.`
+      : result.failCount === 0
+        ? `All ${applicable} applicable ${pluralize(applicable, "check")} pass.`
+        : `${result.failCount} of ${applicable} applicable ${pluralize(applicable, "check")} failing.`;
+
+  const filtersActive = filterStatus !== "all" || filterDomain !== "all";
 
   return (
     <div className="space-y-6">
-      {/* ═══ Header ═══ */}
-      <div>
-        <h1 className="text-2xl font-bold text-gatepass-900 dark:text-white">Compliance Posture</h1>
-        <p className="mt-1 text-sm text-gatepass-500">
-          Automated compliance scanning against WCAG 2.2, CCPA/CPRA, Apple App Store, Google Play, and EU AI Act (2026).
-        </p>
-      </div>
+      <PageHeader
+        title="Compliance posture"
+        description="Automated compliance scanning against WCAG 2.2, CCPA/CPRA, Apple App Store, Google Play, and EU AI Act (2026)."
+        actions={
+          /* PageHeader stacks below `sm`, where a right-aligned block would read as ragged. */
+          <p className="text-[0.72rem] leading-relaxed text-fg-muted sm:text-right">
+            <span className="block">
+              Scanned{" "}
+              <time dateTime={result.timestamp} title={formatDate(result.timestamp)}>
+                {relativeTime(result.timestamp)}
+              </time>
+            </span>
+            <span data-numeric className="block">
+              {result.totalChecks} {pluralize(result.totalChecks, "check")} run
+            </span>
+          </p>
+        }
+      />
 
-      {/* ═══ Overall Score Card ═══ */}
-      <div className="rounded-xl border border-gatepass-200 bg-white dark:bg-gatepass-800/50 dark:border-gatepass-700 p-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
-          {/* Score ring */}
+      {/* ═══ Overall score ═══ */}
+      <Card>
+        <div className="flex flex-col items-start gap-6 sm:flex-row sm:items-center">
           <div className="relative flex h-24 w-24 shrink-0 items-center justify-center">
-            <svg className="h-24 w-24 -rotate-90" viewBox="0 0 100 100">
+            {/* An SVG ring is invisible to a screen reader, so the whole figure carries the
+                number as text and the visual arc is left decorative. */}
+            <svg
+              role="img"
+              aria-label={`Overall compliance score ${result.score} out of 100 — ${headline}`}
+              className="h-24 w-24 -rotate-90"
+              viewBox="0 0 100 100"
+            >
               <circle
                 cx="50"
                 cy="50"
-                r="42"
+                r={RING_RADIUS}
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="8"
-                className="text-gatepass-200 dark:text-gatepass-700"
+                className="text-line-strong"
               />
               <circle
                 cx="50"
                 cy="50"
-                r="42"
+                r={RING_RADIUS}
                 fill="none"
+                stroke={TONE_VAR[tone]}
                 strokeWidth="8"
                 strokeLinecap="round"
-                strokeDasharray={`${2 * Math.PI * 42}`}
-                strokeDashoffset={`${2 * Math.PI * 42 * (1 - result.score / 100)}`}
-                className={
-                  result.score >= 80 ? "text-emerald-500" : result.score >= 50 ? "text-amber-500" : "text-red-500"
-                }
+                strokeDasharray={RING_CIRCUMFERENCE}
+                strokeDashoffset={RING_CIRCUMFERENCE * (1 - result.score / 100)}
               />
             </svg>
             <span
-              className={`absolute text-2xl font-bold ${result.score >= 80 ? "text-emerald-600" : result.score >= 50 ? "text-amber-600" : "text-red-600"}`}
+              data-numeric
+              aria-hidden="true"
+              className={cx("absolute text-[1.5rem] leading-none font-medium tracking-[-0.03em]", TONE_TEXT[tone])}
             >
               {result.score}
             </span>
           </div>
 
-          {/* Score details */}
-          <div className="flex-1 min-w-0">
-            <h2 className="text-lg font-semibold text-gatepass-900 dark:text-white">
-              {result.score >= 90
-                ? "Excellent compliance posture"
-                : result.score >= 70
-                  ? "Good compliance posture"
-                  : result.score >= 50
-                    ? "Moderate compliance posture"
-                    : "Poor compliance posture — action needed"}
-            </h2>
-            <p className="mt-1 text-sm text-gatepass-500">
-              {result.failCount === 0
-                ? "All automated checks pass."
-                : `${result.failCount} of ${result.totalChecks} checks require attention.`}
-            </p>
+          <div className="min-w-0 flex-1">
+            <h2 className="text-[1.05rem] leading-tight font-medium tracking-[-0.021em] text-fg">{headline}</h2>
+            <p className="mt-1.5 text-[0.82rem] leading-relaxed text-fg-muted">{summary}</p>
 
-            <div className="mt-4 flex flex-wrap gap-3">
-              <MetricBadge
-                icon={CheckCircle}
-                label="Passed"
-                value={result.passCount}
-                color="text-emerald-600"
-                bg="bg-emerald-50"
-              />
-              <MetricBadge icon={XCircle} label="Failed" value={result.failCount} color="text-red-600" bg="bg-red-50" />
-              <MetricBadge
-                icon={Info}
-                label="Manual Review"
-                value={result.manualCount}
-                color="text-blue-600"
-                bg="bg-blue-50"
-              />
-              <MetricBadge
-                icon={MinusIcon}
-                label="N/A"
-                value={result.naCount}
-                color="text-gatepass-500"
-                bg="bg-gatepass-100"
-              />
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Badge tone="verified" dot>
+                <span data-numeric>{result.passCount}</span> passing
+              </Badge>
+              <Badge tone="critical" dot>
+                <span data-numeric>{result.failCount}</span> failing
+              </Badge>
+              <Badge tone="research" dot>
+                <span data-numeric>{result.manualCount}</span> manual review
+              </Badge>
+              <Badge tone="low" dot>
+                <span data-numeric>{result.naCount}</span> not applicable
+              </Badge>
             </div>
           </div>
         </div>
-      </div>
+      </Card>
 
-      {/* ═══ Domain Score Cards ═══ */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-        {domainEntries.map(([domain, stats]) => {
-          const Icon = domainIcon[domain];
-          const domainLabel = {
-            wcag: "WCAG",
-            ccpa: "CCPA",
-            app_store: "App Store",
-            google_play: "Play Store",
-            eu_ai_act: "EU AI",
-          }[domain];
-          return (
-            <button
-              key={domain}
-              onClick={() => setExpandedDomain(expandedDomain === domain ? null : domain)}
-              className={`rounded-lg border p-4 text-left transition-all hover:shadow-sm ${
-                expandedDomain === domain
-                  ? "border-[#0D9488] ring-1 ring-[#0D9488]"
-                  : "border-gatepass-200 dark:border-gatepass-700"
-              } bg-white dark:bg-gatepass-800/50`}
-            >
-              <div className="flex items-center gap-2 mb-2">
-                <Icon size={16} className="text-gatepass-400" />
-                <span className="text-xs font-medium text-gatepass-500 uppercase">{domainLabel}</span>
-              </div>
-              <div className="flex items-baseline gap-1">
-                <span
-                  className={`text-xl font-bold ${stats.score >= 80 ? "text-emerald-600" : stats.score >= 50 ? "text-amber-600" : "text-red-600"}`}
-                >
-                  {stats.score}
+      {/* ═══ Per-standard scores — each card also filters the list below ═══ */}
+      {domainEntries.length > 0 && (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+          {domainEntries.map(([domain, stats]) => {
+            const Icon = DOMAIN_META[domain].icon;
+            const active = filterDomain === domain;
+            return (
+              <button
+                key={domain}
+                type="button"
+                aria-pressed={active}
+                aria-label={
+                  stats.pass + stats.fail === 0
+                    ? `Filter by ${DOMAIN_META[domain].label} — none of its ${stats.total} ${pluralize(stats.total, "check")} applicable to this project`
+                    : `Filter by ${DOMAIN_META[domain].label} — score ${stats.score} of 100, ${stats.pass} passing, ${stats.fail} failing`
+                }
+                onClick={() => setFilterDomain(active ? "all" : domain)}
+                className={cx(
+                  "cursor-pointer rounded-[var(--radius-card)] border p-4 text-left",
+                  "transition-colors duration-150",
+                  active
+                    ? "border-accent-line bg-accent-soft"
+                    : "border-line bg-surface hover:border-line-strong hover:bg-raised",
+                )}
+              >
+                <span className="flex items-center gap-2">
+                  <Icon
+                    size={15}
+                    className={active ? "shrink-0 text-accent" : "shrink-0 text-fg-muted"}
+                    aria-hidden="true"
+                  />
+                  <span
+                    className={cx(
+                      "truncate text-[0.7rem] font-medium tracking-[0.05em] uppercase",
+                      active ? "text-accent" : "text-fg-muted",
+                    )}
+                  >
+                    {DOMAIN_META[domain].short}
+                  </span>
                 </span>
-                <span className="text-xs text-gatepass-400">/100</span>
-              </div>
-              <div className="mt-1 flex gap-2 text-[11px] text-gatepass-500">
-                <span className="text-emerald-600">{stats.pass} pass</span>
-                {stats.fail > 0 && <span className="text-red-600">{stats.fail} fail</span>}
-              </div>
-            </button>
-          );
-        })}
-      </div>
+                <span className="mt-2.5 flex items-baseline gap-1">
+                  <span
+                    data-numeric
+                    className={cx(
+                      "text-[1.35rem] leading-none font-medium tracking-[-0.03em]",
+                      TONE_TEXT[domainTone(stats)],
+                    )}
+                  >
+                    {domainScoreLabel(stats)}
+                  </span>
+                  {stats.pass + stats.fail > 0 && <span className="text-[0.7rem] text-fg-faint">/100</span>}
+                </span>
+                <span className="mt-1.5 flex flex-wrap gap-x-2.5 gap-y-0.5 text-[0.7rem]">
+                  {stats.pass + stats.fail === 0 ? (
+                    <span data-numeric className="text-fg-muted">
+                      0 of {stats.total} assessed
+                    </span>
+                  ) : (
+                    <>
+                      <span data-numeric className="text-verified">
+                        {stats.pass} pass
+                      </span>
+                      {stats.fail > 0 && (
+                        <span data-numeric className="text-critical">
+                          {stats.fail} fail
+                        </span>
+                      )}
+                    </>
+                  )}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* ═══ Filters ═══ */}
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="text-xs font-medium text-gatepass-500 mr-1">Filter:</span>
-        {(["all", "fail", "pass"] as const).map((s) => (
-          <button
-            key={s}
-            onClick={() => setFilterStatus(s)}
-            className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-              filterStatus === s
-                ? "bg-[#0891b2] text-white"
-                : "border border-gatepass-300 bg-white text-gatepass-600 hover:bg-gatepass-50"
-            }`}
-          >
-            {s === "all" ? "All" : s === "fail" ? "Failing" : "Passing"}
-          </button>
-        ))}
-        <span className="mx-1 text-gatepass-300">|</span>
-        {(["all", "wcag", "ccpa", "app_store", "google_play", "eu_ai_act"] as const).map((d) => (
-          <button
-            key={d}
-            onClick={() => setFilterDomain(d)}
-            className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-              filterDomain === d
-                ? "bg-gatepass-800 text-white dark:bg-gatepass-200 dark:text-gatepass-900"
-                : "border border-gatepass-300 bg-white text-gatepass-600 hover:bg-gatepass-50"
-            }`}
-          >
-            {d === "all"
-              ? "All"
-              : { wcag: "WCAG", ccpa: "CCPA", app_store: "App Store", google_play: "Play", eu_ai_act: "EU AI" }[d]}
-          </button>
-        ))}
+      <div className="space-y-3">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+          <SegmentedControl
+            label="Filter checks by status"
+            value={filterStatus}
+            onChange={setFilterStatus}
+            options={[
+              { value: "all", label: "All" },
+              { value: "fail", label: "Failing" },
+              { value: "pass", label: "Passing" },
+            ]}
+          />
+          <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Filter checks by standard">
+            <FilterPill
+              active={filterDomain === "all"}
+              onClick={() => setFilterDomain("all")}
+              count={result.checks.length}
+            >
+              All standards
+            </FilterPill>
+            {domainEntries.map(([domain, stats]) => (
+              <FilterPill
+                key={domain}
+                active={filterDomain === domain}
+                onClick={() => setFilterDomain(domain)}
+                count={stats.total}
+              >
+                {DOMAIN_META[domain].short}
+              </FilterPill>
+            ))}
+          </div>
+        </div>
+        <p aria-live="polite" className="text-[0.75rem] text-fg-muted">
+          Showing <span data-numeric>{filteredChecks.length}</span> of <span data-numeric>{result.checks.length}</span>{" "}
+          {pluralize(result.checks.length, "check")}
+        </p>
       </div>
 
-      {/* ═══ Checks List ═══ */}
-      <div className="space-y-2">
-        {filteredChecks.length === 0 && (
-          <div className="rounded-lg border border-gatepass-200 bg-white dark:bg-gatepass-800/50 p-8 text-center">
-            <FileCheck size={32} className="mx-auto text-gatepass-300" />
-            <p className="mt-2 text-sm text-gatepass-500">No checks match the current filters.</p>
-          </div>
-        )}
+      {/* ═══ Checks ═══ */}
+      {filteredChecks.length === 0 ? (
+        <EmptyState
+          icon={<FileCheck className="h-5 w-5" />}
+          title="No checks match these filters"
+          description={
+            result.checks.length === 0
+              ? "This scan produced no compliance checks."
+              : "Widen the status or standard filter to see the rest of the scan."
+          }
+          action={
+            filtersActive
+              ? {
+                  label: "Clear filters",
+                  onClick: () => {
+                    setFilterStatus("all");
+                    setFilterDomain("all");
+                  },
+                }
+              : undefined
+          }
+        />
+      ) : (
+        <ul className="space-y-2">
+          {filteredChecks.map((check) => {
+            const checkTone = statusTone(check);
+            const StatusIcon = check.status === "fail" ? SEVERITY_ICON[check.severity] : STATUS_ICON[check.status];
+            const expanded = expandedRule === check.ruleId;
+            const panelId = `${panelIdPrefix}-${check.ruleId}`;
+            const newContent = check.fix?.newContent;
 
-        {filteredChecks.map((check) => {
-          const SeverityIcon = severityStyles[check.severity].icon;
-          const isExpanded = expandedRule === check.ruleId;
-
-          return (
-            <div
-              key={check.ruleId}
-              className={`rounded-lg border bg-white dark:bg-gatepass-800/50 overflow-hidden transition-all ${
-                check.status === "fail"
-                  ? "border-red-200 dark:border-red-900"
-                  : check.status === "pass"
-                    ? "border-emerald-200 dark:border-emerald-900"
-                    : "border-gatepass-200 dark:border-gatepass-700"
-              }`}
-            >
-              {/* Header row */}
-              <button
-                onClick={() => setExpandedRule(isExpanded ? null : check.ruleId)}
-                className="flex w-full items-start gap-3 p-4 text-left"
-              >
-                {/* Status icon */}
-                {check.status === "pass" ? (
-                  <CheckCircle size={18} className="mt-0.5 shrink-0 text-emerald-500" />
-                ) : check.status === "fail" ? (
-                  <SeverityIcon size={18} className="mt-0.5 shrink-0 text-red-500" />
-                ) : (
-                  <Info size={18} className="mt-0.5 shrink-0 text-blue-500" />
-                )}
-
-                {/* Content */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-sm font-medium text-gatepass-900 dark:text-white">{check.title}</span>
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-[10px] font-medium border ${severityStyles[check.severity].badge}`}
-                    >
-                      {check.severity}
+            return (
+              <li key={check.ruleId}>
+                <Card padding={false}>
+                  <button
+                    type="button"
+                    onClick={() => setExpandedRule(expanded ? null : check.ruleId)}
+                    aria-expanded={expanded}
+                    aria-controls={panelId}
+                    className="flex w-full cursor-pointer items-start gap-3 p-4 text-left transition-colors duration-150 hover:bg-raised/60"
+                  >
+                    {/* Decorative: the status is already spelled out in the badge beside the title. */}
+                    <StatusIcon size={17} className={cx("mt-0.5 shrink-0", TONE_TEXT[checkTone])} aria-hidden="true" />
+                    <span className="flex min-w-0 flex-1 flex-col gap-1">
+                      <span className="flex flex-wrap items-center gap-2">
+                        <span className="text-[0.855rem] font-medium text-fg">{check.title}</span>
+                        <Badge tone={SEVERITY_TONE[check.severity]} size="sm">
+                          {SEVERITY_LABEL[check.severity]}
+                        </Badge>
+                        <Badge size="sm">{DOMAIN_META[check.domain].short}</Badge>
+                        <Badge tone={checkTone} size="sm" dot>
+                          {STATUS_LABEL[check.status]}
+                        </Badge>
+                      </span>
+                      <span className="line-clamp-2 text-[0.78rem] leading-relaxed text-fg-muted">
+                        {check.description}
+                      </span>
                     </span>
-                    <span className="rounded-full px-2 py-0.5 text-[10px] font-medium bg-gatepass-100 text-gatepass-600 border border-gatepass-200">
-                      {check.domain.toUpperCase()}
-                    </span>
-                    <span
-                      className={`text-[10px] font-medium uppercase ${
-                        check.status === "pass"
-                          ? "text-emerald-600"
-                          : check.status === "fail"
-                            ? "text-red-600"
-                            : "text-blue-600"
-                      }`}
-                    >
-                      {check.status === "not_applicable"
-                        ? "N/A"
-                        : check.status === "manual_review"
-                          ? "Manual Review"
-                          : check.status}
-                    </span>
-                  </div>
-                  <p className="mt-1 text-xs text-gatepass-500 line-clamp-2">{check.description}</p>
-                </div>
+                    {/* aria-expanded on the button already announces the state. */}
+                    {expanded ? (
+                      <ChevronDown size={16} className="mt-0.5 shrink-0 text-fg-muted" aria-hidden="true" />
+                    ) : (
+                      <ChevronRight size={16} className="mt-0.5 shrink-0 text-fg-muted" aria-hidden="true" />
+                    )}
+                  </button>
 
-                <div className="shrink-0">
-                  {isExpanded ? (
-                    <ChevronDown size={16} className="text-gatepass-400" />
-                  ) : (
-                    <ChevronRight size={16} className="text-gatepass-400" />
-                  )}
-                </div>
-              </button>
+                  {expanded && (
+                    <div id={panelId} className="space-y-4 border-t border-line px-4 py-4">
+                      {/* The collapsed row clamps the description to two lines; this is the
+                          unclipped copy, and it guarantees the panel is never empty for a
+                          check that carries no locations and no fix. */}
+                      <p className="text-[0.82rem] leading-relaxed text-fg-secondary">{check.description}</p>
 
-              {/* Expanded detail */}
-              {isExpanded && (
-                <div className="border-t border-gatepass-200 dark:border-gatepass-700 px-4 py-4 space-y-4">
-                  {/* Locations */}
-                  {check.locations.length > 0 && (
-                    <div>
-                      <h4 className="text-xs font-medium text-gatepass-500 mb-2 uppercase">Locations</h4>
-                      <div className="space-y-1">
-                        {check.locations.map((loc, i) => (
-                          <div
-                            key={i}
-                            className="flex items-center gap-2 text-xs font-mono text-gatepass-600 bg-gatepass-50 dark:bg-gatepass-800 rounded px-2 py-1"
-                          >
-                            <span>
-                              {loc.path || "unknown"}
-                              {loc.startLine ? `:${loc.startLine}` : ""}
-                            </span>
-                            {loc.snippet && (
-                              <span className="text-gatepass-400 truncate max-w-[400px]">{loc.snippet}</span>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Fix suggestion */}
-                  {check.fix && (
-                    <div className="rounded-lg border border-blue-200 bg-blue-50 dark:bg-blue-950/30 dark:border-blue-900 p-4">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Code2 size={14} className="text-blue-600" />
-                        <h4 className="text-sm font-medium text-blue-800 dark:text-blue-300">
-                          {check.fix.kind === "file_create"
-                            ? "Create file"
-                            : check.fix.kind === "config_change"
-                              ? "Configuration change"
-                              : check.fix.kind === "code_change"
-                                ? "Code change"
-                                : "Suggested fix"}
-                        </h4>
-                      </div>
-                      <p className="text-xs text-blue-700 dark:text-blue-400 mb-3">{check.fix.description}</p>
-
-                      {/* Diff display */}
-                      {check.fix.diff && (
-                        <pre className="rounded bg-blue-100 dark:bg-blue-900/50 p-3 text-xs font-mono text-blue-800 dark:text-blue-200 overflow-x-auto whitespace-pre-wrap">
-                          {check.fix.diff}
-                        </pre>
-                      )}
-
-                      {/* New file content */}
-                      {check.fix.newContent && (
+                      {check.locations.length > 0 && (
                         <div>
-                          <p className="text-xs text-blue-600 mb-1">
-                            New file: <code className="font-mono">{check.fix.filePath || "unknown"}</code>
-                          </p>
-                          <pre className="rounded bg-blue-100 dark:bg-blue-900/50 p-3 text-xs font-mono text-blue-800 dark:text-blue-200 overflow-x-auto max-h-48 overflow-y-auto">
-                            {check.fix.newContent.length > 800
-                              ? check.fix.newContent.slice(0, 800) + "\n/* ... truncated */"
-                              : check.fix.newContent}
-                          </pre>
+                          <h3 className="text-[0.7rem] font-medium tracking-[0.05em] text-fg-muted uppercase">
+                            {pluralize(check.locations.length, "Location")}
+                          </h3>
+                          <ul className="mt-2 space-y-1">
+                            {check.locations.map((loc, i) => (
+                              <li
+                                key={`${loc.path}-${loc.startLine ?? i}`}
+                                className="overflow-x-auto rounded-[0.6rem] border border-line bg-sunken px-2.5 py-1.5"
+                              >
+                                <span className="flex items-center gap-2.5 font-mono text-[0.72rem] whitespace-nowrap">
+                                  <span className="text-fg-secondary">
+                                    {loc.path}
+                                    {loc.startLine ? `:${loc.startLine}` : ""}
+                                  </span>
+                                  {loc.snippet && <span className="text-fg-muted">{loc.snippet}</span>}
+                                </span>
+                              </li>
+                            ))}
+                          </ul>
                         </div>
                       )}
+
+                      {check.fix && (
+                        <div className="space-y-2.5">
+                          <h3 className="flex items-center gap-2 text-[0.7rem] font-medium tracking-[0.05em] text-fg-muted uppercase">
+                            <Code2 size={13} className="shrink-0" aria-hidden="true" />
+                            {FIX_KIND_LABEL[check.fix.kind]}
+                          </h3>
+                          <p className="text-[0.82rem] leading-relaxed text-fg-secondary">{check.fix.description}</p>
+
+                          {check.fix.diff && (
+                            <CodeBlock title={check.fix.filePath ?? "suggested diff"} content={check.fix.diff} diff />
+                          )}
+
+                          {newContent && (
+                            <CodeBlock
+                              title={check.fix.filePath ?? "new file"}
+                              content={
+                                newContent.length > MAX_FIX_CONTENT
+                                  ? `${newContent.slice(0, MAX_FIX_CONTENT)}\n/* ... truncated */`
+                                  : newContent
+                              }
+                              maxHeight="18rem"
+                            />
+                          )}
+                        </div>
+                      )}
+
+                      {check.status === "pass" && (
+                        <p className="flex items-center gap-2 text-[0.78rem] text-verified">
+                          <CheckCircle2 size={13} className="shrink-0" aria-hidden="true" />
+                          Passed automatically — no action required.
+                        </p>
+                      )}
                     </div>
                   )}
-
-                  {/* No fix for passes */}
-                  {check.status === "pass" && (
-                    <div className="flex items-center gap-2 text-xs text-emerald-600">
-                      <CheckCircle size={12} />
-                      <span>This check passes automatically.</span>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
+                </Card>
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </div>
-  );
-}
-
-// ── Helper components ──────────────────────────────────────────────
-
-function MetricBadge({
-  icon: Icon,
-  label,
-  value,
-  color,
-  bg,
-}: {
-  icon: React.ComponentType<{ size: number; className?: string }>;
-  label: string;
-  value: number;
-  color: string;
-  bg: string;
-}) {
-  return (
-    <div className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 ${bg}`}>
-      <Icon size={12} className={color} />
-      <span className="text-xs font-medium text-gatepass-700">
-        <strong>{value}</strong> {label}
-      </span>
-    </div>
-  );
-}
-
-function MinusIcon({ size, className }: { size?: number; className?: string }) {
-  return (
-    <svg
-      width={size ?? 16}
-      height={size ?? 16}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      className={className}
-    >
-      <line x1="5" y1="12" x2="19" y2="12" />
-    </svg>
   );
 }
