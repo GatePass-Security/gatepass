@@ -59,3 +59,8 @@ research/scan-log.txt
 research/out/mcp-survey-raw.json
 research/out/verification.json
 research/out/disclosure-worklist.md
+# Same rule for the outreach list derived from it (pnpm research:leads): it names
+# vulnerable third-party repos, plus GitHub owner metadata about real people.
+research/out/leads.json
+research/out/leads-gh-cache.json
+.gstack/

@@ -27,7 +27,7 @@ interface NavItem {
 }
 
 const NAV_ITEMS: readonly NavItem[] = [
-  { href: "/", label: "Overview", icon: LayoutDashboard },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/findings", label: "Findings", icon: Search },
   { href: "/agent-guidance", label: "Guidance", icon: Lightbulb },
   { href: "/fleet", label: "Fleet", icon: Server },
@@ -43,9 +43,9 @@ const FOOTER_ITEMS: readonly NavItem[] = [
 
 const PLAN_LABEL: Record<string, string> = { free: "Free", team: "Team", scale: "Scale" };
 
-/** "/" must match exactly; every other route matches its own subtree. */
+/** Exact match, or any route nested beneath it. */
 function isActive(pathname: string, href: string): boolean {
-  return href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
+  return pathname === href || pathname.startsWith(`${href}/`);
 }
 
 /*
@@ -135,7 +135,7 @@ export function Sidebar() {
         >
           <Menu size={18} aria-hidden="true" />
         </button>
-        <Link href="/" aria-label="Gatepass — overview">
+        <Link href="/dashboard" aria-label="Gatepass — dashboard">
           <BrandLockup size={24} />
         </Link>
         <span className="w-9" />
@@ -172,7 +172,7 @@ export function Sidebar() {
         </div>
 
         <div className="px-4 pt-5 pb-4">
-          <Link href="/" className="inline-flex rounded-lg" aria-label="Gatepass — overview">
+          <Link href="/dashboard" className="inline-flex rounded-lg" aria-label="Gatepass — dashboard">
             <BrandLockup size={30} subtitle="Precision AppSec" />
           </Link>
         </div>

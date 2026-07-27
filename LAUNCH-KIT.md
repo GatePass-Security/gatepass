@@ -80,24 +80,33 @@ Output: `research/out/STATE-OF-MCP-SECURITY.md`. **Read it before posting** and 
 
 ### The actual survey numbers (measured 2026-07-26)
 
+These are the **production-code** figures from
+[`research/out/STATE-OF-MCP-SECURITY.md`](research/out/STATE-OF-MCP-SECURITY.md). An earlier
+draft of this kit quoted 14.3% / 24 repos, which was measured **before** test and example paths
+were separated out. That number is superseded — do not use it anywhere.
+
 | Metric | Value |
 |---|---|
 | MCP servers scanned | **168** (300 discovered; 122 excluded as not-actually-MCP; 10 clone failures) |
 | Source files | 119,868 |
-| **Repos with an agentic-infrastructure vuln** | **24 (14.3%)** ← *the MCP-security claim* |
-| Repos with any verified finding (incl. general web) | 88 (52.4%) |
-| Unauthenticated MCP transport | **23 repos** ← the dominant agentic finding |
-| Total verified findings | 1,762 (median 5 per affected repo — heavily skewed) |
+| **Repos shipping an agentic-infrastructure vuln in production code** | **18 (10.7%)** ← *the MCP-security claim* |
+| Repos with any verified finding in production code | 75 (44.6%) |
+| Repos with any verified finding incl. test/example paths | 88 (52.4%) |
+| Unauthenticated MCP transport (production) | **18 repos, 41 findings** ← the dominant agentic finding |
+| Verified findings, production | 1,327 (median 3 per affected repo — heavily skewed) |
+| Verified findings sitting in test/example paths (excluded) | 435 |
+| Spot-check | 10/10 confirmed by re-cloning at the recorded SHA |
 
-**Use 14.3%, not 52.4%, as the headline.** The 52% number is mostly CORS/secrets/RLS — real
-findings, but general app-sec that happens to live in MCP repos. If you lead with 52% a
-security reader will check, find it's mostly CORS, and dismiss the whole report. Leading with
-"1 in 7 MCP servers exposes an unauthenticated transport" is smaller, sharper, and *survives
-scrutiny* — and it's a scarier finding anyway.
+**Use 10.7%, not 44.6% and not 52.4%.** The bigger numbers are mostly CORS/secrets/RLS — real
+findings, but general app-sec that happens to live in MCP repos. If you lead with 52% a security
+reader will check, find it's mostly CORS *and partly test fixtures*, and dismiss the whole report.
+Leading with "1 in 9 MCP servers ships an unauthenticated transport in production code" is
+smaller, sharper, and *survives scrutiny* — and it's a scarier finding anyway. The three-number
+table in the report exists so the reader can see you didn't pick the flattering one.
 
 **HN title** (do not editorialize, HN punishes hype):
 
-> Show HN: We scanned 168 public MCP servers — 1 in 7 exposes an unauthenticated transport
+> Show HN: We scanned 168 public MCP servers — 1 in 9 ships an unauthenticated transport
 
 **Post body skeleton:**
 
@@ -140,7 +149,8 @@ Regenerate any of these:
 | Determinism / cost / latency | `pnpm benchmark:determinism` | byte-identical ×10 · 0.9 ms · 0 tokens · $0 |
 | Corpus precision | `pnpm corpus:measure` | 12/12 classes, 100% TP, 0% FP |
 | Compliance precision | `npx vitest run packages/compliance/test/measure.test.ts` | 0% FP, 100% recall |
-| Public MCP survey | `pnpm research:scan-mcp -- --limit 300` | 168 servers · 14.3% agentic vuln · 23 unauth transports |
+| Public MCP survey | `pnpm research:scan-mcp -- --limit 300` | 168 servers · 10.7% production agentic vuln · 18 unauth transports |
+| Lead list from the survey | `pnpm research:leads` | segments the raw survey into priority accounts |
 | Survey spot-check | `pnpm research:verify -- --sample 14` | re-checks findings against source at recorded SHA |
 | OWASP ASI coverage | — | 9/10 categories, ASI06 declared as the gap |
 

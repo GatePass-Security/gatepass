@@ -41,11 +41,23 @@ Seed–Series B AI-native companies shipping agentic products (10–150 people, 
 4. **Outcome data:** which findings enterprises' security reviews actually probe, per industry — feeding both ruleset priority and the questionnaire product.
 
 ## Business model — pure software
-- **Free:** open scanner tier + public server-scan reports (top-of-funnel and benchmark distribution).
-- **Team — $500–1,500/mo:** private repos, continuous scanning, PR/IDE remediation, agent-loop integration.
-- **Scale — $2–5K/mo:** multi-repo, CI gating, Vanta/Drata evidence export, questionnaire autofill, internal MCP-fleet scanning.
+Never per-seat (that taxes adoption of a tool we want every developer running) and never per-scan
+(marginal cost is $0, and pricing against our own moat is incoherent). Four tiers, one price each:
+
+- **Free — $0:** the OSS CLI, unlimited local scans, every verified detector, SARIF output. This is
+  distribution and benchmark credibility; it never gets gated.
+- **Team — $500/mo:** private repos, GitHub App, PR comments, CI gate, up to 10 repos.
+- **Scale — $2,000/mo:** unlimited repos, MCP-fleet scanning, Vanta/Drata evidence export,
+  questionnaire drafting, research-tier findings.
+- **Enterprise — $30–50K/yr:** self-hosted runner, in-VPC semantic layer, SSO, contracted support,
+  custom detector classes.
+
+$500 sits deliberately under the threshold where procurement gets involved at a 10–150 person
+company — a CTO expenses it, which is the shortest path from conversation to revenue. The $2,000
+tier is anchored against the stalled contract it unblocks: ~1% of a $200K deal.
 
 No services tier; internal security research exists to grow the corpus and the benchmark.
+Full segmentation, channels, and cadence: [GO-TO-MARKET.md](GO-TO-MARKET.md).
 
 ## Why now
 The window is 12–18 months old and closing on both ends: OWASP's Agentic Top 10 (Dec 2025) just standardized the taxonomy enterprises will test against; the MCP CVE wave (including CVSS 9.6 RCE in a package with ~500K downloads, and configuration-injection CVEs in Claude Code itself) made the risk concrete to buyers; enterprise questionnaires now contain agent-security sections; and the incumbents' first-wave answers are shallow enough to beat on measured precision — but won't stay shallow forever.

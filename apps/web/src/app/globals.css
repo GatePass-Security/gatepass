@@ -84,38 +84,48 @@
   --gp-ring: var(--gp-accent);
 }
 
+/*
+ * Dark values are taken from the marketing surface's own tokens in
+ * `src/styles/landing.css` — same product, same palette. Where a name maps
+ * one-to-one the value is copied exactly; the comment gives the landing token
+ * it came from. The few that have no landing counterpart exist because a
+ * dashboard needs states a landing page does not (a hover surface, a sunken
+ * input well, a severity ramp).
+ */
 .dark {
-  --gp-canvas: #000000;
-  --gp-surface: #0b0b0c;
-  --gp-surface-raised: #141416;
-  --gp-surface-sunken: #060607;
-  --gp-line: rgb(255 255 255 / 0.09);
-  --gp-line-strong: rgb(255 255 255 / 0.16);
+  --gp-canvas: #020202; /* landing --bg */
+  --gp-surface: #08080a; /* landing --bg-card */
+  --gp-surface-raised: #121215; /* hover/nested — a step above --bg-soft (#0a0a0c),
+                                   which sits too close to --bg-card to read as a state change */
+  --gp-surface-sunken: #050506;
+  --gp-line: #2a2a2a; /* landing --line */
+  --gp-line-strong: #3a3a3d;
 
-  --gp-text: #ffffff;
-  --gp-text-secondary: #a3a3a8;
-  --gp-text-muted: #7a7a80;
-  --gp-text-faint: #55555c;
+  --gp-text: #ffffff; /* landing --fg */
+  --gp-text-secondary: #c0c0c0; /* landing --fg-muted */
+  --gp-text-muted: #7e7e86; /* landing --fg-dim */
+  --gp-text-faint: #5e5e66;
 
-  --gp-accent: #2dd4bf;
+  --gp-accent: #2dd4bf; /* landing --accent */
   --gp-accent-solid: #14b8a6;
-  --gp-accent-contrast: #00110e;
+  --gp-accent-contrast: #020202;
   --gp-accent-soft: rgb(45 212 191 / 0.11);
   --gp-accent-line: rgb(45 212 191 / 0.28);
 
+  /* landing .gp-btn-primary — white pill, near-black label */
   --gp-action: #ffffff;
-  --gp-action-text: #0a0a0b;
+  --gp-action-text: #020202;
   --gp-action-hover: #e4e4e7;
 
-  --gp-critical: #ff5f5f;
-  --gp-critical-soft: rgb(255 95 95 / 0.12);
-  --gp-critical-line: rgb(255 95 95 / 0.3);
-  --gp-high: #ffa057;
-  --gp-high-soft: rgb(255 160 87 / 0.12);
-  --gp-high-line: rgb(255 160 87 / 0.3);
-  --gp-medium: #f2c14e;
-  --gp-medium-soft: rgb(242 193 78 / 0.12);
-  --gp-medium-line: rgb(242 193 78 / 0.3);
+  --gp-critical: #f87171; /* landing --danger */
+  --gp-critical-soft: rgb(248 113 113 / 0.12);
+  --gp-critical-line: rgb(248 113 113 / 0.3);
+  --gp-high: #fb923c;
+  --gp-high-soft: rgb(251 146 60 / 0.12);
+  --gp-high-line: rgb(251 146 60 / 0.3);
+  --gp-medium: #fbbf24; /* landing --amber */
+  --gp-medium-soft: rgb(251 191 36 / 0.12);
+  --gp-medium-line: rgb(251 191 36 / 0.3);
   --gp-low: #8e8e96;
   --gp-low-soft: rgb(142 142 150 / 0.14);
   --gp-low-line: rgb(142 142 150 / 0.3);
@@ -179,11 +189,12 @@
   --color-research-line: var(--gp-research-line);
 
   /* ── Typography ──
-     Geist / Geist Mono, wired in layout.tsx via next/font (self-hosted,
-     no layout shift). The marketing site's display type is a geometric
-     grotesque at medium weight with tight tracking; Geist is that lineage. */
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+     Inter Tight / JetBrains Mono, wired in layout.tsx via next/font. Same two
+     faces the marketing surface uses (`src/styles/landing.css`), so the product
+     and the landing page are set in one typeface rather than two that merely
+     resemble each other. */
+  --font-sans: var(--font-inter-tight), Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
   /* ── Radii — the marketing site pairs full pills with softly rounded cards ── */
   --radius-chip: 0.375rem;

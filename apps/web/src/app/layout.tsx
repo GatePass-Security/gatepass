@@ -1,37 +1,67 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import { OrgProvider } from "@/providers/OrgProvider";
-import { Sidebar } from "@/components/Sidebar";
-import { TopNavBar } from "@/components/TopNavBar";
-import { ToastProvider } from "@/components/ui/Toast";
+import { Inter_Tight, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
+/*
+ * One typeface across both surfaces. Inter Tight is what the marketing site is
+ * set in, and the dashboard is the same product — an earlier revision of the
+ * dashboard guessed at a match (Geist) because the landing page did not yet
+ * live in this repo. Plus Jakarta Sans is gone: nothing references it now that
+ * the product UI uses the same face as the marketing surface.
+ */
+const interTight = Inter_Tight({
   subsets: ["latin"],
-  variable: "--font-geist-sans",
+  weight: ["400", "500", "600"],
+  variable: "--font-inter-tight",
   display: "swap",
 });
 
-const geistMono = Geist_Mono({
+/** Code and figures, on both surfaces. */
+const jetbrains = JetBrains_Mono({
   subsets: ["latin"],
-  variable: "--font-geist-mono",
+  variable: "--font-jetbrains",
   display: "swap",
 });
+
+// Resolves og:image / twitter:image URLs against the deployed origin. The protocol guard keeps
+// a malformed NEXT_PUBLIC_SITE_URL (e.g. "gatepass.dev" without a scheme) from throwing inside
+// `new URL()` and crashing the root layout for every route. Override locally with
+// NEXT_PUBLIC_SITE_URL=http://localhost:3001 so dev previews emit absolute image URLs.
+const siteUrl =
+  process.env.NEXT_PUBLIC_SITE_URL && /^https?:\/\//.test(process.env.NEXT_PUBLIC_SITE_URL)
+    ? process.env.NEXT_PUBLIC_SITE_URL
+    : "https://gatepass.dev";
 
 export const metadata: Metadata = {
-  title: "Gatepass — Precision AppSec",
-  description: "Deterministic security scanning for AI-native and agentic codebases.",
+  // `metadataBase` requires a URL instance (not a string) in this Next type definition; the
+  // guard above ensures `new URL()` only ever sees a well-formed http(s):// value.
+  metadataBase: new URL(siteUrl),
+  title: "Gatepass — Deterministic security for AI-native code",
+  description:
+    "Gatepass catches the vulnerability classes that appear when AI writes the code and agents run it — tool poisoning, confused deputy, unauthenticated MCP transports — and blocks them in the pull request. Deterministic, ~1ms, zero tokens.",
+  openGraph: {
+    title: "Gatepass — Deterministic security for AI-native code",
+    description:
+      "12/12 agentic vulnerability classes detected where Semgrep finds 1 and Trivy finds 0. Byte-identical across runs. No LLM in the loop.",
+    type: "website",
+  },
 };
 
+/*
+ * The root layout carries no product chrome. `/` is the marketing landing page
+ * and must render without a sidebar around it; the authenticated shell lives in
+ * `(app)/layout.tsx` instead.
+ */
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning className={`${geistSans.variable} ${geistMono.variable}`}>
+    <html lang="en" suppressHydrationWarning className={`${interTight.variable} ${jetbrains.variable}`}>
       <head>
         {/*
           Resolve the theme before first paint. Dark is the product's canonical
-          appearance (it is what the marketing site ships), so anything other
-          than an explicit stored "light" resolves to dark — including a first
-          visit on a light-preference OS.
+          appearance — it is what the marketing surface ships, and that surface
+          is dark unconditionally — so anything other than an explicit stored
+          "light" resolves to dark, including a first visit on a light-preference
+          OS.
         */}
         <script
           dangerouslySetInnerHTML={{
@@ -39,28 +69,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           }}
         />
       </head>
-      <body className="bg-canvas text-fg">
-        <div className="gp-glow" aria-hidden="true" />
-        <a
-          href="#main"
-          className="sr-only focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:z-[80] focus:rounded-full focus:bg-action focus:px-4 focus:py-2 focus:text-[0.82rem] focus:font-medium focus:text-action-text"
-        >
-          Skip to content
-        </a>
-        <ToastProvider>
-          <OrgProvider>
-            <div className="relative z-10 flex min-h-screen">
-              <Sidebar />
-              <div className="flex min-w-0 flex-1 flex-col">
-                <TopNavBar />
-                <main id="main" className="flex-1 overflow-x-hidden">
-                  <div className="mx-auto w-full max-w-[88rem] px-5 py-7 sm:px-7 lg:px-9">{children}</div>
-                </main>
-              </div>
-            </div>
-          </OrgProvider>
-        </ToastProvider>
-      </body>
+      <body className="bg-canvas text-fg">{children}</body>
     </html>
   );
 }

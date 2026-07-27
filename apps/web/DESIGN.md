@@ -15,6 +15,13 @@ instrument, not as pitch.
 Colour lives in `src/app/globals.css` as CSS custom properties. `:root` holds light values,
 `.dark` overrides them, and `@theme inline` maps each one to a Tailwind utility.
 
+The dark values are **copied from the marketing surface's own tokens** in
+`src/styles/landing.css` (`--bg`, `--bg-card`, `--line`, `--fg`, `--fg-muted`, `--fg-dim`,
+`--accent`, `--danger`, `--amber`), so the two surfaces cannot drift apart by editing one of
+them. Each is annotated in `globals.css` with the landing token it came from. A few have no
+landing counterpart and exist because a dashboard needs states a landing page does not — a
+hover surface, a sunken input well, the four-step severity ramp.
+
 ```
 --gp-surface  ──▶  @theme inline: --color-surface  ──▶  class: bg-surface
 ```
@@ -47,20 +54,26 @@ explicitly stored `theme=light`.
 Data tones — `verified`, `research`, `critical`, `high`, `medium`, `low` — each expose
 `text-*`, `bg-*`, `bg-*-soft`, `border-*-line`.
 
-### Measured contrast (dark theme, on `--gp-canvas` `#000`)
+### Measured contrast (dark theme, on `--gp-canvas` `#020202`)
 
 | Token | Value | Ratio |
 |---|---|---|
-| `--gp-text` | `#FFFFFF` | 21:1 |
-| `--gp-text-secondary` | `#A3A3A8` | 8.3:1 |
-| `--gp-text-muted` | `#7A7A80` | 4.9:1 |
-| `--gp-accent` | `#2DD4BF` | 11.3:1 |
-| `--gp-critical` | `#FF5F5F` | 6.9:1 |
-| `--gp-research` | `#6BA6FF` | 8.3:1 |
+| `--gp-text` | `#FFFFFF` | 20.8:1 |
+| `--gp-text-secondary` | `#C0C0C0` | 11.4:1 |
+| `--gp-text-muted` | `#7E7E86` | 5.2:1 |
+| `--gp-accent` | `#2DD4BF` | 11.2:1 |
+| `--gp-critical` | `#F87171` | 7.5:1 |
+| `--gp-high` | `#FB923C` | 9.2:1 |
+| `--gp-medium` | `#FBBF24` | 12.4:1 |
+| `--gp-low` | `#8E8E96` | 6.4:1 |
+| `--gp-research` | `#6BA6FF` | 8.4:1 |
 
-`--gp-text-faint` (`#55555C`, 3.1:1) clears the 3:1 non-text threshold and is restricted to
-decoration. In light mode the accent darkens to `#0B7F72` (4.9:1 on white) — the bright mint is
-unreadable there, so it is not reused.
+Every one clears AA for normal text. `--gp-text-faint` (`#5E5E66`, 3.2:1) does not, and is
+restricted to non-informational decoration — it was `#56565E` until adopting the landing's
+`#020202` canvas dropped it to 2.9:1, under the 3:1 non-text floor.
+
+In light mode the accent darkens to `#0B7F72` (4.9:1 on white); the bright mint is unreadable
+there, so it is not reused.
 
 ---
 
@@ -83,11 +96,14 @@ state carries a direction arrow and `aria-sort`.
 
 ## 3. Typography
 
-**Geist** and **Geist Mono**, self-hosted through `next/font/google` (variable, zero layout
-shift). Geist is the free typeface closest to the marketing site's geometric grotesque —
-tall x-height, tight apertures, medium-weight display type. If the licensed marketing face is
-ever added to the repo, swapping it is the two `next/font` calls in `layout.tsx` and nothing
-else.
+**Inter Tight** and **JetBrains Mono**, self-hosted through `next/font/google` and declared
+once in the root `layout.tsx`. These are the marketing surface's own faces — see
+`src/styles/landing.css` — so the product and the landing page are set in one typeface rather
+than two that merely resemble each other.
+
+An earlier revision of this dashboard used Geist, chosen as the closest free match while the
+landing page still lived outside this repo and a screenshot was the only reference. Once the
+landing page landed on `master` the real face was knowable, and the guess was replaced.
 
 | Role | Size | Weight | Tracking |
 |---|---|---|---|

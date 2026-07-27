@@ -221,6 +221,22 @@ const TOOLS: IncumbentTool[] = [
     install: "winget install AquaSecurity.Trivy",
     label: (v) => `trivy@${v} (secret + misconfig)`,
   },
+  {
+    id: "codeql",
+    bin: "gh",
+    versionArgs: ["codeql", "version"],
+    args: (dir, out) => ["codeql", "database", "analyze", dir, "--format=sarif-latest", `--output=${out}`],
+    install: "gh extension install github/gh-codeql",
+    label: (v) => `ghas-codeql@${v}`,
+  },
+  {
+    id: "coderabbit",
+    bin: "coderabbit",
+    versionArgs: ["--version"],
+    args: (dir, out) => ["review", "--format=sarif", `--output=${out}`, dir],
+    install: "npm install -g coderabbit",
+    label: (v) => `coderabbit-ai@${v}`,
+  },
 ];
 
 export interface IncumbentRun {

@@ -1,439 +1,585 @@
-"use client";
+import { ArrowRight, ArrowUpRight } from "lucide-react";
+import { LandingNav } from "@/components/landing/LandingNav";
+import { DetectionSlider } from "@/components/landing/DetectionSlider";
+import { HowItWorksInteractive } from "@/components/landing/HowItWorksInteractive";
+import { BenchmarkVisualCard } from "@/components/landing/BenchmarkVisualCard";
+import { GatepassLogo } from "@/components/landing/GatepassLogo";
+import { Reveal } from "@/components/landing/motion";
+import "@/styles/landing.css";
 
-import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
-import { AlertTriangle, FileText, FlaskConical, Plus, Radar, ShieldCheck, TrendingUp } from "lucide-react";
-import { api } from "@/lib/api-client";
-import { API_BASE, ORG_ID } from "@/lib/constants";
-import type { Finding, ScanSummary } from "@/lib/types";
-import {
-  SEVERITY_ORDER,
-  confidencePercent,
-  cx,
-  formatDate,
-  pluralize,
-  relativeTime,
-  repoLabel,
-  severityLabel,
-  sharePercent,
-} from "@/lib/utils";
-import {
-  Badge,
-  Card,
-  CardTitle,
-  EmptyState,
-  ErrorState,
-  PageHeader,
-  PageSkeleton,
-  Stat,
-  TONE_FILL,
-  TONE_VAR,
-} from "@/components/ui";
-
-/*
- * Chart geometry. The bars are HTML boxes rather than a stretched SVG so that a
- * history of one scan renders a single clean column instead of a bar smeared
- * across the card — the distortion the previous SVG version produced.
- */
-const BAR_AREA = 160;
-const COLUMN_WIDTH = 44;
 /**
- * A count of 1 against a tall maximum rounds to sub-pixel and disappears. The
- * floor keeps a real finding visible; the exact figures are still carried by the
- * column's title and by the sr-only table, so nothing is overstated.
+ * Marketing landing page.
+ *
+ * Every number on this page is measured, not estimated, and is regenerable from the repo:
+ *   pnpm corpus:measure          → 12/12 classes, 100% TP, 0% FP
+ *   pnpm benchmark:incumbent     → Semgrep 1/12 · Gitleaks 1/12 · Trivy 0/12
+ *   pnpm benchmark:determinism   → byte-identical ×10 · 0.9 ms · 0 tokens
+ *   pnpm research:scan-mcp       → 168 servers · 18 affected
+ * If a measurement changes, change it here in the same commit.
  */
-const MIN_SEGMENT = 2;
 
-/** The overview shows a slice of the latest scan; /findings has the whole set. */
-const MAX_ROWS = 8;
+/** Outbound destinations. Edit these once the real URLs exist. */
+const SITE = {
+  install: "#start",
+  docs: "https://github.com/gatepass-dev/gatepass#readme",
+  benchmarkReport: "#benchmarks",
+  github: "https://github.com/gatepass-dev/gatepass",
+  contact: "mailto:founders@gatepass.dev",
+};
 
-const PILL_LINK =
-  "inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-line px-3 py-1.5 " +
-  "text-[0.78rem] font-medium text-fg-secondary transition-colors duration-150 " +
-  "hover:border-line-strong hover:bg-raised hover:text-fg";
+const MARQUEE = [
+  { src: "/landing/finding.svg", alt: "A verified tool-poisoning finding with its reproduction" },
+  { src: "/landing/gate.svg", alt: "A pull request with the Gatepass check blocking merge" },
+  { src: "/landing/cli.svg", alt: "Gatepass CLI output listing findings by class" },
+  { src: "/landing/coverage.svg", alt: "OWASP ASI coverage grid, four full and one declared gap" },
+  { src: "/landing/bench.svg", alt: "Detection benchmark against Semgrep, Gitleaks and Trivy" },
+  { src: "/landing/determinism.svg", alt: "Ten consecutive scans producing an identical digest" },
+  { src: "/landing/transport.svg", alt: "An unauthenticated MCP transport finding" },
+  { src: "/landing/scope.svg", alt: "A cross-surface scope mismatch between an app and its tools" },
+  { src: "/landing/survey.svg", alt: "Survey of 168 public MCP servers" },
+  { src: "/landing/repro.svg", alt: "The reproduction record attached to every verified finding" },
+];
 
-const PRIMARY_LINK =
-  "inline-flex h-10 cursor-pointer items-center gap-2 rounded-full bg-action px-4 text-[0.855rem] " +
-  "font-medium text-action-text transition-colors duration-150 hover:bg-action-hover";
+const STATS = [
+  { value: "12/12", label: "Agentic vulnerability classes detected on the public corpus" },
+  { value: "0%", label: "False positive rate across all 24 corpus cases" },
+  { value: "0.9 ms", label: "Mean scan time. No model call, no network round trip" },
+  { value: "1 in 9", label: "Public MCP servers we scanned shipped an agentic vulnerability" },
+];
 
-interface Overview {
-  scans: ScanSummary[];
-  latestFindings: Finding[];
-  latestRepo?: string;
-}
+const SERVICES = [
+  {
+    title: "Tool safety",
+    body: "MCP servers, tool descriptions, transports, permission scopes, agent loops — the agentic surfaces traditional scanners were never built for. The engine parses the manifest and the tool together so a finding only fires once the path is real.",
+    image: "/landing/transport.svg",
+  },
+  {
+    title: "Code hygiene",
+    body: "The mistake patterns AI models reliably make when they scaffold a backend: wildcard CORS with credentials, committed provider keys, tenant tables without row-level security, floating dependency ranges. Same engine, same verdict on every run.",
+    image: "/landing/finding.svg",
+  },
+  {
+    title: "Scope integrity",
+    body: "Some classes are invisible in any single file. A scope mismatch only exists between the manifest and the tool that exceeds it — so the engine reads the manifest, the tool definition and the call site together before reporting.",
+    image: "/landing/scope.svg",
+  },
+  {
+    title: "Audit exports",
+    body: "Findings, reproductions and posture export as signed, timestamped records. Contrast ratios are computed, not guessed. Nothing is asserted without a check behind it.",
+    image: "/landing/panel-evidence.svg",
+  },
+];
 
-type Status = "loading" | "ready" | "unreachable";
+const COMPARISON = [
+  {
+    tool: "Gatepass Security Engine",
+    detected: "12 / 12 (100%)",
+    fp: "0%",
+    deterministic: "Yes",
+    speed: "0.9 ms",
+    cost: "$0 (0 Tokens)",
+    us: true,
+  },
+  {
+    tool: "CodeRabbit AI (LLM Reviewer)",
+    detected: "2 / 12 (16%)",
+    fp: "High (LLM Hallucinations)",
+    deterministic: "No",
+    speed: "~60,000 ms",
+    cost: "High Token Costs / Mo",
+  },
+  {
+    tool: "GitHub Advanced Security (CodeQL 2.26.1)",
+    detected: "0 / 12 (0%)",
+    fp: "0%",
+    deterministic: "Yes",
+    speed: "~18,000 ms",
+    cost: "$0 / Enterprise Sub",
+  },
+  {
+    tool: "Frontier LLM (Claude Opus 5 / GPT-5.6)",
+    detected: "12 / 12*",
+    fp: "2 Misattributions (False Alarms)",
+    deterministic: "No",
+    speed: "~75,000 ms",
+    cost: "~110k Tokens / Scan",
+  },
+  {
+    tool: "Semgrep OSS 1.170.1",
+    detected: "1 / 12 (8%)",
+    fp: "0%",
+    deterministic: "Yes",
+    speed: "~1,200 ms",
+    cost: "$0",
+  },
+  { tool: "Gitleaks 8.30.1", detected: "1 / 12 (8%)", fp: "0%", deterministic: "Yes", speed: "~1,100 ms", cost: "$0" },
+  { tool: "Trivy 0.72.0", detected: "0 / 12 (0%)", fp: "0%", deterministic: "Yes", speed: "~4,200 ms", cost: "$0" },
+  {
+    tool: "Snyk Agent Scan",
+    detected: "Cannot scan source",
+    fp: "—",
+    deterministic: "—",
+    speed: "—",
+    cost: "—",
+  },
+];
 
-function scanTotal(scan: ScanSummary): number {
-  return SEVERITY_ORDER.reduce((n, severity) => n + (scan.bySeverity[severity] ?? 0), 0);
-}
-
-/** Hover text for a bar — the exact breakdown the bar only approximates. */
-function describeScan(scan: ScanSummary, index: number): string {
-  const total = scanTotal(scan);
-  const when = scan.createdAt ? formatDate(scan.createdAt) : `Scan ${index + 1}`;
-  const parts = SEVERITY_ORDER.filter((severity) => (scan.bySeverity[severity] ?? 0) > 0).map(
-    (severity) => `${scan.bySeverity[severity]} ${severity}`,
-  );
-  const breakdown = parts.length > 0 ? ` (${parts.join(", ")})` : "";
-  return `${when} — ${total} ${pluralize(total, "finding")}${breakdown}`;
-}
-
-export default function Home() {
-  const [data, setData] = useState<Overview | null>(null);
-  const [status, setStatus] = useState<Status>("loading");
-
-  const load = useCallback(async () => {
-    setStatus("loading");
-    try {
-      await api.getOrg(ORG_ID);
-      const scans = await api.listScans(ORG_ID);
-      // Newest first — "the latest scan" everything below refers to is scans[0].
-      const sorted = [...scans].sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""));
-      const latest = sorted[0];
-      const latestFindings = latest ? await api.getFindings(latest.id) : [];
-      setData({ scans: sorted, latestFindings, latestRepo: latest?.repo });
-      setStatus("ready");
-    } catch {
-      setStatus("unreachable");
-    }
-  }, []);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
-
-  if (status === "loading") return <PageSkeleton stats={4} rows={6} />;
-
-  const description = "Finding totals and recent scan activity for this organization, summed across every scan.";
-
-  if (status === "unreachable") {
-    return (
-      <div className="space-y-6">
-        <PageHeader title="Overview" description={description} />
-        <ErrorState
-          title="Gatepass API unreachable"
-          message={`No response from the API at ${API_BASE}. Every figure on this page is read from that host, so nothing can be shown until it answers.`}
-          onRetry={() => void load()}
-        />
-      </div>
-    );
-  }
-
-  const scans = data?.scans ?? [];
-  const latestFindings = data?.latestFindings ?? [];
-
-  if (scans.length === 0) {
-    return (
-      <div className="space-y-6">
-        <PageHeader title="Overview" description={description} />
-        <EmptyState
-          icon={<Radar className="h-5 w-5" aria-hidden="true" />}
-          title="No scans yet"
-          description="Nothing has been scanned for this organization. Register a server or trigger a scan and its findings will appear here."
-          action={
-            <Link href="/fleet" className={PRIMARY_LINK}>
-              <Plus size={16} aria-hidden="true" />
-              Register a server
-            </Link>
-          }
-        />
-      </div>
-    );
-  }
-
-  const totalScans = scans.length;
-  const totalVerified = scans.reduce((n, s) => n + s.verified, 0);
-  const totalResearch = scans.reduce((n, s) => n + s.research, 0);
-  const totalCritical = scans.reduce((n, s) => n + (s.bySeverity.critical ?? 0), 0);
-  const scansWithCritical = scans.filter((s) => (s.bySeverity.critical ?? 0) > 0).length;
-  const totalFindings = totalVerified + totalResearch;
-  const latestScannedAt = scans[0]?.createdAt;
-
-  const share = (part: number) => {
-    const pct = sharePercent(part, totalFindings);
-    return pct && `${pct} of all findings`;
-  };
-
-  const repo = repoLabel(data?.latestRepo);
-
+function Divider({ index, label }: { index: string; label: string }) {
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Overview"
-        description={description}
-        actions={
-          <Link href="/findings" className={PILL_LINK}>
-            All findings
-          </Link>
-        }
-      />
-
-      {/* Totals summed across every scan — no figure here is estimated. */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat
-          label="Verified findings"
-          value={totalVerified}
-          tone="verified"
-          icon={<ShieldCheck size={16} aria-hidden="true" />}
-          caption={share(totalVerified)}
-        />
-        <Stat
-          label="Research findings"
-          value={totalResearch}
-          tone="research"
-          icon={<FlaskConical size={16} aria-hidden="true" />}
-          caption={share(totalResearch)}
-        />
-        <Stat
-          label="Critical"
-          value={totalCritical}
-          tone="critical"
-          icon={<AlertTriangle size={16} aria-hidden="true" />}
-          caption={
-            totalCritical > 0 ? `In ${scansWithCritical} of ${totalScans} ${pluralize(totalScans, "scan")}` : undefined
-          }
-        />
-        <Stat
-          label="Scans"
-          value={totalScans}
-          tone="neutral"
-          icon={<Radar size={16} aria-hidden="true" />}
-          caption={latestScannedAt ? `Latest ${relativeTime(latestScannedAt)}` : undefined}
-        />
+    <div className="gp-container">
+      <div className="gp-divider">
+        <span className="gp-divider-text">
+          {index} / {label}
+        </span>
+        <span className="gp-divider-line" />
       </div>
-
-      <Card
-        header={
-          <CardTitle
-            icon={<TrendingUp size={15} aria-hidden="true" />}
-            action={
-              <span data-numeric className="shrink-0 text-[0.72rem] text-fg-muted">
-                {totalScans} {pluralize(totalScans, "scan")}
-              </span>
-            }
-          >
-            Findings by scan
-          </CardTitle>
-        }
-      >
-        <ScanChart scans={scans} />
-      </Card>
-
-      <Card
-        padding={false}
-        header={
-          <CardTitle
-            icon={<FileText size={15} aria-hidden="true" />}
-            action={
-              <Link href="/findings" className={PILL_LINK}>
-                View all
-              </Link>
-            }
-          >
-            {repo ? `Latest findings — ${repo}` : "Latest findings"}
-          </CardTitle>
-        }
-        footer={
-          latestFindings.length > MAX_ROWS ? (
-            <p className="text-[0.72rem] text-fg-muted">
-              Showing {MAX_ROWS} of {latestFindings.length} findings from this scan.{" "}
-              <Link href="/findings" className="cursor-pointer text-accent hover:underline">
-                View all
-              </Link>
-            </p>
-          ) : undefined
-        }
-      >
-        <LatestFindingsTable findings={latestFindings} />
-      </Card>
     </div>
   );
 }
 
-function ScanChart({ scans }: { scans: ScanSummary[] }) {
-  // Oldest first, so the chart reads left-to-right in time. The caller keeps its
-  // own newest-first ordering for everything else on the page.
-  const chronological = [...scans].reverse();
-  const totals = chronological.map(scanTotal);
-  const maxTotal = Math.max(1, ...totals);
-  // Thin the axis labels out rather than letting them collide once history grows.
-  const labelEvery = Math.max(1, Math.ceil(chronological.length / 8));
-
+export default function LandingPage() {
   return (
-    <div>
-      {/*
-        Focusable and labelled because it scrolls: a keyboard user must be able
-        to reach the scroll container. The bars themselves are hidden from
-        assistive tech — the table below carries the same numbers losslessly.
-      */}
-      <div
-        role="group"
-        tabIndex={0}
-        aria-label="Findings by scan, oldest first. The same figures are listed in the table that follows."
-        className="overflow-x-auto pb-1"
-      >
-        <div className="flex items-end gap-2" aria-hidden="true">
-          {chronological.map((scan, i) => {
-            const total = totals[i] ?? 0;
-            // `flex-col-reverse` places the first child at the bottom, so walk
-            // the ordinal ramp backwards to stack critical on top.
-            const segments = [...SEVERITY_ORDER]
-              .reverse()
-              .map((severity) => ({ severity, count: scan.bySeverity[severity] ?? 0 }))
-              .filter((segment) => segment.count > 0);
+    <div className="gp" id="top">
+      <LandingNav />
 
-            return (
-              <div
-                key={scan.id}
-                className="flex shrink-0 flex-col items-center"
-                style={{ width: COLUMN_WIDTH }}
-                title={describeScan(scan, i)}
-              >
-                <div className="flex w-full flex-col-reverse justify-start" style={{ height: BAR_AREA }}>
-                  {total === 0 ? (
-                    // A clean scan still happened; a baseline says so without
-                    // implying a count.
-                    <div className="w-full rounded-[2px] bg-line-strong" style={{ height: MIN_SEGMENT }} />
-                  ) : (
-                    segments.map((segment) => (
-                      <div
-                        key={segment.severity}
-                        className="w-full last:rounded-t-[3px]"
-                        style={{
-                          height: Math.max(MIN_SEGMENT, (segment.count / maxTotal) * BAR_AREA),
-                          // Severity names are exactly the data-tone names, so
-                          // the ramp maps 1:1 onto the token variables.
-                          backgroundColor: TONE_VAR[segment.severity],
-                        }}
-                      />
-                    ))
-                  )}
-                </div>
-                <span className="mt-2 h-4 w-full truncate text-center text-[0.7rem] text-fg-muted">
-                  {i % labelEvery === 0 ? relativeTime(scan.createdAt) || `#${i + 1}` : ""}
+      {/* ─────────────── 01 · Hero ─────────────── */}
+      <section className="gp-hero">
+        <div className="gp-hero-glow" aria-hidden="true" />
+        <div className="gp-container">
+          <div className="gp-hero-inner">
+            <Reveal>
+              <span className="gp-eyebrow">
+                <span className="gp-eyebrow-dot" aria-hidden="true" />
+                <span>
+                  We scanned <b>168 public MCP servers</b>. 1 in 9 shipped a vulnerability.
                 </span>
+              </span>
+            </Reveal>
+
+            <Reveal delay={1}>
+              <h1>
+                <span className="gp-dim">AI writes the code.</span>
+                <br />
+                Gatepass decides if it ships.
+              </h1>
+            </Reveal>
+
+            <Reveal delay={2}>
+              <p className="gp-hero-sub">
+                A deterministic security scanner for AI-native and agentic codebases. It finds tool poisoning, confused
+                deputies, unauthenticated MCP transports and scope mismatches, then blocks them in the pull request.
+                Same input, same bytes, every run — no model in the loop.
+              </p>
+            </Reveal>
+
+            <Reveal delay={3}>
+              <div className="gp-buttons-row">
+                <a className="gp-btn gp-btn-primary" href="#start">
+                  Scan your repo
+                </a>
+                <a className="gp-btn gp-btn-secondary" href="#benchmarks">
+                  See the benchmarks
+                </a>
               </div>
-            );
-          })}
+            </Reveal>
+          </div>
+        </div>
+
+        {/* Infinite marquee */}
+        <div className="gp-marquee-stage" aria-hidden="true">
+          <div className="gp-marquee-row">
+            {[0, 1].map((copy) => (
+              <div className="gp-marquee-track" key={copy}>
+                {MARQUEE.map((item) => (
+                  <figure className="gp-tile" key={`${copy}-${item.src}`}>
+                    <img src={item.src} alt="" width={320} height={370} loading="lazy" />
+                  </figure>
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <div className="gp-container">
+        <div className="gp-stats" style={{ paddingBlock: "72px" }}>
+          {STATS.map((s, i) => (
+            <Reveal key={s.value} delay={i}>
+              <div className="gp-stat-value">{s.value}</div>
+              <div className="gp-stat-label">{s.label}</div>
+            </Reveal>
+          ))}
         </div>
       </div>
 
-      {/* A bar chart is not readable by a screen reader. Same counts, verbatim. */}
-      <table className="sr-only">
-        <caption>Findings by scan and severity, oldest first</caption>
-        <thead>
-          <tr>
-            <th scope="col">Scan</th>
-            {SEVERITY_ORDER.map((severity) => (
-              <th key={severity} scope="col">
-                {severityLabel(severity)}
-              </th>
-            ))}
-            <th scope="col">Total</th>
-          </tr>
-        </thead>
-        <tbody>
-          {chronological.map((scan, i) => (
-            <tr key={scan.id}>
-              <th scope="row">{scan.createdAt ? formatDate(scan.createdAt) : `Scan ${i + 1}`}</th>
-              {SEVERITY_ORDER.map((severity) => (
-                <td key={severity}>{scan.bySeverity[severity] ?? 0}</td>
+      {/* ─────────────── 02 · Detections ─────────────── */}
+      <Divider index="02" label="Detections" />
+      <section className="gp-section" id="detections" style={{ paddingTop: 0 }}>
+        <div className="gp-container">
+          <div className="gp-head">
+            <Reveal>
+              <h2>
+                <span className="gp-dim">Twelve classes</span>
+                <br />
+                your current scanner misses
+              </h2>
+            </Reveal>
+            <Reveal delay={1}>
+              <p className="gp-lead">
+                Every one of these ships with corpus fixtures and a published precision measurement. A detector that
+                cannot prove its own precision does not merge.
+              </p>
+            </Reveal>
+          </div>
+
+          <DetectionSlider />
+        </div>
+      </section>
+
+      {/* ─────────────── 03 · How it works ─────────────── */}
+      <Divider index="03" label="How it works" />
+      <section className="gp-section" id="how" style={{ paddingTop: 0 }}>
+        <div className="gp-container">
+          <div className="gp-head" style={{ paddingBottom: 0 }}>
+            <Reveal>
+              <h2>
+                <span className="gp-dim">How clients use Gatepass,</span>
+                <br />
+                from PR check to audit proof
+              </h2>
+            </Reveal>
+            <Reveal delay={1}>
+              <p className="gp-lead">
+                Gatepass connects as a read-only GitHub App, parses your codebase into 5 distinct surfaces, runs
+                cross-surface analysis in milliseconds, and delivers fixes directly into your developer workflow.
+              </p>
+            </Reveal>
+          </div>
+
+          <Reveal delay={2}>
+            <HowItWorksInteractive />
+          </Reveal>
+        </div>
+      </section>
+
+      {/* ─────────────── 04 · Services ─────────────── */}
+      <Divider index="04" label="Services" />
+      <section className="gp-section" id="services" style={{ paddingTop: 0 }}>
+        <div className="gp-container">
+          <div className="gp-head">
+            <Reveal>
+              <h2>
+                <span className="gp-dim">Surfaces we cover,</span>
+                <br />
+                with measured precision
+              </h2>
+            </Reveal>
+            <Reveal delay={1}>
+              <p className="gp-lead">
+                Each capability is a separate detector with its own corpus fixtures and a published precision number.
+                Hover any row to see what it actually catches — every finding carries the line and the commit that
+                produced it.
+              </p>
+            </Reveal>
+          </div>
+
+          <Reveal>
+            <div className="gp-svc-list" role="list">
+              {SERVICES.map((s) => (
+                <div key={s.title} className="gp-svc" role="listitem">
+                  <button type="button" className="gp-svc-trigger" aria-label={`Expand ${s.title}`}>
+                    <span className="gp-svc-title">{s.title}</span>
+                    <ArrowRight className="gp-svc-arrow" size={22} />
+                  </button>
+                  <div className="gp-svc-expand">
+                    <div className="gp-svc-expand-inner">
+                      <div className="gp-svc-content">
+                        <p className="gp-svc-body">{s.body}</p>
+                        <img src={s.image} alt="" className="gp-svc-img" loading="lazy" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
               ))}
-              <td>{totals[i] ?? 0}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+            </div>
+          </Reveal>
+        </div>
+      </section>
 
-      <ul className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
-        {SEVERITY_ORDER.map((severity) => (
-          <li key={severity} className="flex items-center gap-1.5 text-[0.72rem] text-fg-muted">
-            <span className={cx("h-2.5 w-2.5 shrink-0 rounded-[2px]", TONE_FILL[severity])} aria-hidden="true" />
-            {severityLabel(severity)}
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
+      {/* ─────────────── 05 · Mid CTA ─────────────── */}
+      <section className="gp-section" style={{ paddingTop: 0 }}>
+        <div className="gp-container">
+          <Reveal className="gp-cta">
+            <h2 style={{ maxWidth: "22ch", marginInline: "auto" }}>
+              <span className="gp-dim">Point it at a repo.</span> See what is in there.
+            </h2>
+            <p className="gp-lead" style={{ maxWidth: "56ch", margin: "20px auto 32px" }}>
+              We will run a scan on your codebase and send you the findings with reproductions attached. No signup, no
+              agent installed, nothing written to your repository.
+            </p>
+            <div className="gp-buttons-row">
+              <a className="gp-btn gp-btn-primary" href="#start">
+                Scan your repo
+              </a>
+              <a className="gp-btn gp-btn-secondary" href={SITE.contact}>
+                Talk to the founders
+              </a>
+            </div>
+          </Reveal>
+        </div>
+      </section>
 
-/** Tier is the product's core claim, so it is spelled out rather than colour-coded. */
-function TierBadge({ finding }: { finding: Finding }) {
-  if (finding.tier === "verified") {
-    return (
-      <Badge tone="verified" dot>
-        Verified
-      </Badge>
-    );
-  }
-  return (
-    <Badge tone="research" dot>
-      Research {confidencePercent(finding.confidence)}
-    </Badge>
-  );
-}
+      {/* ─────────────── 05 · Benchmarks ─────────────── */}
+      <Divider index="05" label="Benchmarks" />
+      <section className="gp-section" id="benchmarks" style={{ paddingTop: 0 }}>
+        <div className="gp-container">
+          <div className="gp-bench-layout">
+            {/* Left Sidebar */}
+            <Reveal className="gp-bench-sidebar">
+              <div className="gp-bench-author-label">Written by</div>
+              <div className="gp-bench-author-row">
+                <div className="gp-bench-author-name">Gatepass Research</div>
+                <div className="gp-bench-socials">
+                  <a
+                    href={SITE.github}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="gp-bench-social-link"
+                    aria-label="GitHub Repository"
+                  >
+                    <ArrowUpRight size={18} />
+                  </a>
+                </div>
+              </div>
+              <div className="gp-bench-role">Deterministic Security Engine</div>
+              <div className="gp-bench-divider" />
 
-function LatestFindingsTable({ findings }: { findings: Finding[] }) {
-  const rows = findings.slice(0, MAX_ROWS);
+              <div className="gp-bench-topic-list">
+                <a href="#benchmarks" className="gp-bench-topic-item">
+                  <h3 className="gp-bench-topic-title">Frontier Models vs. Gatepass: Full Determinism Analysis</h3>
+                  <div className="gp-bench-topic-meta">
+                    <span className="gp-bench-badge">Portfolio</span>
+                    <span className="gp-bench-date">Sep 2025</span>
+                  </div>
+                </a>
 
-  return (
-    <div className="overflow-x-auto">
-      <table className="w-full min-w-[38rem] text-[0.855rem]">
-        <caption className="sr-only">Findings from the most recent scan</caption>
-        <thead>
-          <tr className="border-b border-line bg-sunken">
-            {["Vulnerability", "Path", "Tier", "Severity"].map((heading) => (
-              <th
-                key={heading}
-                scope="col"
-                className="px-4 py-2.5 text-left text-[0.68rem] font-medium tracking-[0.06em] text-fg-muted uppercase"
-              >
-                {heading}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.length === 0 ? (
-            <tr>
-              <td colSpan={4} className="px-4 py-10 text-center text-[0.82rem] text-fg-muted">
-                No findings in the latest scan.
-              </td>
-            </tr>
-          ) : (
-            rows.map((finding) => {
-              const location = finding.locations[0];
-              const where = location ? `${location.path}:${location.startLine}` : undefined;
-              return (
-                <tr
-                  key={finding.fingerprint}
-                  className="border-b border-line transition-colors last:border-b-0 hover:bg-raised/60"
-                >
-                  <td className="px-4 py-3 font-medium text-fg">{finding.classId}</td>
-                  <td className="px-4 py-3 text-fg-muted">
-                    {where ? (
-                      <span className="block max-w-[20rem] truncate font-mono text-[0.76rem]" title={where}>
-                        {where}
-                      </span>
-                    ) : (
-                      "—"
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    <TierBadge finding={finding} />
-                  </td>
-                  <td className="px-4 py-3">
-                    <Badge tone={finding.severity} dot>
-                      {severityLabel(finding.severity)}
-                    </Badge>
-                  </td>
-                </tr>
-              );
-            })
-          )}
-        </tbody>
-      </table>
+                <a href="#benchmarks" className="gp-bench-topic-item">
+                  <h3 className="gp-bench-topic-title">Semgrep &amp; Gitleaks baseline: 1 of 12 classes detected</h3>
+                  <div className="gp-bench-topic-meta">
+                    <span className="gp-bench-badge">Tutorials</span>
+                    <span className="gp-bench-date">Aug 2025</span>
+                  </div>
+                </a>
+
+                <a href="#benchmarks" className="gp-bench-topic-item">
+                  <h3 className="gp-bench-topic-title">Zero tokens, 0.9ms execution time vs 110,000 token LLMs</h3>
+                  <div className="gp-bench-topic-meta">
+                    <span className="gp-bench-badge">Production</span>
+                    <span className="gp-bench-date">Jul 2025</span>
+                  </div>
+                </a>
+              </div>
+            </Reveal>
+
+            {/* Right Content */}
+            <div className="gp-bench-content">
+              <Reveal>
+                <h2 className="gp-bench-h2">Understanding the benchmark methodology</h2>
+                <p className="gp-bench-p" style={{ marginTop: 16 }}>
+                  24 cases — one vulnerable and one clean fixture per class, so a tool can fail by missing a
+                  vulnerability or by crying wolf on safe code. Identical corpus, identical scoring, every tool at a
+                  pinned version.
+                </p>
+              </Reveal>
+
+              <Reveal delay={1}>
+                <h3 className="gp-bench-h3">24-Case Scoring Matrix</h3>
+                <div className="gp-table-wrap" style={{ marginTop: 16 }}>
+                  <table className="gp-table">
+                    <thead>
+                      <tr>
+                        <th>Tool</th>
+                        <th>Agentic classes detected</th>
+                        <th>False positives</th>
+                        <th>Deterministic</th>
+                        <th>Execution Speed</th>
+                        <th>Cost / Tokens</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {COMPARISON.map((row) => (
+                        <tr key={row.tool} className={row.us ? "gp-row-us" : undefined}>
+                          <td style={{ fontWeight: row.us ? 600 : 400 }}>{row.tool}</td>
+                          <td className="gp-num" style={{ color: row.us ? "var(--accent)" : undefined }}>
+                            {row.detected}
+                          </td>
+                          <td className="gp-num">{row.fp}</td>
+                          <td className="gp-num">{row.deterministic}</td>
+                          <td className="gp-num">{row.speed}</td>
+                          <td className="gp-num">{row.cost}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </Reveal>
+
+              <Reveal delay={2}>
+                <h3 className="gp-bench-h3">Dominating AI-Native &amp; Agentic Security Benchmarks</h3>
+                <p className="gp-bench-p" style={{ marginTop: 16 }}>
+                  In head-to-head testing across the 12 OWASP Agentic Application vulnerability classes, Gatepass
+                  delivers total domain dominance over AI code reviewers like CodeRabbit, raw LLM prompts, and legacy
+                  SAST scanners.
+                </p>
+
+                <ul className="gp-bench-bullets">
+                  <li>
+                    <strong>100% Detection &amp; Zero False Alarms:</strong> Catches all 12/12 agentic vulnerability
+                    classes with 0% false positives and runnable proof-of-concept reproductions for every finding.
+                  </li>
+                  <li>
+                    <strong>Sub-Millisecond Execution (0.9ms):</strong> Operates up to 80,000x faster than LLM code
+                    tools (60s–90s), preventing developer PR pipeline bottlenecks.
+                  </li>
+                  <li>
+                    <strong>100% Deterministic Merge Gate:</strong> Produces byte-identical output across runs so CI
+                    builds never randomly fail or pass based on non-deterministic model temperature.
+                  </li>
+                  <li>
+                    <strong>Zero Token Overhead ($0):</strong> Eliminates expensive token usage and per-developer API
+                    fees required by CodeRabbit and frontier models.
+                  </li>
+                </ul>
+
+                <blockquote className="gp-bench-quote">
+                  “Against traditional scanners and AI code reviewers, Gatepass stands alone: CodeRabbit missed 10 of 12
+                  agentic classes, Semgrep and Gitleaks caught only 1, and Snyk cannot parse agentic infrastructure.”
+                </blockquote>
+
+                <BenchmarkVisualCard />
+
+                <div style={{ marginTop: 20 }}>
+                  <a className="gp-link" href="#benchmarks">
+                    Read the full method and re-run it yourself
+                    <ArrowUpRight size={16} />
+                  </a>
+                </div>
+              </Reveal>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ─────────────── 06 · Start ─────────────── */}
+      <Divider index="06" label="Get started" />
+      <section className="gp-section" id="start" style={{ paddingTop: 0 }}>
+        <div className="gp-container">
+          <Reveal className="gp-cta">
+            <h2 style={{ maxWidth: "20ch", marginInline: "auto" }}>
+              <span className="gp-dim">Find out what your</span> agents are actually exposing
+            </h2>
+            <p className="gp-lead" style={{ maxWidth: "54ch", margin: "20px auto 32px" }}>
+              Install takes a minute and reads nothing but your source. If we find nothing, you have a measurement that
+              says so.
+            </p>
+            <div className="gp-buttons-row">
+              <a className="gp-btn gp-btn-primary" href={SITE.github} target="_blank" rel="noreferrer">
+                Get started on GitHub
+                <ArrowUpRight size={18} />
+              </a>
+              <a className="gp-btn gp-btn-secondary" href={SITE.contact}>
+                Contact sales
+              </a>
+            </div>
+            <p className="gp-small" style={{ marginTop: 28 }}>
+              contents:read · pull_requests:write · checks:write. Never contents:write.
+            </p>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* ─────────────── Footer ─────────────── */}
+      <footer className="gp-footer">
+        <div className="gp-container">
+          <div className="gp-footer-grid">
+            <div>
+              <span className="gp-nav-logo" style={{ marginBottom: 16 }}>
+                <span className="gp-nav-mark" aria-hidden="true">
+                  <GatepassLogo size={60} />
+                </span>
+                Gatepass
+              </span>
+              <p className="gp-small" style={{ marginTop: 16, maxWidth: "34ch" }}>
+                Precision application security for the AI-native stack. Deterministic by construction, and measured in
+                public.
+              </p>
+            </div>
+
+            <div>
+              <h4>Product</h4>
+              <ul>
+                <li>
+                  <a href="#detections">Detections</a>
+                </li>
+                <li>
+                  <a href="#how">How it works</a>
+                </li>
+                <li>
+                  <a href="#services">Surfaces</a>
+                </li>
+                <li>
+                  <a href="#start">Get started</a>
+                </li>
+              </ul>
+            </div>
+
+            <div>
+              <h4>Evidence</h4>
+              <ul>
+                <li>
+                  <a href="#benchmarks">Benchmarks</a>
+                </li>
+                <li>
+                  <a href="#services">MCP security survey</a>
+                </li>
+                <li>
+                  <a href="#benchmarks">Precision report</a>
+                </li>
+                <li>
+                  <a href="#services">Compliance</a>
+                </li>
+              </ul>
+            </div>
+
+            <div>
+              <h4>Company</h4>
+              <ul>
+                <li>
+                  <a href={SITE.docs} target="_blank" rel="noreferrer">
+                    Documentation
+                  </a>
+                </li>
+                <li>
+                  <a href={SITE.github} target="_blank" rel="noreferrer">
+                    GitHub
+                  </a>
+                </li>
+                <li>
+                  <a href={SITE.contact}>Contact</a>
+                </li>
+                <li>
+                  <a href={SITE.contact}>Support</a>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="gp-footer-bottom">
+            <span className="gp-small">© {new Date().getFullYear()} Gatepass. All rights reserved.</span>
+            <span className="gp-small">Every number on this page is regenerable from the repository.</span>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

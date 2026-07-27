@@ -119,10 +119,20 @@ export async function createServer(opts: ServerOptions = {}): Promise<{ server: 
     const p = url.pathname.split("/").filter(Boolean);
     const q = url.searchParams;
 
-    // Liveness probe for PaaS health checks — before rate limiting and body parsing.
-    if (url.pathname === "/healthz") {
+    // Liveness probe & root status response.
+    // `webAppUrl` comes from GATEPASS_WEB_URL; it was a hardcoded localhost, which a deployed
+    // API would have handed to every caller as the address of the dashboard.
+    if (url.pathname === "/" || url.pathname === "/healthz") {
+      const webUrl = process.env.GATEPASS_WEB_URL?.replace(/\/+$/, "");
       res.writeHead(200, { "content-type": "application/json" });
-      res.end(JSON.stringify({ ok: true }));
+      res.end(
+        JSON.stringify({
+          status: "ok",
+          service: "Gatepass Security API Engine",
+          ...(webUrl ? { webAppUrl: `${webUrl}/dashboard` } : {}),
+          version: "1.0.0",
+        }),
+      );
       return;
     }
 

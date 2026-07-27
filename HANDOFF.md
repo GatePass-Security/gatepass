@@ -82,7 +82,10 @@ packages/
 └── shared/         plan-tier gating, audited writer, config, disclosure FSM, crypto, telemetry, retention
 apps/
 ├── api/            Runnable HTTP API wiring everything (in-memory store; swap for Postgres)
-├── web/            Next.js 15 App Router dashboard — 8 pages (findings, fleet, benchmark, compliance, settings, agent-guidance, onboarding, root) consuming the API; Tailwind v4, 9 UI primitives, typed API client
+├── web/            Next.js 15 App Router — marketing landing at `/` (src/styles/landing.css, components/landing/)
+│                   plus the product under the `(app)/` route group: dashboard, findings, fleet, benchmark,
+│                   compliance, settings, agent-guidance, docs, support. Tailwind v4 semantic tokens
+│                   (see apps/web/DESIGN.md), 14 UI primitives, typed API client
 └── workers/        In-process scan orchestrator (queue/concurrency/retries/timeouts/timings)
 cli/                `gatepass scan <path>` — the OSS scanner (free tier)
 runner/             Self-hosted runner protocol (findings-only uploads, version-floor handshake, parity)
@@ -138,23 +141,22 @@ would violate honesty and the Constitution's "measured" ethos). Precise blockers
 | A **cloud deploy target** (ECS/RDS/S3/Redis) | T015/T015a/T086 (isolation/encryption IaC), T063/T092 (SLO/status), T091 (load) | Write IaC (Terraform); wire OTel exporter into the `telemetry.ts` `setTracer()` seam |
 | (optional) build tooling | T098 (tree-sitter AST) | Precision refinement of already-passing detectors — low priority |
 
-### Unbacked product claims in the dashboard copy — DECIDE BEFORE LAUNCH
+### Unbacked product claims in the dashboard copy — RESOLVED (cut)
 
-The dashboard ships marketing copy that asserts service levels nothing in this repo delivers.
-This is flagged rather than silently rewritten because they are **product commitments, not
-code**: only the founder can decide whether to honour them or cut them. Left as-is, they are
-the same category of defect the Constitution's "measured precision" principle exists to
-prevent — a claim a reader can check and find hollow.
+The dashboard shipped three sentences asserting service levels nothing in this repo delivers.
+All three were **cut** (not softened), in `apps/web/src/app/(app)/support/page.tsx`:
 
-| Where | Claim | Status |
-|---|---|---|
-| `apps/web/src/app/support/page.tsx` | "Enterprise tier customers get priority support with a dedicated engineer and **guaranteed 4-hour response time**" | Nothing backs it. Renders identically for a `free`-tier org — `OrgRecord.planTier` is available but never consulted. |
-| `apps/web/src/app/support/page.tsx` | "Send a detailed ticket and we'll **respond within 24 hours**" | No ticketing system or SLA exists. |
-| `apps/web/src/app/support/page.tsx` | "Chat with our support team in **real-time during business hours**" | No chat integration exists. The button is disabled and labelled "Not connected yet", but the sentence still promises the channel. |
+| Claim | Resolution |
+|---|---|
+| "Enterprise tier customers get priority support with a dedicated engineer and **guaranteed 4-hour response time**" | Replaced with what the Enterprise plan actually contains (self-hosted runner, in-VPC semantic layer, SSO, custom detectors) and an explicit statement that support terms are contractual, not published. |
+| "Send a detailed ticket and we'll **respond within 24 hours**" | Replaced with "a person reads every message" — true, and promises nothing about latency. |
+| "Chat with our support team in **real-time during business hours**" | Card removed entirely; the grid is now two real channels. |
 
-Each option is fine; pick one per row: **honour it** (staff it, and gate the enterprise row on
-`planTier`), **soften it** (drop "guaranteed", give a range instead of an SLA), or **cut it**
-(remove the card until the channel exists).
+**The standing rule:** Constitution principle 1 ("no unmeasured claims") governs marketing copy
+as much as finding precision. A reader who checks a promise on our own dashboard and finds it
+hollow has learned something true about how much to trust the benchmark. Do not reintroduce an
+SLA anywhere in the product without a system behind it; when support tiers become real, gate
+them on `planTier` (the support page is a Server Component, so that means a client child).
 
 ## 6. Recurring gotchas (learn from the bugs already fixed)
 
