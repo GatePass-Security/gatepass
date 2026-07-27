@@ -51,3 +51,39 @@ admin=settings+tokens+exports.
 
 **Availability**: 99.9% SLO on scan-critical paths (SC-011). Rate limits per org token;
 429 with Retry-After.
+
+## Implementation status
+
+The tables above are the target contract. `apps/api/src/server.ts` is a hand-rolled
+`node:http` router standing in for the production app, and it does not yet cover all of it.
+Audited against the router on 2026-07-27:
+
+**Diverges from the contract as written**
+
+| Contract | Implemented as | Note |
+|---|---|---|
+| POST /orgs/:org/repos/:repo/scans | POST /orgs/:org/scans `{path}` | plus POST /orgs/:org/scan-remote `{repo, ref}` for clone-and-scan |
+| POST /findings/:id/agent-guidance | GET /orgs/:org/scans/:id/agent-guidance?fingerprint= | |
+| POST /orgs/:org/fleet/servers/:id/rescan | POST /fleet/servers/:id/rescan | no org segment, and no org check |
+| POST /orgs/:org/integrations/vanta\|drata | POST /orgs/:org/evidence/export `{scanId, platform}` | |
+| GET /orgs/:org/evidence-exports | GET /orgs/:org/evidence?scanId= | returns control coverage (`EvidenceItem[]`), not export history |
+
+**Not implemented**
+
+`PATCH /orgs/:org/repos/:repo` (no per-repo settings storage — `listRepos` returns
+`gate_mode: "off"` / `gate_failure_mode: "fail_open"` for every repo), `GET /scans/:id`,
+`GET /orgs/:org/questionnaires/:id`, `GET /public/reports/:slug`.
+
+**Implemented beyond the tables**
+
+`GET /healthz`, `GET|POST /v1/auth/github/*`, `GET /v1/auth/me`, `POST /v1/webhooks/github`,
+`POST /scans/:id/gate`, `POST /v1/runner/results`, `POST /v1/benchmark/publish`,
+`POST /orgs/:org/compliance/scan`, `GET /orgs/:org/compliance/results/:scanId`.
+
+`PATCH /orgs/:org/settings` was contract-only until 2026-07-27 and is now implemented for
+`llm_analysis_enabled` and `agent_loop_enabled` (org scope; unknown keys ignored, so plan
+tier and org id are not writable). Covered by `apps/api/test/org-settings.test.ts`.
+
+**RBAC is not enforced.** The `admin`/`member`/`viewer` roles above are unimplemented; the
+router applies no per-role authorization, and `POST /v1/runner/results` and
+`POST /v1/benchmark/publish` are unauthenticated. Resolve before multi-tenant traffic.

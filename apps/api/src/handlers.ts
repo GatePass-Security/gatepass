@@ -415,7 +415,8 @@ export function makeHandlers(store: Store, options: HandlerOptions = {}) {
 
     // POST /v1/orgs/:org/compliance/scan { repoPath }
     async complianceScan(orgId: string, repoPath: string) {
-      const org = await requireOrg(orgId);
+      // Called for the 404-on-unknown-org side effect; the record itself is unused here.
+      await requireOrg(orgId);
       const ctx = await buildScanContext(repoPath);
       const scanId = `cmp-${randomUUID()}`;
       const result = runComplianceScan(ctx, scanId);
@@ -438,6 +439,26 @@ export function makeHandlers(store: Store, options: HandlerOptions = {}) {
     async getOrg(orgId: string) {
       const org = await requireOrg(orgId);
       return org;
+    },
+
+    /**
+     * PATCH /v1/orgs/:org/settings { llm_analysis_enabled?, agent_loop_enabled? }
+     *
+     * Org-scoped analysis toggles. Only these two fields are writable: plan tier
+     * is set by billing, and the org id is its identity. Unknown keys are ignored
+     * rather than merged, so a malformed body can never widen what is persisted.
+     * Returns the full updated record so the caller reconciles against the
+     * server's state instead of trusting its own optimistic copy.
+     */
+    async updateOrgSettings(orgId: string, patch: Record<string, unknown>) {
+      const org = await requireOrg(orgId);
+      const next: OrgRecord = {
+        ...org,
+        llmEnabled: typeof patch.llm_analysis_enabled === "boolean" ? patch.llm_analysis_enabled : org.llmEnabled,
+        agentLoopEnabled:
+          typeof patch.agent_loop_enabled === "boolean" ? patch.agent_loop_enabled : org.agentLoopEnabled,
+      };
+      return store.upsertOrg(next);
     },
 
     // GET /v1/orgs/:org/repos

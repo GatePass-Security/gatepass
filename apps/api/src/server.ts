@@ -271,6 +271,12 @@ export async function createServer(opts: ServerOptions = {}): Promise<{ server: 
     if (M === "GET" && p[1] === "orgs" && p.length === 4 && p[3] === "repos") {
       return sendJson(res, 200, await h.listRepos(p[2]!));
     }
+    // PATCH /v1/orgs/:org/settings { llm_analysis_enabled?, agent_loop_enabled? }
+    // The OPTIONS preflight above has always advertised PATCH; this is the route
+    // that makes it true. Returns the updated org record.
+    if (M === "PATCH" && p[1] === "orgs" && p.length === 4 && p[3] === "settings") {
+      return sendJson(res, 200, await h.updateOrgSettings(p[2]!, body as Record<string, unknown>));
+    }
     // POST /v1/orgs/:org/compliance/scan { repoPath } — run compliance scan
     if (M === "POST" && p[1] === "orgs" && p[3] === "compliance" && p[4] === "scan") {
       return sendJson(res, 201, await h.complianceScan(p[2]!, String(body.repoPath)));
@@ -329,8 +335,13 @@ function sendError(res: http.ServerResponse, err: unknown): void {
   sendJson(res, 500, { error: (err as Error).message });
 }
 
+/** Methods that carry a request body. PATCH is included because the org-settings
+ *  route needs one — while this only read POST, PATCH handlers silently received
+ *  `{}` and every partial update was a no-op that still answered 200. */
+const BODY_METHODS = new Set(["POST", "PATCH"]);
+
 async function readBody(req: http.IncomingMessage): Promise<{ raw: string; json: Record<string, unknown> }> {
-  if (req.method !== "POST") return { raw: "", json: {} };
+  if (!BODY_METHODS.has(req.method ?? "")) return { raw: "", json: {} };
   const chunks: Buffer[] = [];
   for await (const c of req) chunks.push(c as Buffer);
   const raw = Buffer.concat(chunks).toString("utf8");
