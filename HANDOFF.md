@@ -138,6 +138,24 @@ would violate honesty and the Constitution's "measured" ethos). Precise blockers
 | A **cloud deploy target** (ECS/RDS/S3/Redis) | T015/T015a/T086 (isolation/encryption IaC), T063/T092 (SLO/status), T091 (load) | Write IaC (Terraform); wire OTel exporter into the `telemetry.ts` `setTracer()` seam |
 | (optional) build tooling | T098 (tree-sitter AST) | Precision refinement of already-passing detectors — low priority |
 
+### Unbacked product claims in the dashboard copy — DECIDE BEFORE LAUNCH
+
+The dashboard ships marketing copy that asserts service levels nothing in this repo delivers.
+This is flagged rather than silently rewritten because they are **product commitments, not
+code**: only the founder can decide whether to honour them or cut them. Left as-is, they are
+the same category of defect the Constitution's "measured precision" principle exists to
+prevent — a claim a reader can check and find hollow.
+
+| Where | Claim | Status |
+|---|---|---|
+| `apps/web/src/app/support/page.tsx` | "Enterprise tier customers get priority support with a dedicated engineer and **guaranteed 4-hour response time**" | Nothing backs it. Renders identically for a `free`-tier org — `OrgRecord.planTier` is available but never consulted. |
+| `apps/web/src/app/support/page.tsx` | "Send a detailed ticket and we'll **respond within 24 hours**" | No ticketing system or SLA exists. |
+| `apps/web/src/app/support/page.tsx` | "Chat with our support team in **real-time during business hours**" | No chat integration exists. The button is disabled and labelled "Not connected yet", but the sentence still promises the channel. |
+
+Each option is fine; pick one per row: **honour it** (staff it, and gate the enterprise row on
+`planTier`), **soften it** (drop "guaranteed", give a range instead of an SLA), or **cut it**
+(remove the card until the channel exists).
+
 ## 6. Recurring gotchas (learn from the bugs already fixed)
 
 Three real precision bugs were found (by the corpus gate + self-scan) and fixed. They share a

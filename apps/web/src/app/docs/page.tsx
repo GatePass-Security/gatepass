@@ -1,10 +1,9 @@
 import Link from "next/link";
 import { BookOpen, Code, FileText, Search, Server, Shield } from "lucide-react";
 /*
- * Imported by module rather than through the `@/components/ui` barrel: the
- * barrel also re-exports Input/Select/Table, which call hooks without a
- * "use client" directive, so pulling it into a Server Component fails the
- * build. Same pattern layout.tsx already uses for ToastProvider.
+ * Imported by module rather than through the `@/components/ui` barrel. This is
+ * a Server Component, and the barrel pulls in every client primitive with it;
+ * naming the two modules it actually uses keeps that boundary narrow.
  */
 import { Card, CardTitle } from "@/components/ui/Card";
 import { PageHeader } from "@/components/ui/PageHeader";

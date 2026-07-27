@@ -1,10 +1,9 @@
 import Link from "next/link";
 import { BookOpen, HelpCircle, Mail, MessageSquare } from "lucide-react";
 /*
- * Imported by module rather than through the `@/components/ui` barrel: the
- * barrel also re-exports Input/Select/Table, which call hooks without a
- * "use client" directive, so pulling it into a Server Component fails the
- * build. Same pattern layout.tsx already uses for ToastProvider.
+ * Imported by module rather than through the `@/components/ui` barrel. This is
+ * a Server Component, and the barrel pulls in every client primitive with it;
+ * naming the two modules it actually uses keeps that boundary narrow.
  */
 import { Button } from "@/components/ui/Button";
 import { Card, CardTitle } from "@/components/ui/Card";
@@ -21,6 +20,20 @@ const PILL_SECONDARY =
   "inline-flex h-9 cursor-pointer items-center justify-center gap-1.5 rounded-full border border-line-strong " +
   "bg-surface px-3.5 text-[0.8rem] font-medium whitespace-nowrap text-fg transition-colors duration-150 hover:bg-raised";
 
+/*
+ * ⚠ UNBACKED CLAIMS — see HANDOFF.md §5 "Unbacked product claims in the dashboard copy".
+ *
+ * Three sentences on this page promise service levels nothing in this repo
+ * delivers: a "guaranteed 4-hour response time" for enterprise, a 24-hour email
+ * SLA, and real-time chat "during business hours". They predate the redesign and
+ * were left in place deliberately — they are product commitments, not code, so
+ * cutting them is the founder's call, not a refactor.
+ *
+ * Do not treat their presence as evidence they are true. If you are here to edit
+ * this copy, resolve them: honour, soften, or cut. The enterprise line in
+ * particular renders identically for a free-tier org — `useOrg().org.planTier`
+ * is available and is not consulted.
+ */
 export default function SupportPage() {
   return (
     <div className="space-y-6">
