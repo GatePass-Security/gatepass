@@ -35,7 +35,29 @@ queries) and tracked in `__drizzle_migrations` — re-running is a no-op.
    - `NVIDIA_API_KEY` — for research-tier LLM refinement (optional; scans degrade gracefully)
    - `GATEPASS_ALLOWED_ORIGINS` — your Vercel URL once you have it (step 3), e.g.
      `https://gatepass.vercel.app`
+   - `GATEPASS_RUNNER_TOKENS` / `GATEPASS_ADMIN_TOKEN` — optional; see below
 3. Deploy. Health check is `GET /healthz`.
+
+### Write credentials (both fail closed)
+
+Two endpoints are not reached through a browser session and therefore carry their own bearer
+token. **Leave either unset and that route rejects every request** — that is the intended
+default, so a deployment that does not use these features is not exposing them.
+
+| Env var | Enables | Format |
+|---|---|---|
+| `GATEPASS_RUNNER_TOKENS` | `POST /v1/runner/results` | `orgId:token,orgId:token` — one token per org |
+| `GATEPASS_ADMIN_TOKEN` | `POST /v1/benchmark/publish` | a single opaque token |
+
+Generate them with `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`.
+The API stores only SHA-256 hashes and compares in constant time; plaintext is never retained
+or logged. On boot the API logs whether each is enabled — an absent line means that route is
+rejecting everything.
+
+The org a runner may write to is a property of its **token**, not of the payload: a request
+whose body names a different org is rejected with 403 rather than redirected. Rotate a token by
+replacing its pair and redeploying; there is no revocation list yet (see
+`contracts/api.md` → Implementation status).
 
 **Free-tier caveat:** the service sleeps after 15 min idle; the first request after that
 takes ~40s. For demos, a free [UptimeRobot](https://uptimerobot.com) monitor pinging

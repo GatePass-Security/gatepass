@@ -31,3 +31,10 @@ services:
         sync: false
       - key: GATEPASS_ALLOWED_ORIGINS # e.g. https://gatepass.vercel.app
         sync: false
+      # Write credentials for the two non-browser endpoints. Both FAIL CLOSED:
+      # leave either unset and that route rejects every request, which is the
+      # right posture for a deployment that does not use it.
+      - key: GATEPASS_RUNNER_TOKENS # "orgId:token,orgId:token" — enables POST /v1/runner/results
+        sync: false
+      - key: GATEPASS_ADMIN_TOKEN # enables POST /v1/benchmark/publish
+        sync: false

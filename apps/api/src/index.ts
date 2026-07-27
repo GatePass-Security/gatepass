@@ -4,6 +4,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { createServer } from "./server.js";
 import { makeHandlers } from "./handlers.js";
 import { MemoryStore } from "./store.js";
+import { parseRunnerTokens } from "./tokens.js";
 import { PgStore, loadConfig, loadDotEnv } from "@gatepass/shared";
 import { getInstallationToken, RestGitHubClient, TarballRepoFetcher, githubTarballDownloader } from "@gatepass/github";
 import { createNimTransport, DEFAULT_MODEL } from "@gatepass/semantic";
@@ -44,6 +45,24 @@ if (isEntry) {
     console.log(`LLM transport ready (NVIDIA NIM, model ${DEFAULT_MODEL})`);
   }
 
+  /*
+   * Write credentials for the two non-browser endpoints. Both fail closed, so
+   * the log line below is the operator's confirmation that they are on — an
+   * absent line means those routes are rejecting everything, which is the
+   * intended posture for a deployment that does not use them.
+   */
+  const runnerTokens = parseRunnerTokens(process.env.GATEPASS_RUNNER_TOKENS);
+  console.log(
+    runnerTokens.length > 0
+      ? `Runner uploads enabled for ${runnerTokens.length} org token(s)`
+      : "Runner uploads DISABLED (set GATEPASS_RUNNER_TOKENS='org:token,…' to enable)",
+  );
+  console.log(
+    process.env.GATEPASS_ADMIN_TOKEN?.trim()
+      ? "Benchmark publishing enabled (admin token configured)"
+      : "Benchmark publishing DISABLED (set GATEPASS_ADMIN_TOKEN to enable)",
+  );
+
   const { server } = await createServer({
     store,
     githubClient,
@@ -63,6 +82,8 @@ if (isEntry) {
           }
         : undefined,
     sessionSecret: process.env.SESSION_SECRET,
+    runnerTokens,
+    adminToken: process.env.GATEPASS_ADMIN_TOKEN,
   });
   if (process.env.GITHUB_WEBHOOK_SECRET) {
     console.log("GitHub webhook receiver ready at POST /v1/webhooks/github");

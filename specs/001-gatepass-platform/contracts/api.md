@@ -84,6 +84,30 @@ Audited against the router on 2026-07-27:
 `llm_analysis_enabled` and `agent_loop_enabled` (org scope; unknown keys ignored, so plan
 tier and org id are not writable). Covered by `apps/api/test/org-settings.test.ts`.
 
-**RBAC is not enforced.** The `admin`/`member`/`viewer` roles above are unimplemented; the
-router applies no per-role authorization, and `POST /v1/runner/results` and
-`POST /v1/benchmark/publish` are unauthenticated. Resolve before multi-tenant traffic.
+**Write auth on the two non-browser endpoints** (added 2026-07-27, `apps/api/src/tokens.ts`):
+
+| Route | Credential | Env |
+|---|---|---|
+| POST /v1/runner/results | org-scoped runner token, `Authorization: Bearer` | `GATEPASS_RUNNER_TOKENS` (`orgId:token,…`) |
+| POST /v1/benchmark/publish | operator token, `Authorization: Bearer` | `GATEPASS_ADMIN_TOKEN` |
+
+Both fail closed: unset ⇒ the route rejects every request with 401. Tokens are compared as
+SHA-256 digests in constant time and are never stored or logged in plaintext. The runner's
+target org is derived from the **token**, not the payload — a body naming a different org gets
+403. Covered by `apps/api/test/write-auth.test.ts`.
+
+Still outstanding on these two:
+
+- **No revocation or rotation without redeploy.** `RunnerToken.revoked_at` and
+  `min_ruleset_version` (data-model.md:175) are not implemented; tokens live in env, not in the
+  store, so there is no per-token revoke.
+- **No AuditEvent on upload.** runner-protocol.md guarantee 3 requires one per accepted upload.
+  `AuditedWriter`'s action set is deliberately outbound-only (it is the structural proof behind
+  "zero repo mutations"), so inbound uploads need their own append-only sink rather than a new
+  action on that enum.
+
+**RBAC is still not enforced.** The `admin`/`member`/`viewer` roles above are unimplemented and
+the router applies no per-role authorization to any other route; `authCallback` hardcodes
+`role: "member"` (`apps/api/src/handlers.ts`). Rate-limit bucketing also trusts a caller-supplied
+`X-Org-Id` header, so an unauthenticated caller can mint a fresh bucket. Resolve before
+multi-tenant traffic.

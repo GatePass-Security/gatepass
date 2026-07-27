@@ -8,6 +8,14 @@ infrastructure; only this protocol's payloads do (clarification Q1, FR-006a).
 - Org-scoped runner token (`RunnerToken`), sent as `Authorization: Bearer`; revocable;
   hashed at rest.
 
+**Implemented as of 2026-07-27** for `POST /runner/results` (`apps/api/src/tokens.ts`): bearer
+token, SHA-256 hashed, constant-time compare, fails closed when unconfigured. The org is taken
+from the token — a payload naming a different org is rejected 403.
+
+Not yet implemented: revocation (`revoked_at`), the `min_ruleset_version` floor, and the
+handshake/config/heartbeat routes below. Tokens are supplied via `GATEPASS_RUNNER_TOKENS`
+rather than stored per-org, so rotation means a redeploy.
+
 ## Endpoints used by the runner (subset of `/v1`)
 
 | Method & Path | Direction | Payload |

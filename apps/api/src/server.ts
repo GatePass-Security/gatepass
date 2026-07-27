@@ -5,6 +5,7 @@ import { dirname, resolve } from "node:path";
 import { MemoryStore, type Store } from "./store.js";
 import { makeHandlers, NotFoundError, ForbiddenError } from "./handlers.js";
 import { RateLimiter, rateLimitHeaders } from "./rate-limit.js";
+import { AdminTokenGuard, RunnerTokenRegistry, bearerToken, type RunnerTokenEntry } from "./tokens.js";
 import { WebhookSignatureError, type GitHubClient } from "@gatepass/github";
 import { PlanTierError } from "@gatepass/shared";
 import { RunnerUploadError } from "@gatepass/runner";
@@ -35,11 +36,23 @@ export interface ServerOptions {
   oauthFetch?: typeof fetch;
   /** Set to false to skip seeding demo benchmark data (production PgStore). */
   seedBenchmark?: boolean;
+  /**
+   * Org-scoped self-hosted runner tokens. Absent ⇒ `POST /v1/runner/results`
+   * rejects every request (fail closed).
+   */
+  runnerTokens?: readonly RunnerTokenEntry[];
+  /**
+   * Operator credential for `POST /v1/benchmark/publish`. Absent ⇒ that route
+   * rejects every request (fail closed).
+   */
+  adminToken?: string;
 }
 
 export async function createServer(opts: ServerOptions = {}): Promise<{ server: http.Server; store: Store }> {
   const store = opts.store ?? new MemoryStore();
   const rateLimiter = new RateLimiter();
+  const runnerTokens = new RunnerTokenRegistry(opts.runnerTokens ?? []);
+  const adminGuard = new AdminTokenGuard(opts.adminToken);
   const h = makeHandlers(store, {
     githubClient: opts.githubClient,
     repoFetcher: opts.repoFetcher,
@@ -238,16 +251,43 @@ export async function createServer(opts: ServerOptions = {}): Promise<{ server: 
     if (M === "POST" && p[1] === "fleet" && p[2] === "servers" && p[4] === "rescan") {
       return sendJson(res, 200, await h.scanFleetServer(p[3]!, String(body.path)));
     }
-    // POST /v1/runner/results
+    /*
+     * POST /v1/runner/results — org-scoped runner token required.
+     *
+     * The target org comes from the TOKEN, never from the payload. It used to
+     * come from `body.orgId`, which let any caller name any org and inject
+     * findings into its scan history. A payload that names a different org is
+     * rejected rather than quietly redirected, so a misconfigured runner fails
+     * loudly instead of writing somewhere unexpected.
+     */
     if (M === "POST" && p[1] === "runner" && p[2] === "results") {
-      return sendJson(
-        res,
-        201,
-        await h.ingestRunnerResults(String(body.orgId ?? q.get("orgId")), body.document ?? body),
-      );
+      const tokenOrg = runnerTokens.resolveOrg(bearerToken(req.headers["authorization"]));
+      if (!tokenOrg) {
+        return sendJson(res, 401, {
+          error: runnerTokens.configured
+            ? "invalid or missing runner token"
+            : "runner uploads are not enabled on this deployment (no runner tokens configured)",
+        });
+      }
+      const claimed = body.orgId ?? q.get("orgId");
+      if (claimed && String(claimed) !== tokenOrg) {
+        return sendJson(res, 403, { error: "runner token is not scoped to the requested org" });
+      }
+      return sendJson(res, 201, await h.ingestRunnerResults(tokenOrg, body.document ?? body));
     }
-    // POST /v1/benchmark/publish { tool, corpusVersion, labels, detections }
+    /*
+     * POST /v1/benchmark/publish — operator credential required. Published
+     * precision figures are the product's public credibility claim, so this is
+     * not a route that may accept anonymous writes.
+     */
     if (M === "POST" && p[1] === "benchmark" && p[2] === "publish") {
+      if (!adminGuard.accepts(bearerToken(req.headers["authorization"]))) {
+        return sendJson(res, 401, {
+          error: adminGuard.configured
+            ? "invalid or missing admin token"
+            : "benchmark publishing is not enabled on this deployment (no admin token configured)",
+        });
+      }
       return sendJson(
         res,
         201,

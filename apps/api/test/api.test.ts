@@ -5,8 +5,19 @@ import { createServer } from "../src/server.js";
 let base: string;
 let close: () => void;
 
+/*
+ * The runner-upload and benchmark-publish routes require a bearer token (see
+ * write-auth.test.ts for the auth behaviour itself), so this harness configures
+ * one of each and sends it on those two calls.
+ */
+const RUNNER_TOKEN = "test-runner-token";
+const ADMIN_TOKEN = "test-admin-token";
+
 beforeAll(async () => {
-  const { server } = await createServer();
+  const { server } = await createServer({
+    runnerTokens: [{ orgId: "demo", token: RUNNER_TOKEN }],
+    adminToken: ADMIN_TOKEN,
+  });
   await new Promise<void>((r) => server.listen(0, r));
   const { port } = server.address() as AddressInfo;
   base = `http://127.0.0.1:${port}`;
@@ -15,10 +26,10 @@ beforeAll(async () => {
 
 afterAll(() => close());
 
-async function post(path: string, body: unknown) {
+async function post(path: string, body: unknown, token?: string) {
   const res = await fetch(base + path, {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: { "content-type": "application/json", ...(token ? { authorization: `Bearer ${token}` } : {}) },
     body: JSON.stringify(body),
   });
   return { status: res.status, json: (await res.json()) as any };
@@ -130,12 +141,11 @@ describe("API integration (T013/T030/T031 wiring)", () => {
       { caseId: "c1", flaggedClassIds: ["exposed-secret"] },
       { caseId: "c2", flaggedClassIds: [] },
     ];
-    const pub = await post("/v1/benchmark/publish", {
-      tool: "gatepass",
-      corpusVersion: "corpus-v1",
-      labels,
-      detections,
-    });
+    const pub = await post(
+      "/v1/benchmark/publish",
+      { tool: "gatepass", corpusVersion: "corpus-v1", labels, detections },
+      ADMIN_TOKEN,
+    );
     expect(pub.status).toBe(201);
     const view = await get("/v1/public/benchmark/corpus-v1");
     expect(view.json.corpusVersion).toBe("corpus-v1");
@@ -160,14 +170,14 @@ describe("API integration (T013/T030/T031 wiring)", () => {
       },
       findings,
     };
-    const okUpload = await post("/v1/runner/results", { orgId: "demo", document: validDoc });
+    const okUpload = await post("/v1/runner/results", { orgId: "demo", document: validDoc }, RUNNER_TOKEN);
     expect(okUpload.status).toBe(201);
     // smuggling source is rejected
     const bad = {
       orgId: "demo",
       document: { ...validDoc, findings: findings.map((f: object) => ({ ...f, content: "SOURCE CODE" })) },
     };
-    const badUpload = await post("/v1/runner/results", bad);
+    const badUpload = await post("/v1/runner/results", bad, RUNNER_TOKEN);
     expect(badUpload.status).toBe(422);
   });
 });
