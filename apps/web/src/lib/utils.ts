@@ -63,7 +63,7 @@ export function relativeTime(iso?: string): string {
   const ms = Date.now() - new Date(iso).getTime();
   if (!Number.isFinite(ms)) return "";
   const secs = Math.floor(ms / 1000);
-  if (secs < 60) return "just now";
+  if (secs < 60) return "now";
   if (secs < 3600) return `${Math.floor(secs / 60)}m ago`;
   if (secs < 86_400) return `${Math.floor(secs / 3600)}h ago`;
   if (secs < 2_592_000) return `${Math.floor(secs / 86_400)}d ago`;

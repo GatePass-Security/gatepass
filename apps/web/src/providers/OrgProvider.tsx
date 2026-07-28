@@ -8,7 +8,8 @@ import { api } from "@/lib/api-client";
 interface OrgContextValue {
   org: OrgRecord | null;
   loading: boolean;
-  error: string | null;
+  /** The raw thrown value — consumers pass it to `explainError`. */
+  error: unknown;
   refetch: () => void;
 }
 
@@ -22,7 +23,7 @@ const OrgContext = createContext<OrgContextValue>({
 export function OrgProvider({ children }: { children: ReactNode }) {
   const [org, setOrg] = useState<OrgRecord | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<unknown>(null);
 
   async function fetchOrg() {
     setLoading(true);
@@ -31,7 +32,7 @@ export function OrgProvider({ children }: { children: ReactNode }) {
       const data = await api.getOrg(ORG_ID);
       setOrg(data);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load org");
+      setError(e);
     } finally {
       setLoading(false);
     }

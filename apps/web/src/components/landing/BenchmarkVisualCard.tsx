@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle2, XCircle, Shield, DollarSign, Clock, RefreshCw } from "lucide-react";
+import { CheckCircle2, XCircle, Shield, FileCheck2, Clock, RefreshCw } from "lucide-react";
 
 interface ScannerData {
   id: string;
@@ -11,7 +11,14 @@ interface ScannerData {
   totalCount: number;
   falsePositives: string;
   speed: string;
-  cost: string;
+  /**
+   * Whether a finding arrives with a reproduction you can run. This replaced a
+   * "Cost per Scan" metric that read "$0.00 (0 Tokens)" — untrue of the product
+   * (research-tier analysis does call a model) and useless as a comparison,
+   * since the free scanners in this list also cost nothing. Reproductions are
+   * enforced by the findings schema, so this one is checkable.
+   */
+  repro: string;
   deterministic: boolean;
   statusColor: string;
   classes: { name: string; asi: string; status: "detected" | "missed" | "fp" }[];
@@ -26,7 +33,7 @@ const SCANNERS: ScannerData[] = [
     totalCount: 12,
     falsePositives: "0.0%",
     speed: "0.9 ms",
-    cost: "$0.00 (0 Tokens)",
+    repro: "Every verified finding",
     deterministic: true,
     statusColor: "#2DD4BF",
     classes: [
@@ -52,7 +59,7 @@ const SCANNERS: ScannerData[] = [
     totalCount: 12,
     falsePositives: "8.3% (Flagged Clean Code)",
     speed: "75,000 ms",
-    cost: "~$0.42 (110k Tokens)",
+    repro: "Described, never executed",
     deterministic: false,
     statusColor: "#F59E0B",
     classes: [
@@ -78,7 +85,7 @@ const SCANNERS: ScannerData[] = [
     totalCount: 12,
     falsePositives: "High (LLM Hallucinations)",
     speed: "60,000 ms",
-    cost: "High Token Costs / Mo",
+    repro: "No",
     deterministic: false,
     statusColor: "#F97316",
     classes: [
@@ -104,7 +111,7 @@ const SCANNERS: ScannerData[] = [
     totalCount: 12,
     falsePositives: "0.0%",
     speed: "18,000 ms",
-    cost: "Enterprise License",
+    repro: "No",
     deterministic: true,
     statusColor: "#3B82F6",
     classes: [
@@ -130,7 +137,7 @@ const SCANNERS: ScannerData[] = [
     totalCount: 12,
     falsePositives: "0.0%",
     speed: "1,200 ms",
-    cost: "$0.00",
+    repro: "No",
     deterministic: true,
     statusColor: "#EF4444",
     classes: [
@@ -202,10 +209,12 @@ export function BenchmarkVisualCard() {
 
         <div className="gp-vis-metric-item">
           <div className="gp-vis-metric-label">
-            <DollarSign size={14} color="var(--fg-dim)" />
-            <span>Cost per Scan</span>
+            <FileCheck2 size={14} color="var(--fg-dim)" />
+            <span>Runnable reproduction</span>
           </div>
-          <div className="gp-vis-metric-val">{scanner.cost}</div>
+          <div className="gp-vis-metric-val" style={{ fontSize: 15 }}>
+            {scanner.repro}
+          </div>
         </div>
 
         <div className="gp-vis-metric-item">

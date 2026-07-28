@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { ArrowRight, ArrowUpRight } from "lucide-react";
 import { LandingNav } from "@/components/landing/LandingNav";
 import { DetectionSlider } from "@/components/landing/DetectionSlider";
@@ -70,6 +71,17 @@ const SERVICES = [
   },
 ];
 
+/*
+ * The last column used to be "Cost / Tokens", reading "$0 (0 Tokens)" for us.
+ * It was replaced for two reasons. It did not differentiate: Semgrep, Gitleaks
+ * and Trivy are also free, so four of eight rows read "$0" and the column
+ * settled nothing. And read as a claim about the product it was not true —
+ * research-tier semantic analysis calls GLM 5.2 through the Gatepass gateway
+ * and does spend tokens. What is true, and true only of us, is that a verified
+ * finding cannot exist without a runnable reproduction: the schema in
+ * `packages/findings` rejects one that has no reproduction attached, so this
+ * column is a structural guarantee rather than a marketing line.
+ */
 const COMPARISON = [
   {
     tool: "Gatepass Security Engine",
@@ -77,7 +89,7 @@ const COMPARISON = [
     fp: "0%",
     deterministic: "Yes",
     speed: "0.9 ms",
-    cost: "$0 (0 Tokens)",
+    repro: "Every verified finding",
     us: true,
   },
   {
@@ -86,7 +98,7 @@ const COMPARISON = [
     fp: "High (LLM Hallucinations)",
     deterministic: "No",
     speed: "~60,000 ms",
-    cost: "High Token Costs / Mo",
+    repro: "No",
   },
   {
     tool: "GitHub Advanced Security (CodeQL 2.26.1)",
@@ -94,7 +106,7 @@ const COMPARISON = [
     fp: "0%",
     deterministic: "Yes",
     speed: "~18,000 ms",
-    cost: "$0 / Enterprise Sub",
+    repro: "No",
   },
   {
     tool: "Frontier LLM (Claude Opus 5 / GPT-5.6)",
@@ -102,7 +114,7 @@ const COMPARISON = [
     fp: "2 Misattributions (False Alarms)",
     deterministic: "No",
     speed: "~75,000 ms",
-    cost: "~110k Tokens / Scan",
+    repro: "Described, never executed",
   },
   {
     tool: "Semgrep OSS 1.170.1",
@@ -110,17 +122,17 @@ const COMPARISON = [
     fp: "0%",
     deterministic: "Yes",
     speed: "~1,200 ms",
-    cost: "$0",
+    repro: "No",
   },
-  { tool: "Gitleaks 8.30.1", detected: "1 / 12 (8%)", fp: "0%", deterministic: "Yes", speed: "~1,100 ms", cost: "$0" },
-  { tool: "Trivy 0.72.0", detected: "0 / 12 (0%)", fp: "0%", deterministic: "Yes", speed: "~4,200 ms", cost: "$0" },
+  { tool: "Gitleaks 8.30.1", detected: "1 / 12 (8%)", fp: "0%", deterministic: "Yes", speed: "~1,100 ms", repro: "No" },
+  { tool: "Trivy 0.72.0", detected: "0 / 12 (0%)", fp: "0%", deterministic: "Yes", speed: "~4,200 ms", repro: "No" },
   {
     tool: "Snyk Agent Scan",
     detected: "Cannot scan source",
     fp: "—",
     deterministic: "—",
     speed: "—",
-    cost: "—",
+    repro: "—",
   },
 ];
 
@@ -372,7 +384,7 @@ export default function LandingPage() {
                 </a>
 
                 <a href="#benchmarks" className="gp-bench-topic-item">
-                  <h3 className="gp-bench-topic-title">Zero tokens, 0.9ms execution time vs 110,000 token LLMs</h3>
+                  <h3 className="gp-bench-topic-title">0.9 ms and no inference call, against 110,000-token reviews</h3>
                   <div className="gp-bench-topic-meta">
                     <span className="gp-bench-badge">Production</span>
                     <span className="gp-bench-date">Jul 2025</span>
@@ -403,7 +415,7 @@ export default function LandingPage() {
                         <th>False positives</th>
                         <th>Deterministic</th>
                         <th>Execution Speed</th>
-                        <th>Cost / Tokens</th>
+                        <th>Runnable reproduction</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -416,7 +428,9 @@ export default function LandingPage() {
                           <td className="gp-num">{row.fp}</td>
                           <td className="gp-num">{row.deterministic}</td>
                           <td className="gp-num">{row.speed}</td>
-                          <td className="gp-num">{row.cost}</td>
+                          <td className="gp-num" style={{ color: row.us ? "var(--accent)" : undefined }}>
+                            {row.repro}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -435,7 +449,8 @@ export default function LandingPage() {
                 <ul className="gp-bench-bullets">
                   <li>
                     <strong>100% Detection &amp; Zero False Alarms:</strong> Catches all 12/12 agentic vulnerability
-                    classes with 0% false positives and runnable proof-of-concept reproductions for every finding.
+                    classes with 0% false positives, and ships a runnable reproduction with every verified finding —
+                    anything we cannot reproduce is filed as research and labelled with its confidence instead.
                   </li>
                   <li>
                     <strong>Sub-Millisecond Execution (0.9ms):</strong> Operates up to 80,000x faster than LLM code
@@ -446,8 +461,10 @@ export default function LandingPage() {
                     builds never randomly fail or pass based on non-deterministic model temperature.
                   </li>
                   <li>
-                    <strong>Zero Token Overhead ($0):</strong> Eliminates expensive token usage and per-developer API
-                    fees required by CodeRabbit and frontier models.
+                    <strong>No model in the merge gate:</strong> The gate that blocks your pull request is static
+                    analysis — no inference call, no rate limit, no provider outage between a commit and a verdict.
+                    Semantic research-tier analysis is the one path that calls a model, it only adjusts confidence on
+                    findings that are already flagged as unproven, and it is a per-org setting you can switch off.
                   </li>
                 </ul>
 
@@ -518,6 +535,9 @@ export default function LandingPage() {
             <div>
               <h4>Product</h4>
               <ul>
+                <li>
+                  <Link href="/dashboard">Dashboard</Link>
+                </li>
                 <li>
                   <a href="#detections">Detections</a>
                 </li>

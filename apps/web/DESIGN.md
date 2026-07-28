@@ -46,34 +46,45 @@ explicitly stored `theme=light`.
 | `border-line` / `border-line-strong` | Hairline / emphasised borders |
 | `text-fg` | Primary text |
 | `text-fg-secondary` | Body text |
-| `text-fg-muted` | Labels, captions, metadata |
-| `text-fg-faint` | Non-informational only — below 4.5:1 |
+| `text-fg-muted` | Labels, captions, metadata — the weakest text tier |
 | `text-accent` / `bg-accent-solid` / `bg-accent-soft` / `border-accent-line` | Mint accent |
 | `bg-action` / `text-action-text` | Primary action pill |
 
 Data tones — `verified`, `research`, `critical`, `high`, `medium`, `low` — each expose
 `text-*`, `bg-*`, `bg-*-soft`, `border-*-line`.
 
-### Measured contrast (dark theme, on `--gp-canvas` `#020202`)
+### Measured contrast
 
-| Token | Value | Ratio |
-|---|---|---|
-| `--gp-text` | `#FFFFFF` | 20.8:1 |
-| `--gp-text-secondary` | `#C0C0C0` | 11.4:1 |
-| `--gp-text-muted` | `#7E7E86` | 5.2:1 |
-| `--gp-accent` | `#2DD4BF` | 11.2:1 |
-| `--gp-critical` | `#F87171` | 7.5:1 |
-| `--gp-high` | `#FB923C` | 9.2:1 |
-| `--gp-medium` | `#FBBF24` | 12.4:1 |
-| `--gp-low` | `#8E8E96` | 6.4:1 |
-| `--gp-research` | `#6BA6FF` | 8.4:1 |
+Every text token is checked against **every surface it can land on**, not just the card it
+usually sits on. That distinction is not academic: a badge inside a table header sits over
+`--gp-surface-sunken`, the lightest fill in the light theme, and that is the case that failed.
 
-Every one clears AA for normal text. `--gp-text-faint` (`#5E5E66`, 3.2:1) does not, and is
-restricted to non-informational decoration — it was `#56565E` until adopting the landing's
-`#020202` canvas dropped it to 2.9:1, under the 3:1 non-text floor.
+`apps/web/test/contrast.test.ts` parses this file's tokens out of `globals.css` and asserts the
+4.5:1 floor for all 10 foregrounds × 4 surfaces × 2 themes. It reads the stylesheet rather than a
+copy of the palette, so it cannot drift from the values actually shipped.
 
-In light mode the accent darkens to `#0B7F72` (4.9:1 on white); the bright mint is unreadable
-there, so it is not reused.
+| Token | Dark | worst-case ratio | Light | worst-case ratio |
+|---|---|---|---|---|
+| `--gp-text` | `#FFFFFF` | 18.7:1 | `#0A0A0B` | 17.2:1 |
+| `--gp-text-secondary` | `#C0C0C0` | 10.3:1 | `#46464C` | 8.1:1 |
+| `--gp-text-muted` | `#7E7E86` | 4.6:1 | `#6B6B72` | 4.6:1 |
+| `--gp-accent` / `--gp-verified` | `#2DD4BF` | 10.1:1 | `#0A7569` | 4.9:1 |
+| `--gp-critical` | `#F87171` | 6.8:1 | `#C4292B` | 4.9:1 |
+| `--gp-high` | `#FB923C` | 8.3:1 | `#A94E08` | 4.8:1 |
+| `--gp-medium` | `#FBBF24` | 11.2:1 | `#8A6100` | 4.8:1 |
+| `--gp-low` | `#8E8E96` | 5.8:1 | `#5F5F66` | 5.5:1 |
+| `--gp-research` | `#6BA6FF` | 7.6:1 | `#1D5FD0` | 5.1:1 |
+
+Three of these were fixed rather than documented as exceptions:
+
+- **Light accent / verified** was `#0B7F72` — 4.25:1 on the sunken fill. Since `verified` is the
+  product's central claim, a "Verified" badge that fails AA is not a rounding error. Now `#0A7569`.
+- **Light high** was `#B45309` at 4.36:1. Now `#A94E08`.
+- **`--gp-text-faint`** was a fourth text tier at 2.43:1 (light) and 2.91:1 (dark) — below even
+  the 3:1 non-text floor — while carrying scan ids, timestamps, nav group labels and "Not
+  published yet." The only value that would have fixed it was within a hair of `--gp-text-muted`,
+  so **the tier was deleted** rather than made a duplicate. Three greys below body text is one
+  more than this palette can support. The test asserts it stays gone.
 
 ---
 
@@ -124,15 +135,26 @@ counts must align or they cannot be compared at a glance.
 
 ## 4. Shape and motion
 
-Pills (`rounded-full`) for anything actionable — buttons, badges, nav items, filters, the search
-field. Cards use `--radius-card` (0.875rem); code panels 0.75rem; inputs 0.6rem.
+Pills (`rounded-full`) for buttons, badges, filters and the search field — the marketing site
+sets its buttons at `border-radius: 300px`, so the pill is the shared language for things you
+press. Nav items are **not** pills: at eleven entries a column of filled capsules reads as
+decoration, so the rail marks its active row with a 2px accent rule against a raised fill.
+Cards use `--radius-card` (0.875rem); code panels 0.75rem; inputs 0.6rem.
 
 Motion is 150–220ms on `transform`/`opacity`/colour only, never on layout properties. Hover
 never changes size — a control that grows under the cursor shifts everything around it.
 `prefers-reduced-motion: reduce` collapses all of it.
 
-One ambient element: the `.gp-glow` radial behind the shell header, fixed, `pointer-events-none`.
-It appears once. A second would make it wallpaper.
+**No ambient decoration and no gradients.** A `.gp-glow` radial used to sit behind the shell
+header. On the landing page that effect belongs to a hero and does work; over a working surface
+it tinted the top of every table, so severity colours read differently at the top of a page than
+at the bottom. It is gone, along with the mint-gradient tile that stood in for the logo — the
+mark is now the marketing site's own flat asset (`public/landing/gatepass-logo.png`), and the
+favicon and OG card were redrawn flat to match. The product ships zero gradients; the contrast
+test asserts none return to the token layer.
+
+The one pulse in the product is the API status dot while its state is still unknown, and the
+loading skeleton. Both are real state, not atmosphere.
 
 ---
 

@@ -1,6 +1,6 @@
 // Re-export canonical types from packages
 export type { Finding, Tier, Surface, Location, Reproduction, FindingsDocument } from "@gatepass/findings";
-import type { Severity } from "@gatepass/findings";
+import type { Finding, Severity } from "@gatepass/findings";
 export type { Severity };
 import type { PlanTier } from "@gatepass/shared";
 export type { PlanTier };
@@ -137,6 +137,46 @@ export interface ComplianceScanRecord {
   createdAt: string;
 }
 
+/*
+ * CI merge gate. Mirrors packages/github/src/checkrun.ts — `evaluateGate` is a
+ * pure decision function, so the dashboard can ask "what would the gate do with
+ * this scan under this policy?" without touching a pull request.
+ */
+export type GateMode = "off" | "block_verified" | "block_threshold";
+export type GateFailureMode = "fail_open" | "fail_closed";
+export type CheckConclusion = "success" | "failure" | "neutral";
+
+/** packages/github/src/checkrun.ts:19 */
+export interface GateConfig {
+  mode: GateMode;
+  failureMode: GateFailureMode;
+  threshold?: { minSeverity: Severity; maxAllowed: number };
+}
+
+/** `POST /v1/scans/:id/gate` — packages/github/src/checkrun.ts:31 */
+export interface GateResult {
+  conclusion: CheckConclusion;
+  summary: string;
+  blocking: Finding[];
+}
+
+/** `GET /v1/auth/me` — packages/shared session payload. */
+export interface SessionInfo {
+  orgId: string;
+  userId: string;
+  role: string;
+  [key: string]: unknown;
+}
+
+/** `GET /v1/` and `GET /healthz` — the API's own status response. */
+export interface ApiStatus {
+  status: string;
+  service: string;
+  version: string;
+  /** Only present when the API has GATEPASS_WEB_URL configured. */
+  webAppUrl?: string;
+}
+
 /** `GET /v1/public/benchmark` */
 export interface BenchmarkData {
   corpusVersion: string;
@@ -154,10 +194,20 @@ export interface BenchmarkData {
   }>;
 }
 
+/**
+ * An HTTP-level failure from the Gatepass API.
+ *
+ * `message` is the API's own `error` string and is deliberately kept verbatim —
+ * `lib/errors.ts` pattern-matches on it to produce something a person can act
+ * on, which only works if it arrives unmodified. It should not be rendered
+ * directly; call `explainError` instead.
+ */
 export class ApiError extends Error {
   constructor(
     public status: number,
     message: string,
+    /** Seconds until the limit resets, from a 429's `retryAfter`. */
+    public retryAfter?: number,
   ) {
     super(message);
     this.name = "ApiError";

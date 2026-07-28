@@ -1,8 +1,8 @@
 import { Suspense } from "react";
 import ComplianceClient from "./ComplianceClient";
-import { PageSkeleton } from "@/components/ui/Skeleton";
+import { ComplianceSkeleton } from "./ComplianceSkeleton";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { ErrorState } from "@/components/ui/EmptyState";
+import { ErrorPanel } from "@/components/ui/EmptyState";
 import { buildScanContext } from "@gatepass/engine";
 import { runComplianceScan } from "@gatepass/compliance";
 import type { ComplianceResult } from "@gatepass/compliance";
@@ -33,6 +33,9 @@ async function getComplianceResult(): Promise<{ result: ComplianceResult } | { e
     return { result: runComplianceScan(ctx, `compliance-scan-${Date.now()}`) };
   } catch (e) {
     console.error("Compliance scan failed:", e);
+    // The message crosses the server/client boundary as a string because an
+    // Error instance cannot be serialised. The client rebuilds one and hands it
+    // to `ErrorPanel` — it is never rendered raw.
     return { error: e instanceof Error ? e.message : "Unknown error" };
   }
 }
@@ -47,16 +50,14 @@ export async function ComplianceDashboard() {
           title="Compliance posture"
           description="Automated compliance scanning against WCAG 2.2, CCPA/CPRA, Apple App Store, Google Play, and EU AI Act (2026)."
         />
-        <ErrorState
-          title="Compliance scan did not run"
-          message={`The scanner could not build a scan context for this workspace, so there are no results to show. No score is displayed because none was measured. Reason: ${outcome.error}`}
-        />
+        {/* No score is shown because none was measured — see the note above. */}
+        <ErrorPanel error={new Error(outcome.error)} context={{ action: "run the compliance scan" }} />
       </div>
     );
   }
 
   return (
-    <Suspense fallback={<PageSkeleton stats={4} rows={6} />}>
+    <Suspense fallback={<ComplianceSkeleton />}>
       <ComplianceClient result={outcome.result} />
     </Suspense>
   );

@@ -9,7 +9,7 @@ import {
   Card,
   CardTitle,
   EmptyState,
-  ErrorState,
+  ErrorPanel,
   PageHeader,
   Select,
   Stat,
@@ -121,7 +121,7 @@ export default function BenchmarkClient({ data, error }: Props) {
     return (
       <div className="space-y-6">
         {header}
-        <ErrorState title="Could not load the benchmark" message={error} />
+        <ErrorPanel error={new Error(error)} context={{ action: "load the benchmark" }} />
       </div>
     );
   }

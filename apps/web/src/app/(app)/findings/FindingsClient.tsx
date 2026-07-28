@@ -18,11 +18,12 @@ import { Badge } from "@/components/ui/Badge";
 import { Button, IconButton } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { CodeBlock } from "@/components/ui/CodeBlock";
-import { EmptyState, ErrorState } from "@/components/ui/EmptyState";
+import { EmptyState, ErrorPanel } from "@/components/ui/EmptyState";
 import { FilterPill, SegmentedControl } from "@/components/ui/FilterPill";
 import { Textarea } from "@/components/ui/Input";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Stat, TONE_FILL, TONE_SOFT, type Tone } from "@/components/ui/Stat";
+import { errorToast, explainError, type FriendlyError } from "@/lib/errors";
 import { useToast } from "@/components/ui/Toast";
 import {
   SEVERITY_ORDER,
@@ -99,7 +100,7 @@ export default function FindingsClient({ findings, scanId, error }: Props) {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [disputeFor, setDisputeFor] = useState<string | null>(null);
   const [disputing, setDisputing] = useState<string | null>(null);
-  const [disputeError, setDisputeError] = useState<string | null>(null);
+  const [disputeError, setDisputeError] = useState<FriendlyError | null>(null);
   /* Disputes suppress org-wide on the server, so the row is dropped locally
      rather than left behind for a refresh to clear. */
   const [disputed, setDisputed] = useState<ReadonlySet<string>>(() => new Set());
@@ -174,9 +175,8 @@ export default function FindingsClient({ findings, scanId, error }: Props) {
       setExpanded((prev) => (prev === finding.fingerprint ? null : prev));
       toast(`${finding.classId} disputed — suppressed for this org`, "success");
     } catch (e) {
-      const message = e instanceof Error ? e.message : "Dispute failed";
-      setDisputeError(message);
-      toast(message, "error");
+      setDisputeError(explainError(e, { action: "dispute this finding" }));
+      toast(errorToast(e, { action: "dispute this finding" }), "error");
     } finally {
       setDisputing(null);
     }
@@ -201,7 +201,7 @@ export default function FindingsClient({ findings, scanId, error }: Props) {
     return (
       <div className="space-y-6">
         {header}
-        <ErrorState title="Could not load findings" message={error} onRetry={() => router.refresh()} />
+        <ErrorPanel error={new Error(error)} context={{ action: "load findings" }} onRetry={() => router.refresh()} />
       </div>
     );
   }
@@ -355,7 +355,7 @@ interface FindingCardProps {
   onCancelDispute: () => void;
   onSubmitDispute: (reason: string) => void;
   busy: boolean;
-  disputeError: string | null;
+  disputeError: FriendlyError | null;
   canDispute: boolean;
 }
 
@@ -569,7 +569,7 @@ function DisputePanel({
   onSubmit,
 }: {
   busy: boolean;
-  error: string | null;
+  error: FriendlyError | null;
   onCancel: () => void;
   onSubmit: (reason: string) => void;
 }) {
@@ -584,7 +584,7 @@ function DisputePanel({
         placeholder="Explain why this finding is not valid…"
         value={reason}
         onChange={(e) => setReason(e.target.value)}
-        error={error ?? undefined}
+        error={error?.title}
         disabled={busy}
         rows={3}
       />

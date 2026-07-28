@@ -5,23 +5,36 @@ import { useRouter } from "next/navigation";
 import { X, ScanLine, ShieldCheck, FlaskConical } from "lucide-react";
 import { api } from "@/lib/api-client";
 import { ORG_ID } from "@/lib/constants";
-import { ApiError, type RemoteScanResult } from "@/lib/types";
-import { Button, Input, Badge } from "./ui";
+import type { RemoteScanResult, ScanResult } from "@/lib/types";
+import { explainError, type FriendlyError } from "@/lib/errors";
+import { Button, Input, Badge, SegmentedControl, ErrorState } from "./ui";
 
 /**
- * "Scan a repo" — the marketing site's primary call to action, wired to the
- * route that already implements it: `POST /v1/orgs/:org/scan-remote`
- * (apps/api/src/server.ts:163). Clone-and-scan needs the API's GitHub App
- * credentials, so the not-configured case is surfaced plainly rather than
- * rendered as a generic failure.
+ * "Scan a repo" — the marketing site's primary call to action, wired to the two
+ * routes that implement it: `POST /v1/orgs/:org/scan-remote` (clone a GitHub
+ * repo) and `POST /v1/orgs/:org/scans` (scan a path already on the API host).
+ * Both existed; only the first was reachable from the UI, which left the
+ * local-path route callable by curl and by nothing else.
+ *
+ * Clone-and-scan needs the API's GitHub App credentials, so the not-configured
+ * case is surfaced plainly rather than rendered as a generic failure.
  */
+type Source = "github" | "path";
+
+/** The clone result carries provenance a local-path scan has no equivalent for. */
+function isRemote(r: ScanResult | RemoteScanResult): r is RemoteScanResult {
+  return "sha" in r;
+}
+
 export function ScanRepoDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const router = useRouter();
+  const [source, setSource] = useState<Source>("github");
   const [repo, setRepo] = useState("");
   const [ref, setRef] = useState("");
+  const [path, setPath] = useState("");
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<RemoteScanResult | null>(null);
+  const [error, setError] = useState<FriendlyError | null>(null);
+  const [result, setResult] = useState<ScanResult | RemoteScanResult | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
 
@@ -64,27 +77,30 @@ export function ScanRepoDialog({ open, onClose }: { open: boolean; onClose: () =
 
   if (!open) return null;
 
+  const target = source === "github" ? repo.trim() : path.trim();
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    const target = repo.trim();
     if (!target) return;
     setBusy(true);
     setError(null);
     setResult(null);
     try {
-      const res = await api.scanRemoteRepo(ORG_ID, target, ref.trim() || undefined);
+      const res =
+        source === "github"
+          ? await api.scanRemoteRepo(ORG_ID, target, ref.trim() || undefined)
+          : await api.triggerScan(ORG_ID, target);
       setResult(res);
       router.refresh();
     } catch (err) {
-      if (err instanceof ApiError && /repo fetcher/i.test(err.message)) {
-        setError(
-          "The API has no GitHub App credentials configured, so it cannot clone repositories. Set GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY and GITHUB_INSTALLATION_ID on the API service.",
-        );
-      } else if (err instanceof DOMException && err.name === "AbortError") {
-        setError("The scan did not finish within 3 minutes. Large repositories may need the hosted runner.");
-      } else {
-        setError(err instanceof Error ? err.message : "Scan failed");
-      }
+      /*
+       * The three special cases that used to live here — missing GitHub App,
+       * abort, everything else — are now rules in `lib/errors.ts`, so the same
+       * causes read identically wherever they surface rather than only here.
+       */
+      setError(
+        explainError(err, { action: source === "github" ? "clone and scan that repository" : "scan that path" }),
+      );
     } finally {
       setBusy(false);
     }
@@ -94,27 +110,32 @@ export function ScanRepoDialog({ open, onClose }: { open: boolean; onClose: () =
     setResult(null);
     setRepo("");
     setRef("");
+    setPath("");
     setError(null);
   }
 
   return (
     <div className="fixed inset-0 z-[70] flex items-start justify-center overflow-y-auto p-4 pt-[12vh]">
-      <div className="fixed inset-0 bg-black/65 backdrop-blur-[3px]" onClick={onClose} aria-hidden="true" />
+      {/* A plain scrim. The blur that used to sit here bought nothing over a
+          near-black canvas and cost a compositing layer on every open. */}
+      <div className="fixed inset-0 bg-black/70" onClick={onClose} aria-hidden="true" />
 
       <div
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="scan-dialog-title"
-        className="animate-gp-rise gp-card relative w-full max-w-lg shadow-2xl shadow-black/40"
+        className="animate-gp-rise gp-card relative w-full max-w-lg border-line-strong"
       >
         <div className="flex items-start justify-between gap-4 border-b border-line px-5 py-4">
           <div>
             <h2 id="scan-dialog-title" className="text-[1rem] font-medium tracking-[-0.02em] text-fg">
-              Scan a repository
+              Run a scan
             </h2>
             <p className="mt-1 text-[0.78rem] text-fg-muted">
-              Gatepass clones the repo, scans it, and discards the working copy.
+              {source === "github"
+                ? "Gatepass clones the repo, scans it, and discards the working copy."
+                : "The engine runs against the directory in place. Nothing is uploaded or copied."}
             </p>
           </div>
           <button
@@ -130,11 +151,13 @@ export function ScanRepoDialog({ open, onClose }: { open: boolean; onClose: () =
         {result ? (
           <div className="px-5 py-5">
             <p className="text-[0.855rem] text-fg">
-              Scanned <span className="font-mono text-accent">{result.repo}</span>
+              Scanned <span className="font-mono text-accent">{isRemote(result) ? result.repo : target}</span>
             </p>
-            <p className="mt-1 font-mono text-[0.72rem] text-fg-muted">
-              {result.sha.slice(0, 12)} · {result.ref}
-            </p>
+            {isRemote(result) && (
+              <p className="mt-1 font-mono text-[0.72rem] text-fg-muted">
+                {result.sha.slice(0, 12)} · {result.ref}
+              </p>
+            )}
 
             <div className="mt-4 flex flex-wrap items-center gap-2">
               <Badge tone="verified" dot>
@@ -158,10 +181,10 @@ export function ScanRepoDialog({ open, onClose }: { open: boolean; onClose: () =
                 size="md"
                 onClick={() => {
                   onClose();
-                  router.push("/findings");
+                  router.push(`/scans/${result.scanId}`);
                 }}
               >
-                View findings
+                Open scan
               </Button>
               <Button variant="ghost" size="md" onClick={reset}>
                 Scan another
@@ -170,48 +193,71 @@ export function ScanRepoDialog({ open, onClose }: { open: boolean; onClose: () =
           </div>
         ) : (
           <form onSubmit={submit} className="space-y-4 px-5 py-5">
-            <Input
-              ref={inputRef}
-              label="Repository"
-              placeholder="owner/name"
-              value={repo}
-              onChange={(e) => setRepo(e.target.value)}
-              hint="A GitHub repository the Gatepass App can read."
-              autoComplete="off"
-              spellCheck={false}
-              required
-            />
-            <Input
-              label="Ref"
-              placeholder="HEAD"
-              value={ref}
-              onChange={(e) => setRef(e.target.value)}
-              hint="Branch, tag, or commit. Defaults to the repository head."
-              autoComplete="off"
-              spellCheck={false}
+            <SegmentedControl<Source>
+              label="Scan source"
+              value={source}
+              onChange={(next) => {
+                setSource(next);
+                setError(null);
+              }}
+              options={[
+                { value: "github", label: "GitHub repo" },
+                { value: "path", label: "Path on host" },
+              ]}
             />
 
-            {error && (
-              <p
-                role="alert"
-                className="rounded-[0.6rem] border border-critical-line bg-critical-soft px-3 py-2.5 text-[0.78rem] leading-relaxed text-critical"
-              >
-                {error}
-              </p>
+            {source === "github" ? (
+              <>
+                <Input
+                  ref={inputRef}
+                  label="Repository"
+                  placeholder="owner/name"
+                  value={repo}
+                  onChange={(e) => setRepo(e.target.value)}
+                  hint="A GitHub repository the Gatepass App can read."
+                  autoComplete="off"
+                  spellCheck={false}
+                  required
+                />
+                <Input
+                  label="Ref"
+                  placeholder="HEAD"
+                  value={ref}
+                  onChange={(e) => setRef(e.target.value)}
+                  hint="Branch, tag, or commit. Defaults to the repository head."
+                  autoComplete="off"
+                  spellCheck={false}
+                />
+              </>
+            ) : (
+              <Input
+                label="Directory"
+                placeholder="/srv/checkouts/my-app"
+                value={path}
+                onChange={(e) => setPath(e.target.value)}
+                hint="An absolute path the API process can read. Nothing is uploaded — the engine runs where the files already are."
+                autoComplete="off"
+                spellCheck={false}
+                required
+              />
             )}
+
+            {error && <ErrorState error={error} />}
 
             <div className="flex items-center justify-end gap-2 pt-1">
               <Button type="button" variant="ghost" size="md" onClick={onClose}>
                 Cancel
               </Button>
-              <Button type="submit" variant="accent" size="md" isLoading={busy} disabled={!repo.trim()}>
+              <Button type="submit" variant="primary" size="md" isLoading={busy} disabled={!target}>
                 {!busy && <ScanLine size={15} aria-hidden="true" />}
                 {busy ? "Scanning…" : "Run scan"}
               </Button>
             </div>
             {busy && (
               <p aria-live="polite" className="text-[0.72rem] text-fg-muted">
-                Cloning and scanning. This can take a minute on a large repository.
+                {source === "github"
+                  ? "Cloning and scanning. This can take a minute on a large repository."
+                  : "Scanning. Large trees take longer to parse."}
               </p>
             )}
           </form>

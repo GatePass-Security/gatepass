@@ -1,27 +1,24 @@
+<!--
+  Browser-tab mark.
+
+  Previously a mint-gradient rounded square with a white shield and tick inside
+  it — a different logo from the one the site actually ships, and the gradient
+  chip is the stock look of a generative-AI app. This is the real mark's
+  silhouette instead: a flat shield in the brand mint, on transparent, so it sits
+  on a light or a dark tab strip without a container box around it.
+-->
 <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" fill="none">
-  <defs>
-    <linearGradient id="gp-icon-grad" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#2dd4bf" />
-      <stop offset="1" stop-color="#0f766e" />
-    </linearGradient>
-  </defs>
-  <rect width="32" height="32" rx="8" fill="url(#gp-icon-grad)" />
   <path
-    d="M16 5 L25 9 V16 C25 21.5 21 25.5 16 27.5 C11 25.5 7 21.5 7 16 V9 Z"
-    fill="#04201d"
-    fill-opacity="0.16"
-  />
-  <path
-    d="M16 5 L25 9 V16 C25 21.5 21 25.5 16 27.5 C11 25.5 7 21.5 7 16 V9 Z"
-    stroke="#ffffff"
-    stroke-width="2"
+    d="M16 3.2 L27.4 7.6 V15.8 C27.4 22.4 22.6 27.4 16 29.8 C9.4 27.4 4.6 22.4 4.6 15.8 V7.6 Z"
+    stroke="#2dd4bf"
+    stroke-width="2.6"
     stroke-linejoin="round"
     fill="none"
   />
   <path
-    d="M11.4 16 L15 19.6 L20.8 12.4"
-    stroke="#ffffff"
-    stroke-width="2.4"
+    d="M16 13.6 H21.6 C21.6 18.4 19.2 21.4 16 23.2 C12.8 21.4 10.4 18.4 10.4 13.6"
+    stroke="#2dd4bf"
+    stroke-width="2.6"
     stroke-linecap="round"
     stroke-linejoin="round"
     fill="none"

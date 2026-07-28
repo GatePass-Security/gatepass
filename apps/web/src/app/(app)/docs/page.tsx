@@ -73,12 +73,12 @@ export default function DocsPage() {
             <ul className="mt-4 space-y-1.5">
               {section.articles.map((article) => (
                 <li key={article} className="flex items-center gap-2.5 text-[0.82rem] text-fg-muted">
-                  <FileText size={14} className="shrink-0 text-fg-faint" aria-hidden="true" />
+                  <FileText size={14} className="shrink-0 text-fg-muted" aria-hidden="true" />
                   <span className="truncate">{article}</span>
                 </li>
               ))}
             </ul>
-            <p className="mt-3 text-[0.72rem] text-fg-faint">Not published yet.</p>
+            <p className="mt-3 text-[0.72rem] text-fg-muted">Not published yet.</p>
           </Card>
         ))}
       </div>

@@ -1,13 +1,26 @@
 import type { HTMLAttributes } from "react";
 import { cx } from "@/lib/utils";
 
-type SkeletonVariant = "text" | "card" | "stat" | "row" | "avatar";
+/**
+ * `bare` contributes no geometry at all — only the pulse and the fill.
+ *
+ * The other variants each hard-code a height and width, and a caller's own
+ * `h-*`/`w-*` in `className` does NOT reliably beat them: both are single-class
+ * utilities of equal specificity, so the winner is whichever Tailwind happens to
+ * emit later in the stylesheet, not whichever is written last in the attribute.
+ * Any placeholder that needs its own dimensions should use `bare` and state them
+ * outright rather than gamble on that ordering.
+ */
+type SkeletonVariant = "bare" | "text" | "card" | "stat" | "row" | "avatar";
 
 interface SkeletonProps extends HTMLAttributes<HTMLDivElement> {
   variant?: SkeletonVariant;
 }
 
 const variantStyles: Record<SkeletonVariant, string> = {
+  // Truly nothing — not even a radius. A `rounded-md` here would fight a
+  // caller's `rounded-full` for exactly the same reason the sizes do.
+  bare: "",
   text: "h-4 w-full rounded-md",
   card: "h-40 w-full rounded-[var(--radius-card)]",
   stat: "h-[6.5rem] w-full rounded-[var(--radius-card)]",

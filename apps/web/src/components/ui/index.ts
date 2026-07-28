@@ -5,7 +5,7 @@ export { Table } from "./Table";
 export { Input, Textarea } from "./Input";
 export { Select } from "./Select";
 export { Skeleton, PageSkeleton } from "./Skeleton";
-export { EmptyState, ErrorState } from "./EmptyState";
+export { EmptyState, ErrorState, ErrorPanel } from "./EmptyState";
 export { ToastProvider, useToast } from "./Toast";
 export { Stat, TONE_TEXT, TONE_FILL, TONE_SOFT, TONE_VAR, type Tone } from "./Stat";
 export { PageHeader } from "./PageHeader";

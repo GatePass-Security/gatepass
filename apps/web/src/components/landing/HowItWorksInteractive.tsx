@@ -50,11 +50,11 @@ const STEPS: [Step, Step, Step, Step] = [
     badge: "Deterministic Engine",
     headline: "Cross-surface reasoning in roughly a millisecond",
     description:
-      "A scope mismatch only exists between the manifest and the tool that exceeds it. Gatepass correlates call-sites against grants without queue delays, LLM API tokens, or per-scan charges.",
+      "A scope mismatch only exists between the manifest and the tool that exceeds it. Gatepass correlates call-sites against grants in-process, so a verdict never waits on a queue or an inference call.",
     icon: Zap,
     metrics: [
       { label: "Scan Latency", value: "~1.1ms" },
-      { label: "LLM Token Cost", value: "$0" },
+      { label: "Model Calls", value: "None" },
       { label: "Detectors Active", value: "12 / 12" },
     ],
   },
@@ -285,7 +285,7 @@ export function HowItWorksInteractive() {
                   <div className="gp-engine-stat">
                     <Cpu size={14} />
                     <span>
-                      LLM API tokens: <strong>0</strong>
+                      Model calls: <strong>0</strong>
                     </span>
                   </div>
                 </div>

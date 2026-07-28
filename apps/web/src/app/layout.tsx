@@ -38,7 +38,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: "Gatepass — Deterministic security for AI-native code",
   description:
-    "Gatepass catches the vulnerability classes that appear when AI writes the code and agents run it — tool poisoning, confused deputy, unauthenticated MCP transports — and blocks them in the pull request. Deterministic, ~1ms, zero tokens.",
+    "Gatepass catches the vulnerability classes that appear when AI writes the code and agents run it — tool poisoning, confused deputy, unauthenticated MCP transports — and blocks them in the pull request. Deterministic, ~1ms, with a runnable reproduction on every verified finding.",
   openGraph: {
     title: "Gatepass — Deterministic security for AI-native code",
     description:

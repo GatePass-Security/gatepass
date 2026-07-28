@@ -4,7 +4,7 @@ import { type InputHTMLAttributes, type TextareaHTMLAttributes, forwardRef, useI
 import { cx } from "@/lib/utils";
 
 const fieldBase =
-  "w-full rounded-[0.6rem] border bg-sunken px-3 text-[0.855rem] text-fg placeholder:text-fg-faint " +
+  "w-full rounded-[0.6rem] border bg-sunken px-3 text-[0.855rem] text-fg placeholder:text-fg-muted " +
   "transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-50";
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {

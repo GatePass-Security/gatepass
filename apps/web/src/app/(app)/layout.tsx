@@ -7,11 +7,16 @@ import { ToastProvider } from "@/components/ui/Toast";
  * Chrome for the authenticated product. Lives here rather than in the root
  * layout so the marketing landing page at `/` renders without a sidebar wrapped
  * around it.
+ *
+ * There is no ambient glow behind this shell. A radial mint wash used to sit
+ * under the header — on the landing page that same effect belongs to a hero and
+ * has a job, but over a working surface it was decoration that tinted the top of
+ * every table and made severity colours read differently at the top of a page
+ * than at the bottom.
  */
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
-      <div className="gp-glow" aria-hidden="true" />
       <a
         href="#main"
         className="sr-only focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:z-[80] focus:rounded-full focus:bg-action focus:px-4 focus:py-2 focus:text-[0.82rem] focus:font-medium focus:text-action-text"

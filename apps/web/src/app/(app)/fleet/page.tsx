@@ -21,7 +21,7 @@ import {
   Card,
   CardTitle,
   EmptyState,
-  ErrorState,
+  ErrorPanel,
   FilterPill,
   IconButton,
   Input,
@@ -32,6 +32,7 @@ import {
   type Tone,
 } from "@/components/ui";
 import { POSTURE_LABEL, POSTURE_TOKEN, cx, pluralize, sharePercent } from "@/lib/utils";
+import { errorToast } from "@/lib/errors";
 
 type PostureFilter = FleetPosture | "all";
 
@@ -54,11 +55,11 @@ function shareOfFleet(count: number, total: number): string | undefined {
 export default function FleetPage() {
   const [data, setData] = useState<FleetView | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<unknown>(null);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [registering, setRegistering] = useState(false);
-  const [registerError, setRegisterError] = useState<string | null>(null);
+  const [registerError, setRegisterError] = useState<unknown>(null);
   const [expandedServer, setExpandedServer] = useState<string | null>(null);
   const [rescanningId, setRescanningId] = useState<string | null>(null);
   const [filter, setFilter] = useState<PostureFilter>("all");
@@ -71,7 +72,7 @@ export default function FleetPage() {
       setData(await api.getFleet(ORG_ID));
       setError(null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load fleet");
+      setError(e);
     } finally {
       setLoading(false);
     }
@@ -94,7 +95,7 @@ export default function FleetPage() {
     } catch (err) {
       // Surfaced inline rather than only logged — a failed registration used to
       // look identical to a successful one.
-      setRegisterError(err instanceof Error ? err.message : "Could not register the server.");
+      setRegisterError(err);
     } finally {
       setRegistering(false);
     }
@@ -110,7 +111,7 @@ export default function FleetPage() {
       );
       await loadFleet();
     } catch (err) {
-      toast(err instanceof Error ? err.message : `Rescan of ${server.name} failed`, "error");
+      toast(errorToast(err, { action: `rescan ${server.name}` }), "error");
     } finally {
       setRescanningId(null);
     }
@@ -161,7 +162,7 @@ export default function FleetPage() {
     return (
       <div className="space-y-6">
         {header}
-        <ErrorState title="Could not load the fleet" message={error} onRetry={() => void loadFleet()} />
+        <ErrorPanel error={error} context={{ action: "load the fleet" }} onRetry={() => void loadFleet()} />
       </div>
     );
   }
@@ -177,7 +178,9 @@ export default function FleetPage() {
       </span>
 
       {/* A refresh that fails while stale data is still on screen must say so. */}
-      {error && <ErrorState title="Could not refresh the fleet" message={error} onRetry={() => void loadFleet()} />}
+      {error != null && (
+        <ErrorPanel error={error} context={{ action: "refresh the fleet" }} onRetry={() => void loadFleet()} />
+      )}
 
       {rollup && (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
@@ -253,7 +256,7 @@ export default function FleetPage() {
             hint="Optional — stored so a later change to the config can be detected."
             autoComplete="off"
           />
-          {registerError && <ErrorState title="Registration failed" message={registerError} />}
+          {registerError != null && <ErrorPanel error={registerError} context={{ action: "register that server" }} />}
           <div className="flex flex-wrap items-center gap-2">
             <Button type="submit" variant="primary" size="sm" isLoading={registering}>
               Register server

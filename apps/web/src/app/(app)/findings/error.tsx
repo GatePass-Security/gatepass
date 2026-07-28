@@ -1,6 +1,6 @@
 "use client";
 
-import { ErrorState } from "@/components/ui/EmptyState";
+import { ErrorPanel } from "@/components/ui/EmptyState";
 import { PageHeader } from "@/components/ui/PageHeader";
 
 export default function FindingsError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
@@ -10,10 +10,13 @@ export default function FindingsError({ error, reset }: { error: Error & { diges
         title="Findings"
         description="Two-tier results from the latest scan. Verified findings carry a reproduction; research findings carry a confidence score."
       />
-      <ErrorState
-        title="Could not load findings"
-        // `digest` is all the client gets for a server-side throw in production.
-        message={error.message || `The findings request failed${error.digest ? ` (${error.digest})` : ""}.`}
+      {/* `digest` is all the client gets for a server-side throw in production, so
+          it is folded into the message rather than dropped. */}
+      <ErrorPanel
+        error={
+          error.message ? error : new Error(`The findings request failed${error.digest ? ` (${error.digest})` : ""}.`)
+        }
+        context={{ action: "load findings" }}
         onRetry={reset}
       />
     </div>

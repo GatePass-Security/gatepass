@@ -38,6 +38,7 @@ import {
   type Tone,
 } from "@/components/ui";
 import { cx, formatDate, pluralize, relativeTime } from "@/lib/utils";
+import { ComplianceApiPanel } from "./ComplianceApiPanel";
 
 type IconType = ComponentType<{ size?: number; className?: string }>;
 
@@ -322,7 +323,7 @@ export default function ComplianceClient({ result }: Props) {
                   >
                     {domainScoreLabel(stats)}
                   </span>
-                  {stats.pass + stats.fail > 0 && <span className="text-[0.7rem] text-fg-faint">/100</span>}
+                  {stats.pass + stats.fail > 0 && <span className="text-[0.7rem] text-fg-muted">/100</span>}
                 </span>
                 <span className="mt-1.5 flex flex-wrap gap-x-2.5 gap-y-0.5 text-[0.7rem]">
                   {stats.pass + stats.fail === 0 ? (
@@ -524,6 +525,10 @@ export default function ComplianceClient({ result }: Props) {
           })}
         </ul>
       )}
+
+      {/* The posture above is this workspace. This is how any other codebase gets assessed —
+          it drives the API's own compliance routes, which had no way in from the UI. */}
+      <ComplianceApiPanel />
     </div>
   );
 }

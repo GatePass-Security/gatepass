@@ -22,6 +22,9 @@ export default async function FindingsPage() {
       findings = await api.getFindings(latest.id);
     }
   } catch (e) {
+    // The message crosses the server/client boundary as a string because an
+    // Error instance cannot be serialised. The client rebuilds one and hands it
+    // to `ErrorPanel` — it is never rendered raw.
     error = e instanceof Error ? e.message : "Failed to load findings";
   }
 

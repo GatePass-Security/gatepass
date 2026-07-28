@@ -1,6 +1,6 @@
 "use client";
 
-import { ErrorState, PageHeader } from "@/components/ui";
+import { ErrorPanel, PageHeader } from "@/components/ui";
 
 export default function FleetError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   return (
@@ -9,7 +9,7 @@ export default function FleetError({ error, reset }: { error: Error & { digest?:
         title="Fleet"
         description="MCP servers registered to this org, their last recorded posture, and the scan behind it."
       />
-      <ErrorState title="Could not load the fleet" message={error.message} onRetry={reset} />
+      <ErrorPanel error={error} context={{ action: "load the fleet" }} onRetry={reset} />
     </div>
   );
 }

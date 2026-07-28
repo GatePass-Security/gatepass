@@ -35,7 +35,7 @@ function ApiStatus() {
       <span
         className={cx(
           "h-1.5 w-1.5 rounded-full",
-          up === null ? "animate-gp-pulse bg-fg-faint" : up ? "bg-verified" : "bg-critical",
+          up === null ? "animate-gp-pulse bg-fg-muted" : up ? "bg-verified" : "bg-critical",
         )}
         aria-hidden="true"
       />
@@ -78,7 +78,7 @@ export function TopNavBar() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search findings by class, path, severity…"
-            className="h-10 w-full rounded-full border border-line bg-sunken pr-3.5 pl-9.5 text-[0.82rem] text-fg transition-colors placeholder:text-fg-faint hover:border-line-strong"
+            className="h-10 w-full rounded-full border border-line bg-sunken pr-3.5 pl-9.5 text-[0.82rem] text-fg transition-colors placeholder:text-fg-muted hover:border-line-strong"
           />
         </form>
 

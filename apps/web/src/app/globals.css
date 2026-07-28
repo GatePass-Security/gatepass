@@ -29,19 +29,28 @@
   --gp-line: rgb(9 9 11 / 0.1);
   --gp-line-strong: rgb(9 9 11 / 0.18);
 
-  /* ── Text (all ≥ 4.5:1 on --gp-surface except --gp-text-faint, which is
-        restricted to non-informational decoration) ── */
+  /*
+   * ── Text ──
+   * Three levels, all ≥ 4.5:1 against the *lightest* surface any of them can
+   * land on (--gp-surface-sunken, the table-header and input-well fill).
+   *
+   * There used to be a fourth, --gp-text-faint, for scan ids, timestamps and
+   * nav group labels. It measured 2.43:1 in this theme, and the only value that
+   * would have fixed it was within a hair of --gp-text-muted — so the tier was
+   * removed rather than made indistinguishable from the one above it. Anything
+   * that used it now uses muted.
+   */
   --gp-text: #0a0a0b;
   --gp-text-secondary: #46464c;
   --gp-text-muted: #6b6b72;
-  --gp-text-faint: #9a9aa1;
 
-  /* ── Brand accent — mint. Used for state and data, never for chrome. ── */
-  --gp-accent: #0b7f72;
-  --gp-accent-solid: #0b7f72;
+  /* ── Brand accent — mint. Used for state and data, never for chrome.
+        Darkened from #0b7f72, which fell to 4.25:1 on the sunken fill. ── */
+  --gp-accent: #0a7569;
+  --gp-accent-solid: #0a7569;
   --gp-accent-contrast: #ffffff;
-  --gp-accent-soft: rgb(11 127 114 / 0.1);
-  --gp-accent-line: rgb(11 127 114 / 0.28);
+  --gp-accent-soft: rgb(10 117 105 / 0.1);
+  --gp-accent-line: rgb(10 117 105 / 0.28);
 
   /* ── Primary action — the marketing site's high-contrast pill ── */
   --gp-action: #0a0a0b;
@@ -52,9 +61,10 @@
   --gp-critical: #c4292b;
   --gp-critical-soft: rgb(196 41 43 / 0.1);
   --gp-critical-line: rgb(196 41 43 / 0.26);
-  --gp-high: #b45309;
-  --gp-high-soft: rgb(180 83 9 / 0.1);
-  --gp-high-line: rgb(180 83 9 / 0.26);
+  /* Darkened from #b45309 — 4.36:1 on the sunken fill, under the text floor. */
+  --gp-high: #a94e08;
+  --gp-high-soft: rgb(169 78 8 / 0.1);
+  --gp-high-line: rgb(169 78 8 / 0.26);
   --gp-medium: #8a6100;
   --gp-medium-soft: rgb(138 97 0 / 0.1);
   --gp-medium-line: rgb(138 97 0 / 0.26);
@@ -63,24 +73,20 @@
   --gp-low-line: rgb(95 95 102 / 0.26);
 
   /* ── Tier (categorical: distinct hue, never a severity colour) ── */
-  --gp-verified: #0b7f72;
-  --gp-verified-soft: rgb(11 127 114 / 0.1);
-  --gp-verified-line: rgb(11 127 114 / 0.28);
+  --gp-verified: #0a7569;
+  --gp-verified-soft: rgb(10 117 105 / 0.1);
+  --gp-verified-line: rgb(10 117 105 / 0.28);
   --gp-research: #1d5fd0;
   --gp-research-soft: rgb(29 95 208 / 0.1);
   --gp-research-line: rgb(29 95 208 / 0.28);
 
-  /* ── Ambient glow behind the shell header ── */
-  --gp-glow: rgb(13 148 136 / 0.1);
-
-  /* ── Brand mark. The one gradient in the product, so its stops live here
-        rather than inline: the mark is fixed brand identity and does NOT flip
-        with the theme, but it must still be changeable in one place. ── */
-  --gp-mark-from: #5eead4;
-  --gp-mark-via: #14b8a6;
-  --gp-mark-to: #0d9488;
-  --gp-mark-ink: rgb(0 0 0 / 0.85);
-
+  /*
+   * There is no ambient-glow token and no brand-gradient token any more. Both
+   * existed, both were removed: the glow was a radial mint wash behind the shell
+   * header, and the gradient drove a rounded tile standing in for the logo. The
+   * product now carries no gradient at all — the mark is the marketing site's own
+   * flat asset — so the accent only ever appears where it means something.
+   */
   --gp-ring: var(--gp-accent);
 }
 
@@ -104,7 +110,9 @@
   --gp-text: #ffffff; /* landing --fg */
   --gp-text-secondary: #c0c0c0; /* landing --fg-muted */
   --gp-text-muted: #7e7e86; /* landing --fg-dim */
-  --gp-text-faint: #5e5e66;
+  /* No --gp-text-faint here either. It was #5e5e66 and measured 2.91:1 on the
+     raised surface — below even the 3:1 non-text floor, while carrying scan ids
+     and section labels. See the note in :root. */
 
   --gp-accent: #2dd4bf; /* landing --accent */
   --gp-accent-solid: #14b8a6;
@@ -136,8 +144,6 @@
   --gp-research: #6ba6ff;
   --gp-research-soft: rgb(107 166 255 / 0.12);
   --gp-research-line: rgb(107 166 255 / 0.3);
-
-  --gp-glow: rgb(16 185 129 / 0.13);
 }
 
 /*
@@ -156,7 +162,6 @@
   --color-fg: var(--gp-text);
   --color-fg-secondary: var(--gp-text-secondary);
   --color-fg-muted: var(--gp-text-muted);
-  --color-fg-faint: var(--gp-text-faint);
 
   --color-accent: var(--gp-accent);
   --color-accent-solid: var(--gp-accent-solid);
@@ -275,17 +280,6 @@
     background: var(--gp-text-faint);
     background-clip: content-box;
   }
-}
-
-/* ── Ambient glow: one instance, fixed behind the shell, never interactive ── */
-@utility gp-glow {
-  position: fixed;
-  inset-inline: 0;
-  top: 0;
-  height: 30rem;
-  pointer-events: none;
-  z-index: 0;
-  background: radial-gradient(58% 100% at 50% 0%, var(--gp-glow) 0%, transparent 72%);
 }
 
 /* ── Translucent chrome: the marketing nav pill ── */

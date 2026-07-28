@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { Menu, X } from "lucide-react";
 import { GatepassLogo } from "@/components/landing/GatepassLogo";
 
@@ -63,6 +64,11 @@ export function LandingNav() {
                   {l.label}
                 </a>
               ))}
+              {/* The product itself. Every other entry here is an in-page anchor, so
+                  without this the dashboard had no route in from the marketing site. */}
+              <Link className="gp-nav-link" href="/dashboard">
+                Dashboard
+              </Link>
             </nav>
             <a className="gp-btn gp-btn-primary gp-nav-cta" href="#start" onClick={(e) => handleScroll(e, "#start")}>
               Scan a repo
@@ -86,6 +92,9 @@ export function LandingNav() {
               {l.label}
             </a>
           ))}
+          <Link className="gp-nav-link" href="/dashboard" onClick={() => setOpen(false)}>
+            Dashboard
+          </Link>
           <a className="gp-btn gp-btn-primary" href="#start" onClick={(e) => handleScroll(e, "#start")}>
             Scan a repo
           </a>

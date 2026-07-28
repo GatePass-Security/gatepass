@@ -37,7 +37,7 @@ export function FilterPill({
     >
       {tone && (
         <span
-          className={cx("h-1.5 w-1.5 shrink-0 rounded-full", active ? TONE_FILL[tone] : "bg-fg-faint")}
+          className={cx("h-1.5 w-1.5 shrink-0 rounded-full", active ? TONE_FILL[tone] : "bg-fg-muted")}
           aria-hidden="true"
         />
       )}

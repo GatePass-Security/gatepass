@@ -35,32 +35,30 @@ export default function OpengraphImage() {
         fontFamily: "sans-serif",
       }}
     >
-      {/* Wordmark */}
-      <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
-        <div
-          style={{
-            display: "flex",
-            width: 56,
-            height: 56,
-            borderRadius: 14,
-            background: "linear-gradient(150deg, #2dd4bf, #0f766e)",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <svg
-            width={30}
-            height={30}
-            viewBox="0 0 24 24"
+      {/*
+        Wordmark. The mark used to be a mint-gradient chip with a tick in it,
+        which is not the logo this site ships — the real one is a flat mint
+        shield with no container behind it, so that is what a share preview
+        should carry.
+      */}
+      <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
+        <svg width={56} height={56} viewBox="0 0 32 32" fill="none">
+          <path
+            d="M16 3.2 L27.4 7.6 V15.8 C27.4 22.4 22.6 27.4 16 29.8 C9.4 27.4 4.6 22.4 4.6 15.8 V7.6 Z"
+            stroke="#2dd4bf"
+            strokeWidth={2.6}
+            strokeLinejoin="round"
             fill="none"
-            stroke="#04201d"
-            strokeWidth={3}
+          />
+          <path
+            d="M16 13.6 H21.6 C21.6 18.4 19.2 21.4 16 23.2 C12.8 21.4 10.4 18.4 10.4 13.6"
+            stroke="#2dd4bf"
+            strokeWidth={2.6}
             strokeLinecap="round"
             strokeLinejoin="round"
-          >
-            <polyline points="20 6 9 17 4 12" />
-          </svg>
-        </div>
+            fill="none"
+          />
+        </svg>
         <span style={{ fontSize: 34, fontWeight: 600, color: "#ffffff", letterSpacing: -1 }}>Gatepass</span>
       </div>
 

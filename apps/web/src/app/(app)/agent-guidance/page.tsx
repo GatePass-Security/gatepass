@@ -24,7 +24,7 @@ import {
   CardTitle,
   CodeBlock,
   EmptyState,
-  ErrorState,
+  ErrorPanel,
   PageHeader,
   Select,
   Skeleton,
@@ -52,17 +52,17 @@ function scanOptionLabel(scan: ScanSummary): string {
 type Outcome =
   | { kind: "guidance"; fingerprint: string; guidance: { kind: string; content: string } }
   | { kind: "gated" }
-  | { kind: "error"; message: string };
+  | { kind: "error"; error: unknown };
 
 export default function AgentGuidancePage() {
   const router = useRouter();
 
   const [scans, setScans] = useState<ScanSummary[] | null>(null);
-  const [scansError, setScansError] = useState<string | null>(null);
+  const [scansError, setScansError] = useState<unknown>(null);
   const [scanId, setScanId] = useState("");
 
   const [findings, setFindings] = useState<Finding[] | null>(null);
-  const [findingsError, setFindingsError] = useState<string | null>(null);
+  const [findingsError, setFindingsError] = useState<unknown>(null);
   const [fingerprint, setFingerprint] = useState("");
 
   const [loading, setLoading] = useState(false);
@@ -79,7 +79,7 @@ export default function AgentGuidancePage() {
       setScans(sorted);
       setScanId((current) => current || (sorted[0]?.id ?? ""));
     } catch (err) {
-      setScansError(err instanceof Error ? err.message : "Could not load scans");
+      setScansError(err);
     }
   }, []);
 
@@ -102,7 +102,7 @@ export default function AgentGuidancePage() {
         if (!cancelled) setFindings(list);
       })
       .catch((err) => {
-        if (!cancelled) setFindingsError(err instanceof Error ? err.message : "Could not load findings");
+        if (!cancelled) setFindingsError(err);
       });
     return () => {
       cancelled = true;
@@ -122,7 +122,7 @@ export default function AgentGuidancePage() {
       // version matched on the word "Forbidden", which the API never sends —
       // the status code is the only reliable signal.
       if (err instanceof ApiError && err.status === 403) setOutcome({ kind: "gated" });
-      else setOutcome({ kind: "error", message: err instanceof Error ? err.message : "Could not fetch guidance" });
+      else setOutcome({ kind: "error", error: err });
     } finally {
       setLoading(false);
     }
@@ -147,7 +147,7 @@ export default function AgentGuidancePage() {
       </p>
 
       {scansError ? (
-        <ErrorState title="Could not load scans" message={scansError} onRetry={() => void loadScans()} />
+        <ErrorPanel error={scansError} context={{ action: "load scans" }} onRetry={() => void loadScans()} />
       ) : scans === null ? (
         <div className="space-y-2" aria-busy="true" aria-live="polite">
           <span className="sr-only">Loading scans</span>
@@ -176,7 +176,7 @@ export default function AgentGuidancePage() {
 
                 {findingsError ? (
                   <div className="mt-1.5">
-                    <ErrorState title="Could not load findings" message={findingsError} />
+                    <ErrorPanel error={findingsError} context={{ action: "load findings" }} />
                   </div>
                 ) : findings === null ? (
                   <div className="mt-1.5 space-y-2" aria-busy="true" aria-live="polite">
@@ -280,9 +280,9 @@ export default function AgentGuidancePage() {
               action={{ label: "Open settings", onClick: () => router.push("/settings") }}
             />
           ) : outcome?.kind === "error" ? (
-            <ErrorState
-              title="Could not fetch guidance"
-              message={outcome.message}
+            <ErrorPanel
+              error={outcome.error}
+              context={{ action: "fetch guidance" }}
               onRetry={() => void requestGuidance()}
             />
           ) : (

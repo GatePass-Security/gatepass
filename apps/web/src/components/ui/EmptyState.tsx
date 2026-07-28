@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
-import { Inbox } from "lucide-react";
+import { AlertTriangle, Clock, Inbox, Lock, SearchX, Settings2, WifiOff } from "lucide-react";
 import { Button } from "./Button";
+import { cx } from "@/lib/utils";
+import { explainError, type ErrorContext, type ErrorKind, type FriendlyError } from "@/lib/errors";
 
 interface EmptyStateProps {
   icon?: ReactNode;
@@ -33,25 +35,97 @@ export function EmptyState({ icon, title, description, action }: EmptyStateProps
   );
 }
 
-/** Consistent, non-alarming failure surface for a route that could not load. */
+/**
+ * Failure surface for a route or panel that could not load.
+ *
+ * Takes a `FriendlyError` rather than a string, so every failure in the product
+ * reads the same way: what happened, then what to do about it, with the API's
+ * raw message tucked into a disclosure instead of used as the headline.
+ *
+ * Not every failure is red. A missing GitHub App or a feature that is off for
+ * the org is a configuration gap, not a fault — painting those critical trains
+ * people to ignore the colour that means a scan actually broke.
+ */
+const KIND_STYLE: Record<ErrorKind, { frame: string; title: string; icon: ReactNode }> = {
+  offline: { frame: "border-medium-line bg-medium-soft", title: "text-medium", icon: <WifiOff size={16} /> },
+  timeout: { frame: "border-medium-line bg-medium-soft", title: "text-medium", icon: <Clock size={16} /> },
+  rateLimited: { frame: "border-medium-line bg-medium-soft", title: "text-medium", icon: <Clock size={16} /> },
+  unconfigured: { frame: "border-line-strong bg-raised", title: "text-fg", icon: <Settings2 size={16} /> },
+  notFound: { frame: "border-line-strong bg-raised", title: "text-fg", icon: <SearchX size={16} /> },
+  denied: { frame: "border-line-strong bg-raised", title: "text-fg", icon: <Lock size={16} /> },
+  invalid: { frame: "border-high-line bg-high-soft", title: "text-high", icon: <AlertTriangle size={16} /> },
+  server: { frame: "border-critical-line bg-critical-soft", title: "text-critical", icon: <AlertTriangle size={16} /> },
+  unknown: {
+    frame: "border-critical-line bg-critical-soft",
+    title: "text-critical",
+    icon: <AlertTriangle size={16} />,
+  },
+};
+
 export function ErrorState({
-  title = "Something went wrong",
-  message,
+  error,
   onRetry,
+  className = "",
 }: {
-  title?: string;
-  message: string;
+  error: FriendlyError;
   onRetry?: () => void;
+  className?: string;
 }) {
+  const style = KIND_STYLE[error.kind];
+
   return (
-    <div role="alert" className="rounded-[var(--radius-card)] border border-critical-line bg-critical-soft px-5 py-4">
-      <p className="text-[0.875rem] font-medium text-critical">{title}</p>
-      <p className="mt-1 text-[0.82rem] leading-relaxed text-fg-secondary">{message}</p>
-      {onRetry && (
-        <Button variant="secondary" size="sm" className="mt-3" onClick={onRetry}>
-          Try again
-        </Button>
-      )}
+    <div role="alert" className={cx("rounded-[var(--radius-card)] border px-5 py-4", style.frame, className)}>
+      <div className="flex items-start gap-3">
+        <span className={cx("mt-px shrink-0", style.title)} aria-hidden="true">
+          {style.icon}
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className={cx("text-[0.875rem] font-medium", style.title)}>{error.title}</p>
+          <p className="mt-1 text-[0.82rem] leading-relaxed text-fg-secondary">{error.detail}</p>
+          {error.action && <p className="mt-2 text-[0.82rem] leading-relaxed text-fg-secondary">{error.action}</p>}
+
+          {(onRetry || error.technical) && (
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              {onRetry && error.retryable && (
+                <Button variant="secondary" size="sm" onClick={onRetry}>
+                  Try again
+                </Button>
+              )}
+              {onRetry && !error.retryable && (
+                <Button variant="ghost" size="sm" onClick={onRetry}>
+                  Reload
+                </Button>
+              )}
+              {error.technical && (
+                <details className="min-w-0">
+                  <summary className="cursor-pointer text-[0.75rem] text-fg-muted transition-colors hover:text-fg">
+                    Technical detail
+                  </summary>
+                  <p className="mt-1.5 font-mono text-[0.72rem] break-words text-fg-muted">
+                    {error.status ? `${error.status} · ` : ""}
+                    {error.technical}
+                  </p>
+                </details>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
+}
+
+/** Convenience wrapper: interpret and render in one step. */
+export function ErrorPanel({
+  error,
+  context,
+  onRetry,
+  className,
+}: {
+  error: unknown;
+  context?: ErrorContext;
+  onRetry?: () => void;
+  className?: string;
+}) {
+  return <ErrorState error={explainError(error, context)} onRetry={onRetry} className={className} />;
 }

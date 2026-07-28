@@ -14,6 +14,10 @@ import type {
   CompliancePlatform,
   ComplianceScanRecord,
   RemoteScanResult,
+  GateConfig,
+  GateResult,
+  SessionInfo,
+  ApiStatus,
 } from "./types";
 import type { Finding } from "./types";
 import { ApiError } from "./types";
@@ -33,6 +37,13 @@ import { ApiError } from "./types";
  * `PATCH /orgs/:org/settings` was in the same broken set; rather than drop it,
  * the route was implemented (apps/api/src/server.ts), since the contract had
  * always specified it.
+ *
+ * Coverage: every route the router answers now has a method here, so no product
+ * capability is reachable by curl but not by the dashboard. The three that are
+ * not called from a page are `POST /v1/runner/results`, `POST /v1/benchmark/publish`
+ * and `POST /v1/webhooks/github` — all three are machine-to-machine, carry
+ * credentials the browser must never hold, and are surfaced on /system as
+ * configuration state instead.
  */
 class ApiClient {
   private base: string;
@@ -61,9 +72,19 @@ class ApiClient {
       clearTimeout(timeout);
     }
     if (!res.ok) {
-      if (res.status === 404) throw new ApiError(404, "Resource not found");
-      const body = (await res.json().catch(() => null)) as { error?: string } | null;
-      throw new ApiError(res.status, body?.error ?? `API error: ${res.statusText || res.status}`);
+      /*
+       * The API's own `error` string is preserved for every status, including
+       * 404. It used to be replaced with a flat "Resource not found", which
+       * discarded the one piece of information worth having — whether the org,
+       * the scan or the finding was the thing that was missing. `explainError`
+       * turns these into readable sentences; nothing renders them raw.
+       */
+      const body = (await res.json().catch(() => null)) as { error?: string; retryAfter?: number } | null;
+      throw new ApiError(
+        res.status,
+        body?.error ?? `The API answered ${res.status}${res.statusText ? ` ${res.statusText}` : ""}`,
+        body?.retryAfter,
+      );
     }
     if (res.status === 204) return undefined as T;
     return res.json() as Promise<T>;
@@ -76,6 +97,21 @@ class ApiClient {
       return res.ok;
     } catch {
       return false;
+    }
+  }
+
+  /**
+   * `GET /healthz` again, but for the body rather than the status code — it
+   * reports the service name, version, and the dashboard URL the API believes
+   * it is paired with. Null when the host does not answer.
+   */
+  async status(signal?: AbortSignal): Promise<ApiStatus | null> {
+    try {
+      const res = await fetch(`${this.base}/healthz`, { signal, cache: "no-store" });
+      if (!res.ok) return null;
+      return (await res.json()) as ApiStatus;
+    } catch {
+      return null;
     }
   }
 
@@ -149,6 +185,22 @@ class ApiClient {
   /** `GET /v1/scans/:id/findings.sarif` */
   getSarif(scanId: string): Promise<unknown> {
     return this.request(`/scans/${scanId}/findings.sarif`);
+  }
+
+  /**
+   * `POST /v1/scans/:id/gate` — run the CI merge gate against a completed scan.
+   *
+   * `evaluateGate` is a pure function over the scan's findings, so this answers
+   * "what would the gate have done?" without going near a pull request. That
+   * matters: the gate is the product's blocking decision and the constitution
+   * forbids writing to customer CI, so previewing it here is the only safe way
+   * to tune a policy before turning it on.
+   */
+  evaluateGate(scanId: string, config: GateConfig): Promise<GateResult> {
+    return this.request(`/scans/${scanId}/gate`, {
+      method: "POST",
+      body: JSON.stringify(config),
+    });
   }
 
   // === FINDINGS ===
@@ -234,6 +286,30 @@ class ApiClient {
       method: "POST",
       body: JSON.stringify(data),
     });
+  }
+
+  // === AUTH ===
+  /**
+   * `GET /v1/auth/github/login?state=` — the GitHub authorize URL to redirect to.
+   * Returns `{ url }` only when the API has OAuth credentials configured.
+   */
+  githubLoginUrl(state: string): Promise<{ url: string }> {
+    return this.request(`/auth/github/login?state=${encodeURIComponent(state)}`);
+  }
+
+  /**
+   * `GET /v1/auth/me` — resolve a session token. Returns null on 401 rather than
+   * throwing, because "no session" is the normal state for this dashboard: it
+   * currently addresses a fixed org (`ORG_ID`) and never signs anyone in.
+   */
+  async session(token: string): Promise<SessionInfo | null> {
+    try {
+      return await this.request<SessionInfo>("/auth/me", {
+        headers: { authorization: `Bearer ${token}` },
+      });
+    } catch {
+      return null;
+    }
   }
 }
 

@@ -80,6 +80,17 @@ Audited against the router on 2026-07-27:
 `POST /scans/:id/gate`, `POST /v1/runner/results`, `POST /v1/benchmark/publish`,
 `POST /orgs/:org/compliance/scan`, `GET /orgs/:org/compliance/results/:scanId`.
 
+**Dashboard coverage** (as of 2026-07-27): every route the router answers is now reachable from
+`apps/web`, so nothing is callable by curl and by nothing else. The previously-unreachable set
+was `POST /orgs/:org/scans` (local-path scan), `GET /scans/:id/findings.sarif`,
+`POST /scans/:id/gate`, `GET /orgs/:org/repos`, `GET /orgs/:org/evidence`,
+`POST /orgs/:org/evidence/export`, `POST /orgs/:org/questionnaires`, and both compliance routes.
+The three that remain machine-to-machine — `POST /v1/webhooks/github`, `POST /v1/runner/results`,
+`POST /v1/benchmark/publish` — carry credentials a browser must not hold, so `/system` reports
+their configuration state instead of offering to invoke them. It determines that by sending an
+unauthenticated request and reading which of the two fail-closed messages comes back, which
+writes nothing.
+
 `PATCH /orgs/:org/settings` was contract-only until 2026-07-27 and is now implemented for
 `llm_analysis_enabled` and `agent_loop_enabled` (org scope; unknown keys ignored, so plan
 tier and org id are not writable). Covered by `apps/api/test/org-settings.test.ts`.

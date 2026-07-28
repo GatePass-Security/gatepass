@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Building2, FolderGit2, Info } from "lucide-react";
 
 import { api } from "@/lib/api-client";
+import { errorToast } from "@/lib/errors";
 import { ORG_ID } from "@/lib/constants";
 import type { RepoRecord } from "@/lib/types";
 import { pluralize } from "@/lib/utils";
@@ -13,7 +14,7 @@ import {
   Card,
   CardTitle,
   EmptyState,
-  ErrorState,
+  ErrorPanel,
   PageHeader,
   PageSkeleton,
   Skeleton,
@@ -90,7 +91,7 @@ export default function SettingsPage() {
   const [pending, setPending] = useState<SettingKey | null>(null);
 
   const [repos, setRepos] = useState<RepoRecord[] | null>(null);
-  const [reposError, setReposError] = useState<string | null>(null);
+  const [reposError, setReposError] = useState<unknown>(null);
 
   const loadRepos = useCallback(async () => {
     setReposError(null);
@@ -98,7 +99,7 @@ export default function SettingsPage() {
     try {
       setRepos(await api.getRepos(ORG_ID));
     } catch (err) {
-      setReposError(err instanceof Error ? err.message : "Could not load repositories");
+      setReposError(err);
     }
   }, []);
 
@@ -129,7 +130,7 @@ export default function SettingsPage() {
       toast(`${label} ${next ? "enabled" : "disabled"}`, "success");
     } catch (err) {
       setWritten(previous);
-      toast(err instanceof Error ? err.message : `Could not update ${label.toLowerCase()}`, "error");
+      toast(errorToast(err, { action: `update ${label.toLowerCase()}` }), "error");
     } finally {
       setPending(null);
     }
@@ -141,9 +142,9 @@ export default function SettingsPage() {
     return (
       <div className="space-y-6">
         <PageHeader title="Settings" description={DESCRIPTION} />
-        <ErrorState
-          title="Could not load settings"
-          message={orgError ?? "The organization record is unavailable."}
+        <ErrorPanel
+          error={orgError ?? new Error("The organization record is unavailable.")}
+          context={{ subject: "organization", action: "load settings" }}
           onRetry={refetch}
         />
       </div>
@@ -190,7 +191,7 @@ export default function SettingsPage() {
       </Card>
 
       {reposError ? (
-        <ErrorState title="Could not load repositories" message={reposError} onRetry={() => void loadRepos()} />
+        <ErrorPanel error={reposError} context={{ action: "load repositories" }} onRetry={() => void loadRepos()} />
       ) : repos === null ? (
         <Card header={<CardTitle icon={<FolderGit2 size={15} />}>Repositories</CardTitle>}>
           <div className="space-y-2" aria-busy="true" aria-live="polite">
