@@ -24,12 +24,24 @@ async function main(): Promise<void> {
   }
   console.log("-".repeat(76));
   console.log(`Overall FP rate: ${(result.overallFpRate * 100).toFixed(1)}%  (target ≤ 10% — SC-001)`);
+  console.log(
+    `Remediation: ${result.applicableFixes} applicable edit(s), ${result.guidanceFixes} guidance-only ` +
+      `(FR-012 — a fix is only an "edit" when it can be applied as one)`,
+  );
 
   let failed = false;
 
   if (result.reproIssues.length > 0) {
     console.error(`\n✗ ${result.reproIssues.length} non-confirmable reproduction(s) (SC-002):`);
     for (const i of result.reproIssues) console.error(`  - ${i.caseId} [${i.fingerprint}]: ${i.reason}`);
+    failed = true;
+  }
+
+  // A suggested edit that does not apply cleanly to the fixture it came from would land in a
+  // customer's branch as a broken hunk, so it fails the gate exactly like a bad reproduction.
+  if (result.fixIssues.length > 0) {
+    console.error(`\n✗ ${result.fixIssues.length} inapplicable suggested fix(es) (FR-012):`);
+    for (const i of result.fixIssues) console.error(`  - ${i.caseId} [${i.fingerprint}]: ${i.reason}`);
     failed = true;
   }
 

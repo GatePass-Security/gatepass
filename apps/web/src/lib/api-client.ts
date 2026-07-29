@@ -1,4 +1,4 @@
-import { API_BASE } from "./constants";
+import { API_BASE, API_PROXY_BASE } from "./constants";
 import type {
   OrgRecord,
   RepoRecord,
@@ -14,9 +14,16 @@ import type {
   CompliancePlatform,
   ComplianceScanRecord,
   RemoteScanResult,
+  FixPullRequestResult,
   GateConfig,
   GateResult,
   SessionInfo,
+  Role,
+  OrgMembershipSummary,
+  AuthConfig,
+  AuthResult,
+  AvailableRepos,
+  RepoSettingsPatch,
   ApiStatus,
 } from "./types";
 import type { Finding } from "./types";
@@ -45,11 +52,30 @@ import { ApiError } from "./types";
  * credentials the browser must never hold, and are surfaced on /system as
  * configuration state instead.
  */
+/**
+ * Which host this client talks to.
+ *
+ * In the browser it is the same-origin proxy (`/api/gp`), which reads the `httpOnly` session
+ * cookie server-side and adds the bearer token. On the server it is the API directly, with the
+ * token passed in. Either way the token never exists in browser JavaScript — see
+ * `lib/session-cookie.ts` for why that constraint drove the design.
+ */
+function defaultBase(): string {
+  return typeof window === "undefined" ? API_BASE : API_PROXY_BASE;
+}
+
 class ApiClient {
   private base: string;
+  private token?: string;
 
-  constructor(base: string = API_BASE) {
+  constructor(base: string = defaultBase(), token?: string) {
     this.base = base;
+    this.token = token;
+  }
+
+  /** Authorization header, present only for a server-side client holding a session token. */
+  private auth(): Record<string, string> {
+    return this.token ? { authorization: `Bearer ${this.token}` } : {};
   }
 
   private async request<T>(path: string, options: RequestInit = {}): Promise<T> {
@@ -64,7 +90,7 @@ class ApiClient {
     let res: Response;
     try {
       res = await fetch(url, {
-        headers: { "content-type": "application/json", ...rest.headers },
+        headers: { "content-type": "application/json", ...this.auth(), ...rest.headers },
         ...rest,
         signal: controller.signal,
       });
@@ -121,15 +147,52 @@ class ApiClient {
     return this.request(`/orgs/${orgId}`);
   }
 
-  /** `GET /v1/orgs/:org/repos` */
+  // === REPOSITORIES ===
+  /** `GET /v1/orgs/:org/repos` — connected repositories. */
   getRepos(orgId: string): Promise<RepoRecord[]> {
     return this.request(`/orgs/${orgId}/repos`);
   }
 
-  /** `PATCH /v1/orgs/:org/settings` — org-scoped analysis toggles. */
+  /**
+   * `GET /v1/orgs/:org/repos/available` — repositories the Gatepass App installation can read
+   * that this org has not connected yet. `configured: false` means the deployment has no
+   * GitHub App, which is the normal case rather than an error.
+   */
+  getAvailableRepos(orgId: string): Promise<AvailableRepos> {
+    return this.request(`/orgs/${orgId}/repos/available`);
+  }
+
+  /** `POST /v1/orgs/:org/repos { repo }` — connect `owner/name`. A GitHub read, never a write. */
+  connectRepo(orgId: string, repo: string): Promise<RepoRecord> {
+    return this.request(`/orgs/${orgId}/repos`, { method: "POST", body: JSON.stringify({ repo }) });
+  }
+
+  /**
+   * `PATCH /v1/orgs/:org/repos/:repo` — per-repo gate settings. The repo name is a single
+   * URL-encoded segment because it contains a slash.
+   */
+  patchRepo(orgId: string, repo: string, settings: RepoSettingsPatch): Promise<RepoRecord> {
+    return this.request(`/orgs/${orgId}/repos/${encodeURIComponent(repo)}`, {
+      method: "PATCH",
+      body: JSON.stringify(settings),
+    });
+  }
+
+  /** `DELETE /v1/orgs/:org/repos/:repo` — disconnect. Scans already recorded are kept. */
+  disconnectRepo(orgId: string, repo: string): Promise<{ ok: boolean; disconnected: string }> {
+    return this.request(`/orgs/${orgId}/repos/${encodeURIComponent(repo)}`, { method: "DELETE" });
+  }
+
+  /**
+   * `PATCH /v1/orgs/:org/settings` — org-scoped toggles.
+   *
+   * `fix_pr_enabled` is the org's opt-in for `openFixPullRequest` below. It is a
+   * setting rather than a plan feature because it governs whether Gatepass may
+   * write to a repository at all, which is a decision the org owns.
+   */
   patchOrgSettings(
     orgId: string,
-    settings: Partial<{ llm_analysis_enabled: boolean; agent_loop_enabled: boolean }>,
+    settings: Partial<{ llm_analysis_enabled: boolean; agent_loop_enabled: boolean; fix_pr_enabled: boolean }>,
   ): Promise<OrgRecord> {
     return this.request(`/orgs/${orgId}/settings`, {
       method: "PATCH",
@@ -157,7 +220,7 @@ class ApiClient {
     try {
       const res = await fetch(`${this.base}/v1/orgs/${orgId}/scan-remote`, {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: { "content-type": "application/json", ...this.auth() },
         body: JSON.stringify(ref ? { repo, ref } : { repo }),
         signal: controller.signal,
       });
@@ -201,6 +264,49 @@ class ApiClient {
       method: "POST",
       body: JSON.stringify(config),
     });
+  }
+
+  /**
+   * `POST /v1/orgs/:org/scans/:id/fix-pr` — open a pull request carrying this
+   * scan's applicable fixes.
+   *
+   * The one route in this client that writes to a customer repository, and the
+   * only one that may only be reached from an explicit human action: it creates
+   * a new branch, never the default one, never CI configuration, and never
+   * merges. Those guarantees live in `FixPullRequestOpener`, not here.
+   *
+   * Creating a branch, committing and opening the PR is several round trips to
+   * GitHub, which can exceed the shared 10s budget, so — like `scanRemoteRepo`
+   * — this opts out of it and carries its own longer timeout.
+   */
+  async openFixPullRequest(
+    orgId: string,
+    scanId: string,
+    body: { fingerprints?: string[]; base?: string; requestedBy?: string } = {},
+  ): Promise<FixPullRequestResult> {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 60_000);
+    try {
+      const res = await fetch(`${this.base}/v1/orgs/${orgId}/scans/${scanId}/fix-pr`, {
+        method: "POST",
+        // `this.auth()` is what every other call carries; omitting it here made this route —
+        // the one the API guards at `admin` — answer 401 for a signed-in user. Any method
+        // that opts out of `request()` for its own timeout has to re-add it by hand.
+        headers: { "content-type": "application/json", ...this.auth() },
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      });
+      if (!res.ok) {
+        // The API's own message is preserved verbatim — `explainError` maps every
+        // failure this route produces (not opted in, no applicable fix, branch
+        // exists, no GitHub repo, CI-config-only, not configured) onto a sentence.
+        const err = (await res.json().catch(() => null)) as { error?: string } | null;
+        throw new ApiError(res.status, err?.error ?? `Opening the fix pull request failed (${res.status})`);
+      }
+      return (await res.json()) as FixPullRequestResult;
+    } finally {
+      clearTimeout(timeout);
+    }
   }
 
   // === FINDINGS ===
@@ -290,6 +396,16 @@ class ApiClient {
 
   // === AUTH ===
   /**
+   * `GET /v1/auth/config` — which sign-in doors this deployment actually has.
+   *
+   * The login page renders from this rather than assuming GitHub is configured, so a machine
+   * with no OAuth app shows the path that works instead of a button that dead-ends.
+   */
+  authConfig(signal?: AbortSignal): Promise<AuthConfig> {
+    return this.request("/auth/config", signal ? { signal } : {});
+  }
+
+  /**
    * `GET /v1/auth/github/login?state=` — the GitHub authorize URL to redirect to.
    * Returns `{ url }` only when the API has OAuth credentials configured.
    */
@@ -297,18 +413,85 @@ class ApiClient {
     return this.request(`/auth/github/login?state=${encodeURIComponent(state)}`);
   }
 
+  /** `POST /v1/auth/github/callback { code }` — exchange the code for a session token. */
+  githubCallback(code: string): Promise<AuthResult> {
+    return this.request("/auth/github/callback", { method: "POST", body: JSON.stringify({ code }) });
+  }
+
   /**
-   * `GET /v1/auth/me` — resolve a session token. Returns null on 401 rather than
-   * throwing, because "no session" is the normal state for this dashboard: it
-   * currently addresses a fixed org (`ORG_ID`) and never signs anyone in.
+   * `POST /v1/auth/signout` — withdraw the bearer token this client is carrying.
+   *
+   * Idempotent, and never throws on an already-invalid token: signing out is the one operation
+   * that must not fail in a way that leaves someone still signed in.
+   */
+  signOut(): Promise<{ ok: true; revoked: boolean }> {
+    return this.request("/auth/signout", { method: "POST" });
+  }
+
+  /**
+   * `GET /v1/auth/me` — the session's claims plus every org this GitHub account reaches.
+   *
+   * The org list is resolved live rather than read from the token, so an org somebody was
+   * added to this morning appears without them signing in again, and one they were removed
+   * from disappears.
+   */
+  authMe(): Promise<SessionInfo> {
+    return this.request("/auth/me");
+  }
+
+  /**
+   * `POST /v1/auth/switch-org { orgId }` — a fresh token for another org the same account
+   * reaches. The API verifies the target against a live grant, so this cannot be used to reach
+   * a tenant the account does not belong to.
+   */
+  switchOrg(orgId: string): Promise<{ token: string; orgId: string; role: Role }> {
+    return this.request("/auth/switch-org", { method: "POST", body: JSON.stringify({ orgId }) });
+  }
+
+  /**
+   * `POST /v1/auth/password { login, password }` — local account sign-in.
+   *
+   * Server-side only: this is called from the Route Handler that receives the form POST, so the
+   * password never enters client JavaScript. A 401 is the single refusal for both "no such
+   * account" and "wrong password"; a 429 means the attempt limiter is holding the door.
+   */
+  passwordSignIn(login: string, password: string): Promise<AuthResult> {
+    return this.request("/auth/password", { method: "POST", body: JSON.stringify({ login, password }) });
+  }
+
+  /**
+   * `POST /v1/auth/github/link { code }` — attach a GitHub account to the session this client
+   * is carrying. The API takes the account to link from the session, never from the body.
+   */
+  linkGitHub(code: string): Promise<{ linked: { id: number; login: string }; orgs: OrgMembershipSummary[] }> {
+    return this.request("/auth/github/link", { method: "POST", body: JSON.stringify({ code }) });
+  }
+
+  /** `POST /v1/auth/dev-session` — local development only; 403 anywhere it is not enabled. */
+  devSession(login?: string): Promise<AuthResult> {
+    return this.request("/auth/dev-session", { method: "POST", body: JSON.stringify(login ? { login } : {}) });
+  }
+
+  /**
+   * `GET /v1/auth/me` — resolve a session token. Returns null on **401 only**, because "this
+   * cookie is no longer good" is an ordinary answer the caller acts on by sending the user to
+   * sign in, not an exception.
+   *
+   * Everything else throws. This used to swallow every failure into `null`, which made a
+   * network blip or the client's own 10-second timeout indistinguishable from a refusal — so a
+   * momentarily unreachable API signed people out, and the caller had no way to tell "your
+   * session ended" from "we could not ask". Those need different answers: one clears the
+   * cookie and shows the login page, the other must leave the cookie alone and say the API is
+   * down, because clearing it would turn a brief outage into everybody signing in again.
    */
   async session(token: string): Promise<SessionInfo | null> {
     try {
       return await this.request<SessionInfo>("/auth/me", {
         headers: { authorization: `Bearer ${token}` },
       });
-    } catch {
-      return null;
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 401) return null;
+      throw err;
     }
   }
 }

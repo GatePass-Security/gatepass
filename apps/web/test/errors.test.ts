@@ -25,6 +25,15 @@ const API_MESSAGES = {
   noVantaToken: "no vanta API token configured",
   // packages/shared/src/plan-tier.ts
   planTier: 'Feature "fleet" requires a higher plan than "free"',
+  // POST /v1/orgs/demo/scan-remote {"repo":"acme/private"} with no GitHub App configured
+  publicOnly404:
+    "acme/private was not found. Anonymous access can only reach public repositories — configure the Gatepass GitHub App to scan private ones.",
+  // The same route once GitHub's 60/hour anonymous quota is spent
+  anonRateLimit:
+    "GitHub's anonymous rate limit is exhausted (60 requests/hour per IP). Configure the Gatepass GitHub App to raise it.",
+  // POST /v1/orgs/demo/scan-remote for a repo the installed App was not given
+  notInstalled:
+    "acme/app is not visible to this Gatepass installation. Install the Gatepass GitHub App on it, or check the name.",
 } as const;
 
 describe("explainError — messages this API genuinely produces", () => {
@@ -124,5 +133,61 @@ describe("explainError — fallbacks", () => {
     const line = errorToast(new ApiError(500, API_MESSAGES.noRepoFetcher));
     expect(line).not.toContain("\n");
     expect(line.length).toBeGreaterThan(0);
+  });
+});
+
+/**
+ * Anonymous clone-and-scan turns one HTTP status into three unrelated situations, and the
+ * status alone gets all three wrong: 404 usually means "private", and 403 usually means "quota",
+ * not "denied". These three rules are the whole reason the API's messages are worded the way
+ * they are, so they are worth pinning.
+ */
+describe("explainError — anonymous clone-and-scan refusals", () => {
+  it("says a 404 may mean private, not missing — and names the repo", () => {
+    const e = explainError(new ApiError(500, API_MESSAGES.publicOnly404));
+    expect(e.title).toContain("acme/private");
+    // The trap this rule exists to avoid: sending someone to check their spelling when the
+    // real answer is that Gatepass was never granted access.
+    expect(e.detail).toMatch(/private/i);
+    expect(e.action).toMatch(/GITHUB_APP_ID/);
+    expect(e.retryable).toBe(false);
+  });
+
+  it("reads an exhausted quota as a quota, and as retryable", () => {
+    const e = explainError(new ApiError(500, API_MESSAGES.anonRateLimit));
+    expect(e.kind).toBe("unconfigured");
+    // 403 would otherwise render as a permissions problem, which it is not.
+    expect(e.title).not.toMatch(/denied|forbidden|permission/i);
+    expect(e.retryable).toBe(true);
+  });
+
+  it("distinguishes 'the App cannot see it' from 'it does not exist'", () => {
+    const e = explainError(new ApiError(500, API_MESSAGES.notInstalled));
+    expect(e.kind).toBe("denied");
+    expect(e.title).toContain("acme/app");
+    expect(e.action).toMatch(/install/i);
+  });
+});
+
+describe("explainError — a capability this deployment does not have", () => {
+  /*
+   * 501 lives in the 5xx range but is not a fault: the API is telling us an operator has not
+   * configured something. Falling through to the generic 5xx branch would style it red and
+   * offer "Try again", and retrying a missing credential never once succeeds.
+   */
+  it("reads a bare 501 as configuration rather than failure", () => {
+    // Deliberately a message no PATTERN rule matches, so this exercises the status branch
+    // itself rather than a specific rule that would have produced the same answer anyway.
+    const e = explainError(new ApiError(501, "capability xyzzy is unavailable here"));
+    expect(e.kind).toBe("unconfigured");
+    expect(e.retryable).toBe(false);
+    expect(e.title).not.toMatch(/error|wrong|failed/i);
+  });
+
+  it("still prefers a specific message rule over the status", () => {
+    const e = explainError(new ApiError(501, "fix pull requests are not configured on this deployment"));
+    expect(e.kind).toBe("unconfigured");
+    // The specific rule names the feature; the generic 501 branch could not.
+    expect(e.title.toLowerCase()).toContain("pull request");
   });
 });

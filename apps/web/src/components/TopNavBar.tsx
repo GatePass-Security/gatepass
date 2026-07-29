@@ -2,11 +2,13 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Search, ScanLine } from "lucide-react";
+import { Search, ScanLine, LogOut, TerminalSquare } from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle";
 import { ScanRepoDialog } from "./ScanRepoDialog";
+import { OrgSwitcher } from "./OrgSwitcher";
 import { Button } from "./ui/Button";
 import { api } from "@/lib/api-client";
+import { useSession } from "@/providers/SessionProvider";
 import { cx } from "@/lib/utils";
 
 /** Polls the API's liveness probe. The free-tier API sleeps after 15 minutes
@@ -41,6 +43,54 @@ function ApiStatus() {
       />
       <span aria-live="polite">{label}</span>
     </span>
+  );
+}
+
+/**
+ * Who you are signed in as, and the way out.
+ *
+ * The role is shown, not just the name: what this dashboard will let you do depends on it
+ * (`packages/shared/src/roles.ts`), and a viewer discovering that only when a button 403s has
+ * been told the wrong thing by the interface.
+ *
+ * Sign-out is a real `POST` form rather than a link. A GET sign-out can be fired by any image
+ * tag on any page, which makes logging someone out something a third party can do to them.
+ */
+function SessionChip() {
+  const session = useSession();
+
+  return (
+    <div className="flex shrink-0 items-center gap-2">
+      <OrgSwitcher />
+
+      {session.development && (
+        <span
+          className="hidden items-center gap-1.5 rounded-full border border-medium-line bg-medium-soft px-2.5 py-1 text-[0.7rem] font-medium text-medium sm:inline-flex"
+          title="Signed in through the local development sign-in — no GitHub identity was verified. Disabled when NODE_ENV=production."
+        >
+          <TerminalSquare size={11} aria-hidden="true" />
+          Dev session
+        </span>
+      )}
+
+      <span className="hidden min-w-0 flex-col items-end leading-none lg:flex">
+        <span className="max-w-[10rem] truncate text-[0.78rem] font-medium text-fg">{session.login}</span>
+        <span className="mt-1 text-[0.68rem] text-fg-muted">
+          {session.orgId} · {session.role}
+        </span>
+      </span>
+
+      <form method="POST" action="/api/auth/signout">
+        <button
+          type="submit"
+          aria-label={`Sign out ${session.login}`}
+          title="Sign out"
+          className="inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-full text-fg-muted transition-colors duration-150 hover:bg-raised hover:text-fg"
+        >
+          <LogOut size={16} aria-hidden="true" />
+        </button>
+      </form>
+    </div>
   );
 }
 
@@ -90,6 +140,8 @@ export function TopNavBar() {
             <span className="hidden sm:inline">Scan a repo</span>
             <span className="sm:hidden">Scan</span>
           </Button>
+          <span className="h-6 w-px bg-line" aria-hidden="true" />
+          <SessionChip />
         </div>
       </header>
 

@@ -34,10 +34,68 @@ export const reproductionSchema = z.object({
 });
 export type Reproduction = z.infer<typeof reproductionSchema>;
 
-export const suggestedFixSchema = z.object({
-  kind: z.enum(["diff", "agent_guidance"]),
-  content: z.string().min(1),
-});
+/**
+ * The operations a suggested fix may describe. Deliberately a one-member enum rather than a
+ * bare flag: it names the semantics at the wire level and leaves room for a future
+ * `"replace"` without a breaking schema change.
+ *
+ * `insert_after` — `insertedLines` is inserted immediately AFTER `endLine`. Nothing is
+ * removed. This is the only operation Gatepass emits today, and it is chosen on purpose:
+ * a replacement would have to carry a verbatim copy of the customer's own source in order
+ * to be applied, and the findings document must never become a channel for source code
+ * (contract rule 6 / runner-protocol guard). An insertion needs only generated text.
+ */
+export const FIX_OPERATIONS = ["insert_after"] as const;
+export type FixOperation = (typeof FIX_OPERATIONS)[number];
+
+/**
+ * An applicable edit: an exact anchor range in one file plus the literal lines to add.
+ * Consumers (PR suggestion builder, fix-PR opener, dashboard) can apply this mechanically;
+ * nothing here is prose. Anything that cannot be expressed this way MUST ship as
+ * `agent_guidance` instead — see `suggestedFixSchema`.
+ */
+export const fixEditSchema = z
+  .object({
+    path: z.string().min(1),
+    /** 1-indexed, inclusive anchor range — the statement/expression the fix attaches to. */
+    startLine: z.number().int().positive(),
+    endLine: z.number().int().positive(),
+    operation: z.enum(FIX_OPERATIONS).default("insert_after"),
+    /** Literal lines to insert. Generated text only — never a copy of customer source. */
+    insertedLines: z.string().min(1),
+  })
+  .refine((e) => e.endLine >= e.startLine, {
+    message: "fix edit endLine must be >= startLine",
+    path: ["endLine"],
+  });
+export type FixEdit = z.infer<typeof fixEditSchema>;
+
+/**
+ * A suggested fix (FR-012). Advisory only — Gatepass never applies one without a human
+ * asking for it, and never without review (Constitution Principle III).
+ *
+ * The two kinds are not interchangeable, and the schema enforces which is which:
+ *
+ * - `diff` MUST carry an `edit`. A `diff` is rendered as a GitHub ```suggestion``` block,
+ *   which a reviewer applies with one click and no further reading — so a `diff` whose
+ *   payload is prose, a comment, or a placeholder value would silently corrupt the file it
+ *   claims to fix. `content` remains the human-readable rationale shown beside the edit.
+ * - `agent_guidance` MUST NOT carry an `edit`. It is prose for a developer (or their own
+ *   coding agent) to act on, used wherever a correct fix needs a value only a human can
+ *   choose (an allow-listed origin, a pinned version, an RLS predicate) or is not an edit
+ *   at all (rotating a leaked credential).
+ */
+export const suggestedFixSchema = z
+  .object({
+    kind: z.enum(["diff", "agent_guidance"]),
+    content: z.string().min(1),
+    edit: fixEditSchema.optional(),
+  })
+  .refine((f) => (f.kind === "diff") === (f.edit !== undefined), {
+    message: 'suggestedFix kind "diff" requires an edit, and an edit requires kind "diff"',
+    path: ["edit"],
+  });
+export type SuggestedFix = z.infer<typeof suggestedFixSchema>;
 
 const findingBase = z.object({
   fingerprint: z.string().min(1),

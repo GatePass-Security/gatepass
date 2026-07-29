@@ -18,6 +18,7 @@ import {
   FolderGit2,
   ShieldCheck,
   ServerCog,
+  Target,
 } from "lucide-react";
 import { useOrg } from "@/providers/OrgProvider";
 import { useEffect, useState } from "react";
@@ -66,6 +67,9 @@ const NAV_GROUPS: readonly NavGroup[] = [
       { href: "/compliance", label: "Compliance", icon: FileCheck },
       { href: "/evidence", label: "Evidence", icon: ShieldCheck },
       { href: "/benchmark", label: "Benchmark", icon: BarChart3 },
+      // Not an analysis surface — it is the page for somebody evaluating whether this product
+      // does what it says, which is a different question from "what is wrong with my code".
+      { href: "/proof", label: "Proof", icon: Target },
     ],
   },
   {

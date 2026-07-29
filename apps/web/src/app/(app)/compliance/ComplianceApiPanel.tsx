@@ -4,7 +4,7 @@ import { useState } from "react";
 import { PlayCircle, Server } from "lucide-react";
 import type { ComplianceDomain, ComplianceResult } from "@gatepass/compliance";
 import { api } from "@/lib/api-client";
-import { ORG_ID } from "@/lib/constants";
+import { useOrgId } from "@/providers/SessionProvider";
 import { Badge, Button, Card, CardTitle, ErrorState, Input, useToast } from "@/components/ui";
 import { explainError, type FriendlyError } from "@/lib/errors";
 import { formatDate, pluralize } from "@/lib/utils";
@@ -36,6 +36,7 @@ function asResult(value: unknown): ComplianceResult | null {
 }
 
 export function ComplianceApiPanel() {
+  const orgId = useOrgId();
   const { toast } = useToast();
   const [repoPath, setRepoPath] = useState("");
   const [busy, setBusy] = useState(false);
@@ -50,7 +51,7 @@ export function ComplianceApiPanel() {
     setError(null);
     setResult(null);
     try {
-      const record = await api.complianceScan(ORG_ID, target);
+      const record = await api.complianceScan(orgId, target);
       const parsed = asResult(record.result);
       if (!parsed) {
         // A stored record whose payload is not a ComplianceResult is a real
@@ -74,7 +75,7 @@ export function ComplianceApiPanel() {
     setBusy(true);
     setError(null);
     try {
-      const record = await api.complianceResult(ORG_ID, scanId);
+      const record = await api.complianceResult(orgId, scanId);
       const parsed = asResult(record.result);
       if (parsed) setResult(parsed);
       else setError(explainError(new Error("The stored record could not be read.")));

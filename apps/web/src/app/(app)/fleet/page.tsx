@@ -13,7 +13,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { api } from "@/lib/api-client";
-import { ORG_ID } from "@/lib/constants";
+import { useOrgId } from "@/providers/SessionProvider";
 import type { FleetPosture, FleetServer, FleetView } from "@/lib/types";
 import {
   Badge,
@@ -53,6 +53,7 @@ function shareOfFleet(count: number, total: number): string | undefined {
 }
 
 export default function FleetPage() {
+  const orgId = useOrgId();
   const [data, setData] = useState<FleetView | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<unknown>(null);
@@ -69,14 +70,14 @@ export default function FleetPage() {
   const loadFleet = useCallback(async () => {
     setLoading(true);
     try {
-      setData(await api.getFleet(ORG_ID));
+      setData(await api.getFleet(orgId));
       setError(null);
     } catch (e) {
       setError(e);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [orgId]);
 
   useEffect(() => {
     void loadFleet();
@@ -87,7 +88,7 @@ export default function FleetPage() {
     setRegistering(true);
     setRegisterError(null);
     try {
-      const created = await api.registerFleetServer(ORG_ID, form);
+      const created = await api.registerFleetServer(orgId, form);
       toast(`Registered ${created.name}`, "success");
       setForm(EMPTY_FORM);
       setShowForm(false);

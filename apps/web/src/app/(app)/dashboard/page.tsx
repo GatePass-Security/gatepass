@@ -18,7 +18,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { api } from "@/lib/api-client";
-import { ORG_ID } from "@/lib/constants";
+import { useOrgId } from "@/providers/SessionProvider";
 import type { Finding, FleetView, RepoRecord, ScanSummary } from "@/lib/types";
 import {
   SEVERITY_ORDER,
@@ -141,6 +141,7 @@ function describeScan(scan: ScanSummary, index: number): string {
 }
 
 export default function OverviewPage() {
+  const orgId = useOrgId();
   const [data, setData] = useState<Overview | null>(null);
   const [status, setStatus] = useState<Status>("loading");
   const [failure, setFailure] = useState<unknown>(null);
@@ -148,8 +149,8 @@ export default function OverviewPage() {
   const load = useCallback(async () => {
     setStatus("loading");
     try {
-      await api.getOrg(ORG_ID);
-      const scans = await api.listScans(ORG_ID);
+      await api.getOrg(orgId);
+      const scans = await api.listScans(orgId);
       // Newest first — "the latest scan" everything below refers to is scans[0].
       const sorted = [...scans].sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""));
       const latest = sorted[0];
@@ -157,8 +158,8 @@ export default function OverviewPage() {
       // still render an overview rather than an error.
       const [latestFindings, fleet, repos] = await Promise.all([
         latest ? api.getFindings(latest.id) : Promise.resolve([]),
-        api.getFleet(ORG_ID).catch(() => undefined),
-        api.getRepos(ORG_ID).catch(() => []),
+        api.getFleet(orgId).catch(() => undefined),
+        api.getRepos(orgId).catch(() => []),
       ]);
       setData({ scans: sorted, latestFindings, latestRepo: latest?.repo, fleet, repos });
       setStatus("ready");
@@ -166,7 +167,7 @@ export default function OverviewPage() {
       setFailure(err);
       setStatus("unreachable");
     }
-  }, []);
+  }, [orgId]);
 
   useEffect(() => {
     void load();

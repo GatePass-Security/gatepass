@@ -9,6 +9,17 @@ import { lineAtIndex } from "@gatepass/engine";
 
 const CREATE_TABLE = /create\s+table\s+(?:if\s+not\s+exists\s+)?["`]?(\w+)["`]?/gi;
 
+/**
+ * Row-level security is a PostgreSQL feature. MySQL and SQLite have no such thing, so "this
+ * table has no RLS policy" is not a gap there — it is a category error, and it asks a team to
+ * add a statement their database will reject.
+ *
+ * Backtick-quoted identifiers and MySQL/SQLite-only clauses are the reliable tell. Observed on
+ * sst/opencode, whose SQLite migrations produced dozens of findings that no reader could act on.
+ */
+const NON_POSTGRES_DIALECT =
+  /`\w+`|\bAUTO_INCREMENT\b|\bENGINE\s*=\s*InnoDB\b|\bAUTOINCREMENT\b|\bPRAGMA\s+\w|\bunsigned\b|\bTINYINT\b|\bDATETIME\(\d\)/i;
+
 function hasRlsFor(content: string, table: string): boolean {
   const enable = new RegExp(`alter\\s+table\\s+["\`]?${table}["\`]?\\s+enable\\s+row\\s+level\\s+security`, "i");
   const policy = new RegExp(`create\\s+policy[\\s\\S]{0,200}?on\\s+["\`]?${table}["\`]?`, "i");
@@ -22,6 +33,7 @@ export const rlsGapDetector: Detector = {
     const findings: DetectorFinding[] = [];
     for (const file of ctx.files) {
       if (!/\.sql$/i.test(file.relPath)) continue;
+      if (NON_POSTGRES_DIALECT.test(file.content)) continue;
       CREATE_TABLE.lastIndex = 0;
       let m: RegExpExecArray | null;
       while ((m = CREATE_TABLE.exec(file.content)) !== null) {

@@ -74,14 +74,14 @@ describe("verifyHmac", () => {
 
 describe("redactForLog", () => {
   it("redacts AWS access keys (AKIA...)", () => {
-    const result = redactForLog("AKIAIOSFODNN7EXAMPLE");
+    const result = redactForLog("AKIA3M7QZKPBW4NVXR2T");
     expect(result).toBe("«AWS_KEY»");
   });
 
   it("redacts AWS keys embedded in text", () => {
-    const result = redactForLog('key="AKIAIOSFODNN7EXAMPLE", region="us-east-1"');
+    const result = redactForLog('key="AKIA3M7QZKPBW4NVXR2T", region="us-east-1"');
     expect(result).toContain("«AWS_KEY»");
-    expect(result).not.toContain("AKIAIOSFODNN7EXAMPLE");
+    expect(result).not.toContain("AKIA3M7QZKPBW4NVXR2T");
   });
 
   it("redacts Anthropic API keys (sk-ant-...)", () => {

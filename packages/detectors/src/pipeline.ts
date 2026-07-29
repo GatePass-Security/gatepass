@@ -1,6 +1,13 @@
 import { createHash } from "node:crypto";
 import type { Detector, DetectorFinding, ScanContext } from "@gatepass/engine";
-import { parseFinding, assertRedacted, type Finding, type FindingsDocument } from "@gatepass/findings";
+import {
+  parseFinding,
+  assertRedacted,
+  assertFixRedacted,
+  type Finding,
+  type FindingsDocument,
+} from "@gatepass/findings";
+import { generateSuggestedFix, fixSourceFrom } from "./fixes.js";
 import { LlmGateway, analyzeSemantic } from "@gatepass/semantic";
 import { exposedSecretDetector } from "./exposed-secret.js";
 import { unauthMcpTransportDetector } from "./unauth-mcp-transport.js";
@@ -46,15 +53,23 @@ export interface RunScanOptions {
   detectors?: Detector[];
   /** When false, research-tier detectors are skipped (LLM disabled — FR-011a). */
   semanticEnabled?: boolean;
+  /**
+   * When false, findings carry no `suggestedFix`. Fix generation is a pure function of the
+   * finding and the scanned source, so this exists for callers that only want the detection
+   * result (the corpus harness measures detection, not remediation) — not as a safety valve.
+   */
+  suggestFixes?: boolean;
 }
 
 /**
  * Run the scan pipeline over a context. Every emitted finding is:
  *  - assigned a stable fingerprint,
  *  - redaction-checked (verified tier),
+ *  - given its suggested fix, derived from the source the finding points at (FR-012),
  *  - validated through the canonical schema (tier integrity enforced or it throws).
  * Output is deterministic for a given (ruleset, context) — the basis of hosted/runner
- * parity (FR-006a).
+ * parity (FR-006a). Fix generation is pure over (finding, source), so it does not weaken
+ * that: the same inputs still produce a byte-identical document.
  */
 export function runScan(ctx: ScanContext, opts: RunScanOptions): FindingsDocument {
   const detectors = (opts.detectors ?? DEFAULT_DETECTORS).filter(
@@ -63,6 +78,9 @@ export function runScan(ctx: ScanContext, opts: RunScanOptions): FindingsDocumen
 
   const findings: Finding[] = [];
   const seen = new Set<string>();
+  // Fixes are generated from the same in-memory files the detectors read — the scan never
+  // goes back to disk, and no source outlives the context.
+  const source = fixSourceFrom(new Map(ctx.files.map((f) => [f.relPath, f.content])));
 
   for (const detector of detectors) {
     for (const raw of detector.run(ctx)) {
@@ -74,7 +92,13 @@ export function runScan(ctx: ScanContext, opts: RunScanOptions): FindingsDocumen
         assertRedacted(raw.reproduction, raw.rawSecrets);
       }
       const { rawSecrets: _rawSecrets, ...findingData } = raw;
-      findings.push(parseFinding({ ...findingData, fingerprint: fp }));
+      // Parse first so fix generation only ever sees a schema-valid finding, then parse
+      // again with the fix attached so the fix itself is validated (a `diff` without an
+      // applicable edit cannot enter the document).
+      const parsed = parseFinding({ ...findingData, fingerprint: fp });
+      const fix = opts.suggestFixes === false ? undefined : generateSuggestedFix(parsed, source);
+      if (fix && raw.rawSecrets?.length) assertFixRedacted(fix, raw.rawSecrets);
+      findings.push(fix ? parseFinding({ ...parsed, suggestedFix: fix }) : parsed);
     }
   }
 

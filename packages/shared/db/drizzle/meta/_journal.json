@@ -15,6 +15,27 @@
       "when": 1784856503286,
       "tag": "0001_compliance",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1785180000000,
+      "tag": "0002_repo_connect",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1785280000000,
+      "tag": "0003_session_revocation",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1785380000000,
+      "tag": "0004_github_access",
+      "breakpoints": true
     }
   ]
 }

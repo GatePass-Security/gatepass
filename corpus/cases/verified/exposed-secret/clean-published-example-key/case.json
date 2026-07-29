@@ -1,0 +1,7 @@
+{
+  "id": "verified/exposed-secret/clean-published-example-key",
+  "classId": "exposed-secret",
+  "label": "clean",
+  "public": true,
+  "note": "AWS's own documented example access key, in a test, annotated as a deliberate fixture. Observed on awslabs/mcp, where it accounted for 58 findings in one repository."
+}

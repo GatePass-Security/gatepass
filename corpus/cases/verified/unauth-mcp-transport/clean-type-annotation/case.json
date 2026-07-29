@@ -1,0 +1,7 @@
+{
+  "id": "verified/unauth-mcp-transport/clean-type-annotation",
+  "classId": "unauth-mcp-transport",
+  "label": "clean",
+  "public": true,
+  "note": "A TypeScript parameter type and an options field named `transport`. Declares a shape, binds nothing. Observed on mongodb-js/mongodb-mcp-server and GLips/Figma-Context-MCP."
+}

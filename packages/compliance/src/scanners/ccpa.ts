@@ -2,13 +2,7 @@ import type { ScanContext } from "@gatepass/engine";
 import type { ComplianceCheck } from "../compliance-schema.js";
 import { registerScanner, makeCheck } from "../compliance-scanner.js";
 import type { DomainScanner } from "../compliance-scanner.js";
-import {
-  combineFiles,
-  complianceRelevantFiles,
-  resolveLocations,
-  REPO_WIDE,
-  type CombinedSource,
-} from "../source-map.js";
+import { combineFiles, complianceRelevantFiles, resolveLocations, REPO_WIDE } from "../source-map.js";
 
 /**
  * CCPA/CPRA compliance scanner.
@@ -25,7 +19,6 @@ import {
 
 const GPC_HEADER_RE = /Sec-GPC|globalPrivacyControl|navigator\.globalPrivacyControl/gi;
 const GPC_WELL_KNOWN_RE = /\.well-known\/gpc\.json|gpc\.json/gi;
-const DO_NOT_SELL_RE = /(do\s*not\s*(sell|share)|don['']t\s*sell|opt.*out.*sale|your\s*privacy\s*rights|ccpa)/gi;
 const DSAR_RE =
   /(data\s*(deletion|subject|access|request)|dsar|right\s*to\s*(delete|be\s*forgotten|access)|deletion.*(request|workflow)|\/delete.*account|account.*deletion)/gi;
 const PRIVACY_POLICY_RE = /(privacy(\s*policy|\s*notice)?|privacy\.md|privacy\.html)/gi;

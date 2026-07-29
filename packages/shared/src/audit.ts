@@ -1,12 +1,20 @@
 /**
  * Audited outbound writer (Constitution Principle III, SC-005). EVERY external write — PR
- * comment, check run, evidence push — must go through this writer, which records an
- * append-only AuditEvent. There is deliberately no method here that writes to customer code
- * or CI: the only capabilities are "comment", "check", "evidence", "questionnaire". This is
- * the structural proof behind "zero repo mutations".
+ * comment, check run, evidence push, suggested-fix pull request — must go through this
+ * writer, which records an append-only AuditEvent.
+ *
+ * `fix_pr` is the one action that touches a customer repository's contents, and it exists
+ * under a deliberately narrow rule (Principle III, as amended): a suggested-fix pull request
+ * is opened only on an explicit human request against an org that opted in, only onto a NEW
+ * branch, never onto the default branch, never force-pushed, and never touching CI
+ * configuration. The audit event is what makes that claim checkable after the fact rather
+ * than merely asserted — its subject records the repo, the branch, and every path written.
+ *
+ * There is still no action here for writing CI configuration, and there must never be one.
  */
 
-export type AuditAction = "pr_comment" | "check_run" | "evidence_push" | "questionnaire_export" | "public_report";
+export type AuditAction =
+  "pr_comment" | "check_run" | "evidence_push" | "questionnaire_export" | "public_report" | "fix_pr";
 
 export interface AuditEvent {
   seq: number;

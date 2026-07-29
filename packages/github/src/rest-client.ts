@@ -44,7 +44,15 @@ export class RestGitHubClient implements GitHubClient {
     const body = JSON.stringify({
       event: review.event, // COMMENT — never REQUEST_CHANGES that could auto-block-merge silently
       body: review.summary,
-      comments: review.comments.map((c) => ({ path: c.path, line: c.line, body: c.body })),
+      // `start_line`/`start_side` are what make a multi-line suggestion span its whole
+      // range. Sending `line` alone collapses the anchor onto one line, and GitHub then
+      // applies the suggestion there — rewriting a single line of a multi-line statement.
+      comments: review.comments.map((c) => ({
+        path: c.path,
+        line: c.line,
+        body: c.body,
+        ...(c.startLine !== undefined ? { start_line: c.startLine, start_side: "RIGHT", side: "RIGHT" } : {}),
+      })),
     });
     const res = await this.fetchImpl(`${this.apiBase}/repos/${repo}/pulls/${prNumber}/reviews`, {
       method: "POST",

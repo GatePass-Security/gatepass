@@ -1,0 +1,7 @@
+{
+  "id": "verified/unauth-mcp-transport/clean-client-side-transport",
+  "classId": "unauth-mcp-transport",
+  "label": "clean",
+  "public": true,
+  "note": "A client opening a connection TO an MCP server. Same directory, opposite direction of risk. Observed on modelcontextprotocol/python-sdk and openai/openai-agents-python."
+}

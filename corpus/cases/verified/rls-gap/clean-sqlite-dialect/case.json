@@ -1,0 +1,7 @@
+{
+  "id": "verified/rls-gap/clean-sqlite-dialect",
+  "classId": "rls-gap",
+  "label": "clean",
+  "public": true,
+  "note": "A SQLite migration. Row-level security is a PostgreSQL feature, so demanding a policy here asks for a statement the database would reject. Observed on sst/opencode."
+}

@@ -1,16 +1,17 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ArrowLeft, Download, FileCheck2, GitPullRequest, Lightbulb, ShieldCheck } from "lucide-react";
+import { ArrowLeft, ChevronDown, Download, FileCheck2, GitPullRequest, Lightbulb, ShieldCheck } from "lucide-react";
 import { api } from "@/lib/api-client";
-import { ORG_ID } from "@/lib/constants";
+import { useOrgId } from "@/providers/SessionProvider";
 import { errorToast, explainError, type FriendlyError } from "@/lib/errors";
 import type { Finding, GateConfig, GateFailureMode, GateMode, GateResult, ScanSummary, Severity } from "@/lib/types";
 import {
   SEVERITY_ORDER,
   confidencePercent,
+  cx,
   formatDate,
   pluralize,
   relativeTime,
@@ -24,12 +25,14 @@ import {
   CardTitle,
   ErrorPanel,
   ErrorState,
+  IconButton,
   PageHeader,
   PageSkeleton,
   Select,
   Stat,
   useToast,
 } from "@/components/ui";
+import { FindingDetail } from "@/components/FindingDetail";
 
 /**
  * One scan, end to end.
@@ -65,6 +68,7 @@ const CONCLUSION_TONE = {
 export default function ScanDetailPage() {
   const params = useParams<{ id: string }>();
   const scanId = params.id;
+  const orgId = useOrgId();
   const { toast } = useToast();
 
   const [findings, setFindings] = useState<Finding[]>([]);
@@ -77,7 +81,7 @@ export default function ScanDetailPage() {
     try {
       // The router has no `GET /v1/scans/:id`, so the summary comes from the
       // org's list. Findings are the authoritative per-scan payload either way.
-      const [rows, list] = await Promise.all([api.getFindings(scanId), api.listScans(ORG_ID).catch(() => [])]);
+      const [rows, list] = await Promise.all([api.getFindings(scanId), api.listScans(orgId).catch(() => [])]);
       setFindings(rows);
       setScan(list.find((s) => s.id === scanId));
       setStatus("ready");
@@ -85,7 +89,7 @@ export default function ScanDetailPage() {
       setFailure(err);
       setStatus("error");
     }
-  }, [scanId]);
+  }, [orgId, scanId]);
 
   useEffect(() => {
     void load();
@@ -344,7 +348,19 @@ function GatePreview({ scanId, findingCount }: { scanId: string; findingCount: n
   );
 }
 
+/**
+ * The scan's findings, each of which opens to say what it means.
+ *
+ * A row used to be four labels and nothing else — a class id, a path, two badges — which told a
+ * reader that `unauth-mcp-transport` was found at `server.ts:35` and left them to work out what
+ * that was, whether to believe it, and what to do. Everything needed to answer all three has
+ * always been on the finding; it simply had nowhere to render on this page. So the row expands,
+ * using the same `FindingDetail` the Findings page uses, rather than sending people to a
+ * different screen to read about a row they are already looking at.
+ */
 function FindingsTable({ findings }: { findings: Finding[] }) {
+  const [openId, setOpenId] = useState<string | null>(null);
+
   if (findings.length === 0) {
     return <p className="px-5 py-10 text-center text-[0.82rem] text-fg-muted">This scan produced no findings.</p>;
   }
@@ -354,7 +370,9 @@ function FindingsTable({ findings }: { findings: Finding[] }) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full min-w-[40rem] text-[0.855rem]">
-        <caption className="sr-only">Findings in this scan, most severe first</caption>
+        <caption className="sr-only">
+          Findings in this scan, most severe first. Select a row to read its explanation.
+        </caption>
         <thead>
           <tr className="border-b border-line bg-sunken">
             {["Class", "Location", "Tier", "Severity"].map((h) => (
@@ -366,44 +384,90 @@ function FindingsTable({ findings }: { findings: Finding[] }) {
                 {h}
               </th>
             ))}
+            {/* The toggle's column. Headed for screen readers, blank on screen — a visible
+                "Details" label would compete with the content it is pointing at. */}
+            <th scope="col" className="w-10 px-4 py-2.5">
+              <span className="sr-only">Details</span>
+            </th>
           </tr>
         </thead>
         <tbody>
           {ordered.map((f) => {
             const loc = f.locations[0];
             const where = loc ? `${loc.path}:${loc.startLine}` : undefined;
+            const open = openId === f.fingerprint;
+            const detailId = `scan-finding-${f.fingerprint}`;
+            const toggle = () => setOpenId(open ? null : f.fingerprint);
+
             return (
-              <tr
-                key={f.fingerprint}
-                className="border-b border-line transition-colors last:border-b-0 hover:bg-raised/60"
-              >
-                <td className="px-4 py-3 font-medium text-fg">{f.classId}</td>
-                <td className="px-4 py-3 text-fg-muted">
-                  {where ? (
-                    <span className="block max-w-[22rem] truncate font-mono text-[0.76rem]" title={where}>
-                      {where}
-                    </span>
-                  ) : (
-                    "—"
+              <Fragment key={f.fingerprint}>
+                <tr
+                  onClick={toggle}
+                  className={cx(
+                    "cursor-pointer border-b border-line transition-colors hover:bg-raised/60",
+                    open && "bg-raised/40",
                   )}
-                </td>
-                <td className="px-4 py-3">
-                  {f.tier === "verified" ? (
-                    <Badge tone="verified" dot>
-                      Verified
+                >
+                  <td className="px-4 py-3 font-medium text-fg">{f.classId}</td>
+                  <td className="px-4 py-3 text-fg-muted">
+                    {where ? (
+                      <span className="block max-w-[22rem] truncate font-mono text-[0.76rem]" title={where}>
+                        {where}
+                      </span>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    {f.tier === "verified" ? (
+                      <Badge tone="verified" dot>
+                        Verified
+                      </Badge>
+                    ) : (
+                      <Badge tone="research" dot>
+                        Research {confidencePercent(f.confidence)}
+                      </Badge>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    <Badge tone={f.severity} dot>
+                      {severityLabel(f.severity)}
                     </Badge>
-                  ) : (
-                    <Badge tone="research" dot>
-                      Research {confidencePercent(f.confidence)}
-                    </Badge>
-                  )}
-                </td>
-                <td className="px-4 py-3">
-                  <Badge tone={f.severity} dot>
-                    {severityLabel(f.severity)}
-                  </Badge>
-                </td>
-              </tr>
+                  </td>
+                  <td className="px-4 py-3">
+                    {/*
+                      The row's click handler is a convenience; this button is the control.
+                      A row is not focusable and announces nothing, so without a real button
+                      here the explanation would be reachable by mouse only. `stopPropagation`
+                      because the row handler would otherwise fire second and close what the
+                      button just opened.
+                    */}
+                    <IconButton
+                      label={open ? `Hide explanation for ${f.classId}` : `Explain ${f.classId}`}
+                      size="sm"
+                      aria-expanded={open}
+                      aria-controls={open ? detailId : undefined}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggle();
+                      }}
+                    >
+                      <ChevronDown
+                        size={16}
+                        aria-hidden="true"
+                        className={cx("transition-transform duration-150", open && "rotate-180")}
+                      />
+                    </IconButton>
+                  </td>
+                </tr>
+                {open && (
+                  <tr id={detailId} className="border-b border-line bg-sunken/60">
+                    <td colSpan={5} className="px-4 py-5 sm:px-5">
+                      <FindingDetail finding={f} />
+                    </td>
+                  </tr>
+                )}
+              </Fragment>
             );
           })}
         </tbody>

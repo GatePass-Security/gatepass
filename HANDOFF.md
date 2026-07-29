@@ -15,7 +15,8 @@ infrastructure** (MCP servers, tool definitions, permission scopes, autonomous l
 produces **two honestly-separated tiers** of findings — *verified* (deterministic, each shipped
 with a runnable reproduction) and *research-tier* (semantic/agentic classes, confidence-scored,
 never inflated) — and delivers fixes **inside the developer's own workflow** (PR comments, IDE,
-opt-in coding-agent guidance) while **never mutating customer code or CI**. Its brand is
+opt-in coding-agent guidance, or an explicitly human-requested, audited fix-PR) while **never
+silently mutating customer code, and never touching CI config at all**. Its brand is
 **measured precision**: a public benchmark of true/false-positive rates vs. incumbent scanners.
 The full product thesis is in [GATEPASS_ONEPAGER_V4.md](GATEPASS_ONEPAGER_V4.md).
 
@@ -25,7 +26,7 @@ together, e.g. a scoped-looking tool backed by an unscoped DB client).
 
 ## 2. The governing law: the Constitution
 
-`.specify/memory/constitution.md` (v1.0.0) is **non-negotiable**. Every change must honor it.
+`.specify/memory/constitution.md` (v1.1.0) is **non-negotiable**. Every change must honor it.
 The six principles, in one line each:
 
 1. **Precision Is the Product** — every rule ships with measured TP/FP; published-benchmark
@@ -33,7 +34,10 @@ The six principles, in one line each:
 2. **Two-Tier Finding Integrity** — *verified* requires a concrete reproduction; *research* is
    confidence-scored; the boundary is never blurred; **no third state**.
 3. **Remediation in the Developer's Workflow** — suggest-and-approve only; **no silent
-   mutation of code or CI**; the CI gate blocks but never rewrites; agent-loop guidance is opt-in.
+   mutation of code or CI**; the CI gate blocks but never rewrites; agent-loop guidance is
+   opt-in; the one bounded exception is a suggested-fix pull request, and only when explicitly
+   human-requested against an opted-in org, on a new non-default branch, never touching CI
+   config, and always audited.
 4. **Cross-Surface Context** — app code + agent config analyzed together; framework-aware.
 5. **Research-Fed Corpus** — new vuln classes follow definition → corpus → analyzer →
    measurement, against a versioned corpus.
@@ -41,9 +45,12 @@ The six principles, in one line each:
    posture-derived evidence export + questionnaire drafting.
 
 These are enforced *in code*, not just prose: the findings schema makes tier integrity a
-validation invariant; the GitHub client interface has **no** code-write method; the corpus
-harness fails CI if any rule lacks fixtures or any reproduction is non-confirmable; and Gatepass
-**scans its own source** in CI (`.github/workflows/self-scan.yml`).
+validation invariant; `GitHubClient` (`packages/github/src/poster.ts`) still has **no**
+code-write method — code writing lives behind a separate, explicitly-named opt-in interface,
+`FixPullRequestClient` (`packages/github/src/fix-pr.ts`), that a deployment must be configured
+with, so an install that never wires it is structurally incapable of writing to a repository;
+the corpus harness fails CI if any rule lacks fixtures or any reproduction is non-confirmable;
+and Gatepass **scans its own source** in CI (`.github/workflows/self-scan.yml`).
 
 ## 3. How this repo was built: the Spec-Kit workflow
 
@@ -105,10 +112,16 @@ corpus/             Versioned labeled fixtures (12 classes) + harness + eval rep
 **Everything below was executed and verified — nothing is claimed done without evidence.**
 Full accounting: [`validation/build-status.md`](specs/001-gatepass-platform/validation/build-status.md).
 
-- **358 tests pass** across 35 files — `pnpm test`
+- **The whole suite passes** — `pnpm test`. Deliberately not restated as a number here: this
+  document claimed "358 tests" long after the real figure had roughly doubled, and a count is
+  stale the moment anyone merges. `pnpm test` prints the current one in under five seconds,
+  which is cheaper than trusting a number in a file. (For scale only, measured 2026-07-28:
+  767 passed / 24 skipped across 69 files. Treat it as an order of magnitude, not a target —
+  a *drop* is worth investigating, an exact match is not expected.)
 - **All packages typecheck clean** — `tsc --noEmit`
 - **Lint 0 errors / format clean** — `pnpm lint`, `pnpm format:check`
-- **Corpus gate PASS** — 12 classes, **100% TP / 0% FP**, all reproductions confirmable — `pnpm corpus:measure`
+- **Corpus gate PASS** — 12 classes, **100% TP / 0% FP**, all reproductions confirmable, and every
+  suggested `diff` fix verified to apply cleanly to the fixture it came from — `pnpm corpus:measure`
 - **Self-scan CLEAN** — the scanner passes its own scan
 - **API integration** — a real HTTP server is driven through scan → findings → SARIF → gate →
   dispute → suppression → agent-guidance → fleet → benchmark → runner-upload → evidence → 403
@@ -122,10 +135,18 @@ cross-surface correlation, two-tier integrity, remediation decision logic, CI-ga
 evidence/questionnaire logic, runner protocol, orchestrator, benchmark scoring, the LLM-gateway
 wiring, and the full API surface are built, tested, and lint-clean.
 
-The **Next.js dashboard** (`apps/web/`) is also built — 8 pages consuming the API (findings,
-fleet, benchmark, compliance, settings, agent-guidance, onboarding, root), 9 custom UI
-primitives (Tailwind v4), typed API client with 10s timeout for all requests, error/loading
-boundary on every route, sidebar navigation, org context, theme toggle. Build passes, lint clean.
+The **Next.js dashboard** (`apps/web/`) is also built — the product pages under the `(app)/`
+route group (dashboard, scans, findings, agent-guidance, repos, fleet, compliance, evidence,
+benchmark, system, settings, docs, support) plus the marketing landing page and the login
+route, a set of custom UI primitives in `src/components/ui/` (Tailwind v4 semantic tokens —
+see `apps/web/DESIGN.md`), typed API client with a 10s timeout on all requests, error/loading
+boundary on every route, sidebar navigation, session/org context, theme toggle. Build passes,
+lint clean.
+
+> Counts of pages and primitives used to be written out here as "8 pages" and "9 primitives"
+> and were wrong in both directions by the time anyone read them. `find apps/web/src/app -name
+> page.tsx` and `ls apps/web/src/components/ui` answer it exactly, so this paragraph names the
+> routes instead of counting them.
 
 ### What is deferred and WHY (this is the important part)
 Everything remaining needs **live infrastructure or credentials that did not exist in the build
@@ -135,28 +156,75 @@ would violate honesty and the Constitution's "measured" ethos). Precise blockers
 | You must provide | Unblocks (tasks) | What to do |
 |---|---|---|
 | A running **Postgres 16** | T005/T006 (run migrations), T077 (replace in-memory store) | `docker compose up -d postgres`, then run the SQL in `packages/shared/db/migrations/`, then swap `apps/api/src/store.ts` for a Drizzle-backed repo |
-| A **GitHub App** install + token | T016/T072 (webhooks), T073/T074/T096 (actually post), T076 (OAuth/RBAC) | Create a GitHub App (scopes: contents:read, pull_requests:write, checks:write, metadata:read — see `contracts/github-integration.md`); construct `RestGitHubClient` with the installation token |
+| A **GitHub App** install + token | T016/T072 (webhooks), T073/T074/T096 (actually post), T076 (OAuth/RBAC), **and per-repository access control** | Create a GitHub App (scopes: contents:read, pull_requests:write, checks:write, metadata:read, plus contents:write — needed only for the fix-PR feature — see `contracts/github-integration.md`); construct `RestGitHubClient` with the installation token. See "Access control needs a GitHub App" below — a classic OAuth App cannot do repository-level access |
 | An **NVIDIA NIM API key** (`NVIDIA_API_KEY`, model `z-ai/glm-5.2`) | Live research-tier LLM refinement | Set `NVIDIA_API_KEY` in `.env`; `apps/api` wires `createNimTransport` automatically. Benchmarks: `pnpm benchmark:with-llm` |
 | **Vanta/Drata** sandbox + API key | T083 (evidence push) | Implement exporters posting `evaluatePosture()` items to their evidence APIs |
 | A **cloud deploy target** (ECS/RDS/S3/Redis) | T015/T015a/T086 (isolation/encryption IaC), T063/T092 (SLO/status), T091 (load) | Write IaC (Terraform); wire OTel exporter into the `telemetry.ts` `setTracer()` seam |
 | (optional) build tooling | T098 (tree-sitter AST) | Precision refinement of already-passing detectors — low priority |
 
-### Unbacked product claims in the dashboard copy — RESOLVED (cut)
+### Access control needs a GitHub App, not a classic OAuth App
 
-The dashboard shipped three sentences asserting service levels nothing in this repo delivers.
-All three were **cut** (not softened), in `apps/web/src/app/(app)/support/page.tsx`:
+The access model is: an organization installs the Gatepass App, and the people who may use
+Gatepass for a repository are exactly the people GitHub already says may work on it. Nobody is
+invited by hand, and removing somebody on GitHub removes them here — details in
+`packages/github/src/access.ts` and `contracts/api.md`.
 
-| Claim | Resolution |
+That rests on `GET /user/installations` and `GET /user/installations/{id}/repositories`, and
+**only a GitHub App's user-to-server tokens can call them**. Client id prefixes tell the two
+apart: `Iv23li…` is a GitHub App, `Ov23li…` is a classic OAuth App.
+
+To set it up, at <https://github.com/settings/apps/new> (or your org's Developer settings):
+
+1. **Callback URL** — `<dashboard origin>/api/auth/github/callback`, exactly, and tick
+   *Request user authorization (OAuth) during installation*. Leave *Expire user authorization
+   tokens* **off** unless you also implement refresh-token rotation.
+2. **Webhook** — optional; if on, point it at `<api origin>/v1/webhooks/github` and set
+   `GITHUB_WEBHOOK_SECRET`.
+3. **Repository permissions** — Contents: Read (Read & write only if you want fix PRs),
+   Pull requests: Read & write, Checks: Read & write, Metadata: Read.
+4. **Where can this App be installed** — *Any account*, for a multi-tenant deployment.
+5. Generate a **private key**, note the **App ID** and the App's **Client ID / secret**.
+6. Install it on the org, and read the installation id from the URL of
+   `Settings → Applications → Gatepass → Configure`.
+
+Then set `GITHUB_OAUTH_CLIENT_ID` / `GITHUB_OAUTH_CLIENT_SECRET` to the **App's** credentials
+(not an OAuth App's), plus `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY_PATH`,
+`GITHUB_INSTALLATION_ID`. The boot log states which access model is in force.
+
+With a classic OAuth App instead, sign-in still works but degrades: orgs come from membership,
+per-repository access is resolved via the installation token where one exists, and with neither
+it falls back to org-wide access — reported honestly as `accessGranularity: "org-membership"`
+on `GET /v1/auth/me` rather than passing itself off as repository-level.
+
+### Unbacked product claims in the dashboard copy — RESOLVED
+
+`apps/web/src/app/(app)/support/page.tsx` is clean. It took two passes, and the second one is
+the part worth remembering.
+
+**Pass 1** cut three outright service-level claims — a "guaranteed 4-hour response time" for
+enterprise, a 24-hour email SLA, and real-time chat "during business hours". Nothing in this
+repo delivered any of them.
+
+**Pass 2** found that the replacement copy was *also* unbacked, which is the failure mode to
+watch for: removing a false promise is not the same as making a true one.
+
+| Replacement claim from pass 1 | Why it was still wrong |
 |---|---|
-| "Enterprise tier customers get priority support with a dedicated engineer and **guaranteed 4-hour response time**" | Replaced with what the Enterprise plan actually contains (self-hosted runner, in-VPC semantic layer, SSO, custom detectors) and an explicit statement that support terms are contractual, not published. |
-| "Send a detailed ticket and we'll **respond within 24 hours**" | Replaced with "a person reads every message" — true, and promises nothing about latency. |
-| "Chat with our support team in **real-time during business hours**" | Card removed entirely; the grid is now two real channels. |
+| "Enterprise plans cover the self-hosted runner, in-VPC semantic analysis, SSO, and custom detectors" | **There is no Enterprise tier.** `packages/shared/src/plan-tier.ts` defines exactly three — `free`, `team`, `scale` — and not one of the four listed items is among its gated features. It named a plan that does not exist and described contents it does not have. |
+| "Browse our guides, FAQs, and best practices" | `/docs` renders its article list as plain text beneath the words "Not published yet." The support page was promising exactly what the docs page declines to promise. |
+| "A person reads every message" | A latency claim with the number taken out is still a claim — there is no rota and no queue to back it. |
+
+The page now points only at destinations that exist and can be verified by clicking them
+(`/system`, `/findings`, `/benchmark`, `/docs` described honestly), gives the founders' address
+with no commitment about when it is read, and states the absence of a support organisation
+outright rather than writing around it.
 
 **The standing rule:** Constitution principle 1 ("no unmeasured claims") governs marketing copy
 as much as finding precision. A reader who checks a promise on our own dashboard and finds it
 hollow has learned something true about how much to trust the benchmark. Do not reintroduce an
-SLA anywhere in the product without a system behind it; when support tiers become real, gate
-them on `planTier` (the support page is a Server Component, so that means a client child).
+SLA, a response time, or a named support tier without a system behind it; when support tiers
+become real, gate them on `planTier` (the support page is a Server Component, so that means a
+client child).
 
 ## 6. Recurring gotchas (learn from the bugs already fixed)
 
@@ -193,7 +261,7 @@ Other environment notes:
 pnpm install
 
 # 1. The full verification gate (what CI runs)
-pnpm test                         # 358 tests
+pnpm test                         # whole suite; prints the current count
 pnpm lint                         # ESLint (0 errors)
 pnpm format:check                 # Prettier
 pnpm corpus:measure --corpus corpus-v1   # precision + reproduction gate (must PASS)
@@ -236,9 +304,14 @@ Mirrors [`CLAUDE.md`](CLAUDE.md), repeated here because they are load-bearing:
 
 1. Findings `tier` is a closed enum; `verified` ⇒ reproduction present (enforced by schema in
    `packages/findings` **and** the DB CHECK in `0002_findings.sql`). Never bypass.
-2. **No code path may write to customer repositories or CI config.** All outbound writes go
-   through the audited writer (`AuditedWriter` → `AuditEvent`). The `GitHubClient` interface has
-   no write-code method — keep it that way.
+2. **CI configuration is never written, ever.** Repository writes are permitted only through the
+   audited fix-PR path (`packages/github/src/fix-pr.ts`): an explicit human-triggered dashboard
+   action against an opted-in org, always onto a new branch (never the default branch, never a
+   force-push), never `.github/**` or any other CI config (enforced by `assertWritablePath`,
+   re-checked immediately before each write). All outbound writes go through the audited writer
+   (`AuditedWriter` → `AuditEvent`, action `fix_pr`). `GitHubClient`
+   (`packages/github/src/poster.ts`) itself still has no write-code method — keep it that way;
+   code writing lives only behind the separate, opt-in `FixPullRequestClient`.
 3. Every rule/analyzer change ships corpus fixtures + a precision measurement, or it does not merge.
 4. The CI gate fails **open** by default (neutral check + annotation); fail-closed is per-repo opt-in.
 5. The runner uploads findings/posture JSON **only** — the schema must never grow a field that

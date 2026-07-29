@@ -1,0 +1,7 @@
+{
+  "id": "verified/exposed-secret/clean-key-header-without-material",
+  "classId": "exposed-secret",
+  "label": "clean",
+  "public": true,
+  "note": "A PEM delimiter named in a UI hint and an assertion, with no key material after it. Observed on grafana/mcp-grafana, jlowin/fastmcp and modelcontextprotocol/typescript-sdk."
+}

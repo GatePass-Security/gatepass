@@ -5,10 +5,11 @@ import { Building2, FolderGit2, Info } from "lucide-react";
 
 import { api } from "@/lib/api-client";
 import { errorToast } from "@/lib/errors";
-import { ORG_ID } from "@/lib/constants";
-import type { RepoRecord } from "@/lib/types";
+import { useOrgId, useHasRole } from "@/providers/SessionProvider";
+import type { OrgRecord, RepoRecord } from "@/lib/types";
 import { pluralize } from "@/lib/utils";
 import { useOrg } from "@/providers/OrgProvider";
+import { ConnectGitHubCard } from "@/components/ConnectGitHubCard";
 import {
   Badge,
   Card,
@@ -29,12 +30,13 @@ const DESCRIPTION =
 interface OrgSettings {
   llmEnabled: boolean;
   agentLoopEnabled: boolean;
+  fixPrEnabled: boolean;
 }
 
-type SettingKey = "llm_analysis_enabled" | "agent_loop_enabled";
+type SettingKey = "llm_analysis_enabled" | "agent_loop_enabled" | "fix_pr_enabled";
 
 /*
- * The only two fields `PATCH /v1/orgs/:org/settings` accepts (handlers.ts
+ * The only three fields `PATCH /v1/orgs/:org/settings` accepts (handlers.ts
  * `updateOrgSettings`). Plan tier is set by billing and the org id is its
  * identity, so neither is editable here — and there is deliberately no
  * per-repo entry, because no route backs one.
@@ -52,12 +54,39 @@ const TOGGLES = [
     label: "Agent loop",
     description: "Required before the Guidance page can return remediation steps.",
   },
+  {
+    key: "fix_pr_enabled",
+    field: "fixPrEnabled",
+    label: "Fix pull requests",
+    // The only setting here that permits a write to a customer repository, so it
+    // states the limits of that write rather than just naming the feature.
+    description:
+      "Lets someone open a pull request from a scan's applicable fixes. Gatepass commits to a new branch only " +
+      "when a person asks, never modifies CI configuration, and never merges.",
+  },
 ] as const satisfies ReadonlyArray<{
   key: SettingKey;
   field: keyof OrgSettings;
   label: string;
   description: string;
 }>;
+
+/*
+ * `setFlag` used to branch on "is this the LLM one?" to build both the optimistic
+ * object and the PATCH body, which only worked while there were exactly two
+ * toggles. The key→field mapping already exists in TOGGLES, so it is read from
+ * there: adding a fourth toggle needs no change below this line.
+ */
+const FIELD_OF = Object.fromEntries(TOGGLES.map((t) => [t.key, t.field])) as Record<SettingKey, keyof OrgSettings>;
+
+/** `fixPrEnabled` is optional on the wire; absent means off. */
+function readSettings(org: OrgRecord): OrgSettings {
+  return {
+    llmEnabled: org.llmEnabled,
+    agentLoopEnabled: org.agentLoopEnabled,
+    fixPrEnabled: org.fixPrEnabled ?? false,
+  };
+}
 
 const SCAN_STATUS: Record<RepoRecord["scanStatus"], { label: string; tone: Tone }> = {
   never_scanned: { label: "Never scanned", tone: "low" },
@@ -78,6 +107,8 @@ const GATE_FAILURE: Record<RepoRecord["gateFailureMode"], string> = {
 };
 
 export default function SettingsPage() {
+  const orgId = useOrgId();
+  const isAdmin = useHasRole("admin");
   const { org, loading: orgLoading, error: orgError, refetch } = useOrg();
   const { toast } = useToast();
 
@@ -97,35 +128,31 @@ export default function SettingsPage() {
     setReposError(null);
     setRepos(null);
     try {
-      setRepos(await api.getRepos(ORG_ID));
+      setRepos(await api.getRepos(orgId));
     } catch (err) {
       setReposError(err);
     }
-  }, []);
+  }, [orgId]);
 
   useEffect(() => {
     void loadRepos();
   }, [loadRepos]);
 
-  const settings: OrgSettings | null =
-    written ?? (org ? { llmEnabled: org.llmEnabled, agentLoopEnabled: org.agentLoopEnabled } : null);
+  const settings: OrgSettings | null = written ?? (org ? readSettings(org) : null);
 
   async function setFlag(key: SettingKey, label: string, next: boolean) {
     if (!settings) return;
     const previous = settings;
-    const isLlm = key === "llm_analysis_enabled";
 
-    setWritten(isLlm ? { ...settings, llmEnabled: next } : { ...settings, agentLoopEnabled: next });
+    setWritten({ ...settings, [FIELD_OF[key]]: next });
     setPending(key);
     try {
-      const updated = await api.patchOrgSettings(
-        ORG_ID,
-        isLlm ? { llm_analysis_enabled: next } : { agent_loop_enabled: next },
-      );
+      const patch: Partial<Record<SettingKey, boolean>> = { [key]: next };
+      const updated = await api.patchOrgSettings(orgId, patch);
       // Reconcile from the returned record, not from the optimistic guess — the
       // route ignores unknown keys, so the response is the only proof of what
       // was actually persisted.
-      setWritten({ llmEnabled: updated.llmEnabled, agentLoopEnabled: updated.agentLoopEnabled });
+      setWritten(readSettings(updated));
       refetch();
       toast(`${label} ${next ? "enabled" : "disabled"}`, "success");
     } catch (err) {
@@ -155,6 +182,8 @@ export default function SettingsPage() {
     <div className="space-y-6">
       <PageHeader title="Settings" description={DESCRIPTION} />
 
+      <ConnectGitHubCard />
+
       <Card header={<CardTitle icon={<Building2 size={15} />}>Organization</CardTitle>}>
         <dl className="grid gap-4 sm:grid-cols-2">
           <div className="min-w-0">
@@ -178,9 +207,20 @@ export default function SettingsPage() {
               label={toggle.label}
               description={toggle.description}
               checked={settings[toggle.field]}
-              // Both switches lock during a write so two PATCHes can never
-              // interleave and reconcile out of order.
-              disabled={pending !== null}
+              /*
+               * Locked during a write so two PATCHes cannot interleave and reconcile out of
+               * order — and locked outright for anyone below admin.
+               *
+               * The second is presentation, not protection: `PATCH /v1/orgs/:org/settings`
+               * requires admin at the API (`requiredRole` in apps/api/src/auth.ts, pinned by
+               * apps/api/test/server-side-authz.test.ts), so a non-admin who flips this in the
+               * DOM gets a 403 either way. What it buys is honesty — a switch that moves and
+               * then silently fails has told the user something untrue about what they may do.
+               * The role itself is not the browser's to decide: it arrives from the verified
+               * `/v1/auth/me`, which now reports GitHub's current answer rather than whatever
+               * the session token was issued with.
+               */
+              disabled={pending !== null || !isAdmin}
               onChange={(next) => void setFlag(toggle.key, toggle.label, next)}
             />
           ))}

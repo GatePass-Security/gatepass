@@ -32,3 +32,23 @@ export function roleFromGitHubPermission(perm: string): Role {
   if (perm === "write" || perm === "push") return "member";
   return "viewer";
 }
+
+/**
+ * Map a GitHub **organization membership** role to a Gatepass org role.
+ *
+ * Distinct from `roleFromGitHubPermission` because the two vocabularies collide on one word
+ * and disagree about it: a repository permission of `"member"` is not a thing, while an
+ * *organization* role of `"member"` is the ordinary contributor — which is Gatepass's
+ * `member`, not `viewer`. Running org roles through the repository mapping would silently
+ * demote every contributor in the org to read-only.
+ *
+ * Anything that is not an active admin or member — an outside collaborator, a pending
+ * invitation, a caller we could not resolve — lands on `viewer`, so an unrecognised answer
+ * loses privileges rather than gaining them.
+ */
+export function roleFromGitHubOrgRole(orgRole: string | undefined, state = "active"): Role {
+  if (state !== "active") return "viewer";
+  if (orgRole === "admin") return "admin";
+  if (orgRole === "member") return "member";
+  return "viewer";
+}

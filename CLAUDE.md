@@ -10,10 +10,11 @@ developer-workflow remediation, a public precision benchmark, and compliance evi
 
 ## Governance
 
-- **Constitution**: `.specify/memory/constitution.md` (v1.0.0) — six principles are
-  non-negotiable: precision measured & published; verified findings require reproductions;
-  never write to customer code/CI; cross-surface analysis; research-fed versioned corpus;
-  pure software (no services tier). Read it before designing anything.
+- **Constitution**: `.specify/memory/constitution.md` (v1.1.0) — six principles are
+  non-negotiable: precision measured & published; verified findings require reproductions; no
+  silent repo/CI mutation (bounded, audited suggested-fix-PR carve-out only); cross-surface
+  analysis; research-fed versioned corpus; pure software (no services tier). Read it before
+  designing anything.
 - **Active feature**: `specs/001-gatepass-platform/` (spec.md → plan.md → research.md,
   data-model.md, contracts/, quickstart.md). `.specify/feature.json` points here.
 
@@ -27,15 +28,25 @@ developer-workflow remediation, a public precision benchmark, and compliance evi
   gateway (`createNimTransport`), `NVIDIA_API_KEY`, per-org disable flag
 - Platform: Fastify API, Next.js dashboard, PostgreSQL 16 (Drizzle, org RLS), Redis/BullMQ,
   S3 artifacts with TTL; per-scan container isolation (ECS Fargate)
-- GitHub App: contents:read, pull_requests:write, checks:write — never contents:write
+- GitHub App: contents:read, pull_requests:write, checks:write, contents:write — contents:write
+  is used only by the opt-in fix-PR path (human-triggered, new branch, never CI config).
+  The App is also the **identity provider**: sign-in uses its user-to-server tokens, which is
+  what makes `GET /user/installations{/:id/repositories}` available and therefore what makes
+  per-repository access possible at all (a classic OAuth App cannot call those).
+- Access control is GitHub's answer, not a list Gatepass keeps (`packages/github/src/access.ts`,
+  `apps/api/src/access.ts`). A tenant **is** a GitHub org that installed the App; the people who
+  may use Gatepass for a repository are exactly the people GitHub says may work on it; grants
+  are cached with a short TTL and re-derived, never edited.
 - Corpus in `corpus/` with immutable tags; benchmark harness in `benchmark/`
 
 ## Hard rules for code in this repo
 
 1. Findings tier is a closed enum; `verified` ⇒ reproduction present (DB CHECK + schema
    validation in `packages/findings`). Never bypass.
-2. No code path may write to customer repositories or CI config. All outbound writes go
-   through the audited writer (AuditEvent).
+2. CI configuration is never written, ever. Repository writes are permitted only via the
+   audited fix-PR path (`packages/github/src/fix-pr.ts`): human-triggered dashboard action on
+   an opted-in org, always a new branch (never default, never force-push), never `.github/**`.
+   All outbound writes go through the audited writer (AuditEvent).
 3. Every rule/analyzer change ships corpus fixtures + precision measurement or it does not
    merge.
 4. CI gate fails open by default (neutral check + annotation); fail-closed is per-repo

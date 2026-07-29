@@ -1,0 +1,7 @@
+{
+  "id": "verified/unauth-mcp-transport/clean-server-object-never-listens",
+  "classId": "unauth-mcp-transport",
+  "label": "clean",
+  "public": true,
+  "note": "A server object constructed for a test and bound to an ephemeral port. Constructing is not binding, and port 0 is not the network. Observed on danny-avila/LibreChat and n8n-io/n8n."
+}

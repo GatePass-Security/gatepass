@@ -1,0 +1,7 @@
+{
+  "id": "verified/rls-gap/vuln-single-line-table",
+  "classId": "rls-gap",
+  "label": "vulnerable",
+  "public": true,
+  "note": "Whole create-table statement on one line — the suggested fix's anchor range collapses to a single line, which is the case a multi-line-only implementation gets wrong"
+}

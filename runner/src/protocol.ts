@@ -13,21 +13,41 @@ export class RunnerUploadError extends Error {}
 const FORBIDDEN_KEYS = new Set(["content", "source", "filecontent", "filecontents", "raw", "body", "blob", "snippet"]);
 const MAX_TEXT = 4096;
 
-function scan(value: unknown, path: string): void {
+/**
+ * The one place a forbidden key name is legitimate: `suggestedFix.content` is the canonical
+ * schema's name for a fix's human-readable rationale, and it predates this guard.
+ *
+ * Scoping the exemption to that exact parent — rather than dropping "content" from the
+ * forbidden set — keeps the guard's real job intact: a `content` field anywhere else, which
+ * is where a source dump would actually appear, is still rejected. `suggestedFix` itself is
+ * bounded by the same MAX_TEXT ceiling as every other string, and its `insertedLines` are
+ * generated remediation text by construction (findings-schema contract), not a copy of the
+ * customer's file.
+ *
+ * Until suggested fixes were generated in the pipeline this never fired, because nothing
+ * ever populated the field — the guard and the schema had simply never met.
+ */
+const ALLOWED_CONTENT_PARENTS = new Set(["suggestedfix"]);
+
+function isExempt(key: string, parentKey: string | undefined): boolean {
+  return key.toLowerCase() === "content" && parentKey !== undefined && ALLOWED_CONTENT_PARENTS.has(parentKey);
+}
+
+function scan(value: unknown, path: string, parentKey?: string): void {
   if (typeof value === "string") {
     if (value.length > MAX_TEXT) throw new RunnerUploadError(`oversized text field at ${path} (${value.length} chars)`);
     return;
   }
   if (Array.isArray(value)) {
-    value.forEach((v, i) => scan(v, `${path}[${i}]`));
+    value.forEach((v, i) => scan(v, `${path}[${i}]`, parentKey));
     return;
   }
   if (value && typeof value === "object") {
     for (const [k, v] of Object.entries(value)) {
-      if (FORBIDDEN_KEYS.has(k.toLowerCase())) {
+      if (FORBIDDEN_KEYS.has(k.toLowerCase()) && !isExempt(k, parentKey)) {
         throw new RunnerUploadError(`forbidden source-bearing field "${k}" at ${path}`);
       }
-      scan(v, `${path}.${k}`);
+      scan(v, `${path}.${k}`, k.toLowerCase());
     }
   }
 }

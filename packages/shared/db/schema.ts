@@ -7,6 +7,7 @@ import {
   numeric,
   integer,
   boolean,
+  jsonb,
   uniqueIndex,
   index,
   primaryKey,
@@ -36,6 +37,19 @@ export const organizations = pgTable("organizations", {
   llmAnalysisEnabled: boolean("llm_analysis_enabled").notNull().default(true),
   agentLoopEnabled: boolean("agent_loop_enabled").notNull().default(false),
   ssoConnectionId: text("sso_connection_id"),
+  /**
+   * The GitHub organization this tenant *is*, when it was provisioned by installing the
+   * Gatepass App on that org.
+   *
+   * Unique because a GitHub org is one tenant: two Gatepass orgs claiming the same GitHub org
+   * would each derive access from the same membership list while holding separate findings,
+   * and a user signing in would land in whichever one was found first. That is a tenancy bug
+   * with a data-leak shape, so the database refuses it rather than the application remembering
+   * to.
+   */
+  githubOrgLogin: text("github_org_login").unique(),
+  /** The App installation that provisioned this org. */
+  githubInstallationId: bigint("github_installation_id", { mode: "number" }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -63,20 +77,52 @@ export const memberships = pgTable(
   }),
 );
 
-export const repositories = pgTable("repositories", {
-  id: text("id").primaryKey(),
-  orgId: text("org_id")
-    .notNull()
-    .references(() => organizations.id, { onDelete: "cascade" }),
-  githubRepoId: bigint("github_repo_id", { mode: "number" }).notNull().unique(),
-  name: text("name").notNull(),
-  frameworksDetected: text("frameworks_detected").array().notNull().default([]),
-  surfacesPresent: text("surfaces_present").array().notNull().default([]),
-  gateMode: gateModeEnum("gate_mode").notNull().default("off"),
-  gateFailureMode: gateFailureModeEnum("gate_failure_mode").notNull().default("fail_open"),
-  agentLoopEnabled: boolean("agent_loop_enabled").notNull().default(false),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+/**
+ * Connected repositories.
+ *
+ * Four columns changed when connect/disconnect became real (migration 0002):
+ *
+ *  - `github_repo_id` is nullable now. It was `NOT NULL UNIQUE`, which made the table unable
+ *    to hold the two things it most needs to hold: a repository connected on a deployment
+ *    with no GitHub App (so the id was never fetched), and a local directory scanned on the
+ *    API host (which has no GitHub identity at all). Postgres permits repeated NULLs under a
+ *    unique constraint, so uniqueness still holds for every row that *does* have an id.
+ *  - `visibility` is nullable **on purpose**, and NULL is the default. It is written only
+ *    when GitHub actually told us. The API omits the field entirely when it is NULL so the
+ *    dashboard renders nothing rather than printing "Private" beside a public repository.
+ *  - `source` distinguishes an `owner/name` repository from a path on the API host — the
+ *    same table holds both, and they are not the same kind of thing.
+ *  - `last_scan_id` / `last_scan_at` move the scan pointer out of the in-memory-only map that
+ *    used to be the sole record of it.
+ */
+export const repositories = pgTable(
+  "repositories",
+  {
+    id: text("id").primaryKey(),
+    orgId: text("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    githubRepoId: bigint("github_repo_id", { mode: "number" }).unique(),
+    name: text("name").notNull(),
+    source: text("source").notNull().default("github"),
+    /** `"public"` / `"private"`, or NULL for "not known". Never guessed. */
+    visibility: text("visibility"),
+    defaultBranch: text("default_branch"),
+    frameworksDetected: text("frameworks_detected").array().notNull().default([]),
+    surfacesPresent: text("surfaces_present").array().notNull().default([]),
+    gateMode: gateModeEnum("gate_mode").notNull().default("off"),
+    gateFailureMode: gateFailureModeEnum("gate_failure_mode").notNull().default("fail_open"),
+    agentLoopEnabled: boolean("agent_loop_enabled").notNull().default(false),
+    lastScanId: text("last_scan_id"),
+    lastScanAt: timestamp("last_scan_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    // A repo name is unique within an org, not globally: two tenants may each connect the
+    // same public repository, and neither should be able to see or clobber the other's row.
+    orgName: uniqueIndex("repositories_org_name_idx").on(t.orgId, t.name),
+  }),
+);
 
 export const scans = pgTable("scans", {
   id: text("id").primaryKey(),
@@ -284,4 +330,47 @@ export const complianceChecks = pgTable("compliance_checks", {
   fixFilePath: text("fix_file_path"),
   fixNewContent: text("fix_new_content"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/**
+ * Session tokens withdrawn before their own expiry.
+ *
+ * Sessions are stateless HMAC tokens, which means the only thing that ever ended one was time.
+ * Signing out cleared the browser's cookie and nothing more, so a token copied off the wire or
+ * left on a shared machine kept working for the rest of its seven days with no way to cut it
+ * off. This table is what makes "sign out" mean it.
+ *
+ * Rows are disposable: past `expires_at` the signature check refuses the token anyway, so
+ * keeping the row only re-answers a settled question. Prune with
+ * `delete from revoked_sessions where expires_at < now()`.
+ */
+export const revokedSessions = pgTable("revoked_sessions", {
+  /** The token's `jti` claim. */
+  jti: text("jti").primaryKey(),
+  /** The token's own expiry — after this the row is safe to delete. */
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  revokedAt: timestamp("revoked_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/**
+ * One user's GitHub-derived access, cached between sign-ins.
+ *
+ * This table is a *cache*, not a grant. Nothing here confers access — every row is a recording
+ * of what GitHub said, and it is re-derived on a short TTL. Deleting the table logs everyone
+ * out of their repositories until they next sign in, and does not widen anybody's access by a
+ * single repository. That is the property to preserve if this schema is ever changed: the day
+ * an operator can edit a row here to grant somebody a repository, the whole model is gone.
+ *
+ * `access_token` is the user's own OAuth token (`read:user read:org`, no `repo` scope) and is
+ * what makes refreshing possible. It is deleted on sign-out. Encrypt the column at the database
+ * layer if your threat model calls for it — see apps/api/src/access.ts for the full reasoning.
+ */
+export const userAccessGrants = pgTable("user_access_grants", {
+  /** GitHub's numeric user id, as text — the same value a session carries as `userId`. */
+  githubUserId: text("github_user_id").primaryKey(),
+  login: text("login").notNull(),
+  /** The resolved `AccessGrant` (orgs, per-repo permissions, granularity). */
+  grant: jsonb("grant").notNull(),
+  accessToken: text("access_token"),
+  refreshedAt: timestamp("refreshed_at", { withTimezone: true }).notNull().defaultNow(),
 });

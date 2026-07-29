@@ -2,13 +2,7 @@ import type { ScanContext } from "@gatepass/engine";
 import type { ComplianceCheck } from "../compliance-schema.js";
 import { registerScanner, makeCheck } from "../compliance-scanner.js";
 import type { DomainScanner } from "../compliance-scanner.js";
-import {
-  combineFiles,
-  complianceRelevantFiles,
-  resolveLocations,
-  REPO_WIDE,
-  type CombinedSource,
-} from "../source-map.js";
+import { combineFiles, complianceRelevantFiles, REPO_WIDE, type CombinedSource } from "../source-map.js";
 
 /**
  * EU AI Act compliance scanner.

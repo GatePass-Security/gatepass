@@ -1,6 +1,10 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import type { AddressInfo } from "node:net";
 import { createServer } from "../src/server.js";
+import { resolve, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+import { makeHandlers } from "../src/handlers.js";
+import { MemoryStore } from "../src/store.js";
 
 let base: string;
 let close: () => void;
@@ -179,5 +183,98 @@ describe("API integration (T013/T030/T031 wiring)", () => {
     };
     const badUpload = await post("/v1/runner/results", bad, RUNNER_TOKEN);
     expect(badUpload.status).toBe(422);
+  });
+});
+
+/**
+ * The tenant guard, exercised through `makeHandlers` directly rather than over HTTP.
+ *
+ * `server.ts` checks tenancy for every `/v1/scans/:id/*` path, and that check stays — it is what
+ * covers routes added later. But it is not the only door: `makeHandlers` returns a plain object,
+ * and the CLI, workers, and anything else holding one could read any scan by id from any tenant.
+ * These assert the guard where that caller would hit it.
+ */
+describe("scan reads are tenant-scoped inside the handlers, not only at the HTTP layer", () => {
+  const fixture = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "corpus", "eval-repos");
+
+  async function seed() {
+    const store = new MemoryStore();
+    await store.upsertOrg({ id: "owner-org", planTier: "scale", llmEnabled: false, agentLoopEnabled: false });
+    await store.upsertOrg({ id: "other-org", planTier: "scale", llmEnabled: false, agentLoopEnabled: false });
+    const h = makeHandlers(store);
+    const { scanId } = await h.createScan("owner-org", resolve(fixture, "vulnerable-nextjs-mcp"));
+    return { h, scanId };
+  }
+
+  it("lets the owning org read its own scan", async () => {
+    const { h, scanId } = await seed();
+    await expect(h.getFindings("owner-org", scanId)).resolves.toBeInstanceOf(Array);
+    await expect(h.getSarif("owner-org", scanId)).resolves.toBeTruthy();
+  });
+
+  it("refuses another org on findings, SARIF and the gate", async () => {
+    const { h, scanId } = await seed();
+    const gate = { mode: "block_verified", failureMode: "fail_open" } as const;
+    await expect(h.getFindings("other-org", scanId)).rejects.toThrow(/does not belong/);
+    await expect(h.getSarif("other-org", scanId)).rejects.toThrow(/does not belong/);
+    await expect(h.evaluateGate("other-org", scanId, gate)).rejects.toThrow(/does not belong/);
+  });
+
+  it("still reports a missing scan as missing rather than as someone else's", async () => {
+    const { h } = await seed();
+    // Order matters: leaking "that belongs to another org" for an id that does not exist would
+    // turn the 403 into an oracle for which scan ids are real.
+    await expect(h.getFindings("owner-org", "00000000-0000-0000-0000-000000000000")).rejects.toThrow(/scan /);
+  });
+});
+
+/**
+ * What a scan is *called* once it is stored.
+ *
+ * The identity is not cosmetic — it is the key the repository-scope check reads and the string
+ * the dashboard renders. Seeding the bundled fixture used to record it as an absolute path on
+ * whichever machine happened to run the API, which put a developer's home directory on a
+ * customer-facing page and named the same fixture differently on every host.
+ */
+describe("a scanned directory's recorded identity", () => {
+  const fixture = resolve(
+    dirname(fileURLToPath(import.meta.url)),
+    "..",
+    "..",
+    "..",
+    "corpus",
+    "eval-repos",
+    "vulnerable-nextjs-mcp",
+  );
+
+  async function scan(label?: string) {
+    const store = new MemoryStore();
+    await store.upsertOrg({ id: "demo", planTier: "scale", llmEnabled: false, agentLoopEnabled: false });
+    await makeHandlers(store).createScan("demo", fixture, label);
+    return (await store.getRepos!("demo"))[0]!;
+  }
+
+  it("defaults to the path, so an operator sees exactly what was read", async () => {
+    expect((await scan()).name).toBe(fixture);
+  });
+
+  it("uses a supplied label, keeping the host's directory layout off the page", async () => {
+    const repo = await scan("corpus/eval-repos/vulnerable-nextjs-mcp");
+    expect(repo.name).toBe("corpus/eval-repos/vulnerable-nextjs-mcp");
+    expect(repo.name).not.toContain("/Users/");
+  });
+
+  it("REFUSES a label shaped like a GitHub slug", async () => {
+    /*
+     * The guard that matters. A local scan recorded as `owner/repo` is indistinguishable from a
+     * scan of the real repository of that name — to the dashboard, to the repo-source classifier
+     * that decides whether to call the GitHub API, and to the scope check that authorizes access
+     * to it by name.
+     */
+    expect((await scan("modelcontextprotocol/servers")).name).toBe(fixture);
+  });
+
+  it("refuses an absolute path as a label", async () => {
+    expect((await scan("/etc/passwd")).name).toBe(fixture);
   });
 });

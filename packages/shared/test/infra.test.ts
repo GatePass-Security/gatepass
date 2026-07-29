@@ -34,8 +34,8 @@ describe("crypto helpers (T099)", () => {
     expect(verifyHmac("payload", "whsec", "sha256=deadbeef")).toBe(false);
   });
   it("redacts secret-shaped substrings for logging", () => {
-    expect(redactForLog("key=AKIAIOSFODNN7EXAMPLE")).toContain("«AWS_KEY»");
-    expect(redactForLog("key=AKIAIOSFODNN7EXAMPLE")).not.toContain("AKIAIOSFODNN7EXAMPLE");
+    expect(redactForLog("key=AKIA3M7QZKPBW4NVXR2T")).toContain("«AWS_KEY»");
+    expect(redactForLog("key=AKIA3M7QZKPBW4NVXR2T")).not.toContain("AKIA3M7QZKPBW4NVXR2T");
   });
 });
 

@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import { Lightbulb, ListFilter, Lock } from "lucide-react";
 
 import { api } from "@/lib/api-client";
-import { ORG_ID } from "@/lib/constants";
-import { ApiError, type Finding, type ScanSummary } from "@/lib/types";
+import { useOrgId } from "@/providers/SessionProvider";
+import { ApiError, type Finding, type ScanSummary, type SuggestedFix } from "@/lib/types";
 import {
   confidencePercent,
   cx,
@@ -22,7 +22,6 @@ import {
   Button,
   Card,
   CardTitle,
-  CodeBlock,
   EmptyState,
   ErrorPanel,
   PageHeader,
@@ -31,6 +30,7 @@ import {
   TONE_VAR,
   type Tone,
 } from "@/components/ui";
+import { FixKindBadge, SuggestedFixDetail } from "@/components/SuggestedFix";
 
 const DESCRIPTION = "Fetch the agent loop's remediation guidance for a finding from one of this organization's scans.";
 
@@ -50,12 +50,13 @@ function scanOptionLabel(scan: ScanSummary): string {
 }
 
 type Outcome =
-  | { kind: "guidance"; fingerprint: string; guidance: { kind: string; content: string } }
+  | { kind: "guidance"; fingerprint: string; classId: string; guidance: SuggestedFix }
   | { kind: "gated" }
   | { kind: "error"; error: unknown };
 
 export default function AgentGuidancePage() {
   const router = useRouter();
+  const orgId = useOrgId();
 
   const [scans, setScans] = useState<ScanSummary[] | null>(null);
   const [scansError, setScansError] = useState<unknown>(null);
@@ -72,7 +73,7 @@ export default function AgentGuidancePage() {
     setScansError(null);
     setScans(null);
     try {
-      const list = await api.listScans(ORG_ID);
+      const list = await api.listScans(orgId);
       // Newest first: the scan someone wants guidance on is nearly always the
       // last one that ran, so it is what the Select opens on.
       const sorted = [...list].sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""));
@@ -81,7 +82,7 @@ export default function AgentGuidancePage() {
     } catch (err) {
       setScansError(err);
     }
-  }, []);
+  }, [orgId]);
 
   useEffect(() => {
     void loadScans();
@@ -115,8 +116,13 @@ export default function AgentGuidancePage() {
     setLoading(true);
     setOutcome(null);
     try {
-      const result = await api.getAgentGuidance(ORG_ID, scanId, fingerprint);
-      setOutcome({ kind: "guidance", fingerprint: result.fingerprint, guidance: result.guidance });
+      const result = await api.getAgentGuidance(orgId, scanId, fingerprint);
+      setOutcome({
+        kind: "guidance",
+        fingerprint: result.fingerprint,
+        classId: result.classId,
+        guidance: result.guidance,
+      });
     } catch (err) {
       // 403 is the opt-in gate in `agentGuidance`, not a failure. The previous
       // version matched on the word "Forbidden", which the API never sends —
@@ -265,11 +271,17 @@ export default function AgentGuidancePage() {
                 </CardTitle>
               }
             >
-              <p className="text-[0.72rem] text-fg-muted">
+              {/* The class names the finding; the fingerprint identifies it. Both
+                  are shown because the guidance below refers to neither. */}
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="text-[0.855rem] font-medium break-all text-fg">{outcome.classId}</h3>
+                <FixKindBadge kind={outcome.guidance.kind} />
+              </div>
+              <p className="mt-1.5 text-[0.72rem] text-fg-muted">
                 Fingerprint <span className="font-mono break-all text-fg-secondary">{outcome.fingerprint}</span>
               </p>
               <div className="mt-3">
-                <CodeBlock title={outcome.guidance.kind} content={outcome.guidance.content} diff />
+                <SuggestedFixDetail fix={outcome.guidance} />
               </div>
             </Card>
           ) : outcome?.kind === "gated" ? (

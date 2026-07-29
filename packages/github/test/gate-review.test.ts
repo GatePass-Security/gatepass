@@ -80,3 +80,109 @@ describe("PR review builder (FR-012)", () => {
     expect(buildReview([verified]).summary).toMatch(/advisory|approve/i);
   });
 });
+
+/**
+ * A GitHub ```suggestion``` block REPLACES the lines its comment is anchored to, and a
+ * reviewer applies it with one click. Every test here exists because the obvious
+ * implementation of an *insertion* fix — fencing `insertedLines` on their own — would tell
+ * GitHub to delete the developer's code.
+ */
+describe("PR review builder — suggestion safety", () => {
+  const sqlLines = [
+    "create table invoices (", // 1
+    "  id uuid primary key,", // 2
+    "  tenant_id uuid not null", // 3
+    ");", // 4
+  ];
+  const sql = sqlLines.join("\n") + "\n";
+
+  const withFix: Finding = {
+    fingerprint: "sha256:c",
+    tier: "verified",
+    classId: "rls-gap",
+    severity: "high",
+    surfaces: ["app_code"],
+    locations: [{ path: "db/schema.sql", startLine: 1, endLine: 1, surface: "app_code" }],
+    explanation: "no RLS",
+    reproduction: { kind: "inspection", steps: ["look"], expected: "cross-tenant read" },
+    suggestedFix: {
+      kind: "diff",
+      content: "Enable row-level security.",
+      edit: {
+        path: "db/schema.sql",
+        startLine: 1,
+        endLine: 4,
+        operation: "insert_after",
+        insertedLines: "\nalter table invoices enable row level security;",
+      },
+    },
+  };
+
+  const source = { read: (p: string) => (p === "db/schema.sql" ? sql : undefined) };
+
+  function suggestionBody(body: string): string[] {
+    const lines = body.split("\n");
+    const start = lines.indexOf("```suggestion");
+    if (start === -1) return [];
+    const end = lines.indexOf("```", start + 1);
+    return lines.slice(start + 1, end);
+  }
+
+  it("includes the original anchor lines before the insertion, so applying it adds rather than replaces", () => {
+    const [comment] = buildReview([withFix], { source }).comments;
+    const suggestion = suggestionBody(comment!.body);
+    // The developer's four lines must survive verbatim, in order, at the top.
+    expect(suggestion.slice(0, 4)).toEqual(sqlLines);
+    expect(suggestion).toContain("alter table invoices enable row level security;");
+  });
+
+  it("NEVER emits a suggestion containing only the insertion (applying it would delete code)", () => {
+    for (const opts of [{ source }, {}]) {
+      const [comment] = buildReview([withFix], opts).comments;
+      const suggestion = suggestionBody(comment!.body);
+      if (suggestion.length === 0) continue; // rendered as a copy-paste block instead — fine
+      expect(suggestion[0]).toBe(sqlLines[0]);
+      expect(suggestion.join("\n")).toContain("create table invoices (");
+    }
+  });
+
+  it("anchors a multi-line suggestion across its whole range", () => {
+    const [comment] = buildReview([withFix], { source }).comments;
+    expect(comment!.startLine).toBe(1);
+    expect(comment!.line).toBe(4);
+  });
+
+  it("omits startLine for a single-line anchor", () => {
+    const single: Finding = {
+      ...withFix,
+      suggestedFix: { ...withFix.suggestedFix!, edit: { ...withFix.suggestedFix!.edit!, endLine: 1 } },
+    };
+    const [comment] = buildReview([single], { source }).comments;
+    expect(comment!.startLine).toBeUndefined();
+    expect(comment!.line).toBe(1);
+  });
+
+  it("degrades to a copy-paste block when the source is unavailable", () => {
+    const [comment] = buildReview([withFix]).comments;
+    expect(comment!.body).not.toContain("```suggestion");
+    expect(comment!.body).toContain("Add after line 4");
+    expect(comment!.body).toContain("alter table invoices enable row level security;");
+  });
+
+  it("degrades to a copy-paste block when the file moved and the anchor no longer exists", () => {
+    const shortened = { read: () => "create table invoices (id int);\n" };
+    const [comment] = buildReview([withFix], { source: shortened }).comments;
+    expect(comment!.body).not.toContain("```suggestion");
+  });
+
+  it("renders guidance as prose with no suggestion block at all", () => {
+    const guided: Finding = {
+      ...withFix,
+      classId: "cors-misconfig",
+      suggestedFix: { kind: "agent_guidance", content: "Replace the wildcard with an allow-list." },
+    };
+    const [comment] = buildReview([guided], { source }).comments;
+    expect(comment!.body).toContain("Replace the wildcard with an allow-list.");
+    expect(comment!.body).not.toContain("```suggestion");
+  });
+});

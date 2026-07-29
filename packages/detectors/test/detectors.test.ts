@@ -23,7 +23,7 @@ async function scanTree(files: Record<string, string>) {
 
 describe("verified detectors", () => {
   it("finds an exposed secret in a bundle with a reproduction", async () => {
-    const doc = await scanTree({ "dist/app.js": 'var k="AKIAIOSFODNN7EXAMPLE";' });
+    const doc = await scanTree({ "dist/app.js": 'var k="AKIA3M7QZKPBW4NVXR2T";' });
     const f = doc.findings.find((x) => x.classId === "exposed-secret");
     expect(f?.tier).toBe("verified");
     expect(f && "reproduction" in f && f.reproduction).toBeTruthy();
@@ -203,7 +203,7 @@ describe("async pipeline with in-line LLM refinement (T095, FR-011a)", () => {
   });
 
   it("refines research-tier confidence via the gateway, leaving verified findings untouched", async () => {
-    const ctx = await ctxOf({ ...tree, "dist/app.js": 'var k="AKIAIOSFODNN7EXAMPLE";' });
+    const ctx = await ctxOf({ ...tree, "dist/app.js": 'var k="AKIA3M7QZKPBW4NVXR2T";' });
     const transport: LlmTransport = {
       async complete() {
         return { text: "CONFIDENCE: 0.95 refined" };
@@ -223,7 +223,7 @@ describe("async pipeline with in-line LLM refinement (T095, FR-011a)", () => {
   });
 
   it("survives an LLM outage: transport errors degrade to heuristic confidence, never fail the scan", async () => {
-    const ctx = await ctxOf({ ...tree, "dist/app.js": 'var k="AKIAIOSFODNN7EXAMPLE";' });
+    const ctx = await ctxOf({ ...tree, "dist/app.js": 'var k="AKIA3M7QZKPBW4NVXR2T";' });
     const transport: LlmTransport = {
       async complete() {
         throw new Error("NVIDIA NIM API error: 429 Too Many Requests");
@@ -248,7 +248,7 @@ describe("async pipeline with in-line LLM refinement (T095, FR-011a)", () => {
 
 describe("SARIF export", () => {
   it("emits SARIF 2.1.0 carrying tier + confidence in properties", async () => {
-    const doc = await scanTree({ "dist/app.js": 'var k="AKIAIOSFODNN7EXAMPLE";' });
+    const doc = await scanTree({ "dist/app.js": 'var k="AKIA3M7QZKPBW4NVXR2T";' });
     const sarif = toSarif(doc) as any;
     expect(sarif.version).toBe("2.1.0");
     expect(sarif.runs[0].results[0].properties.tier).toBe("verified");
@@ -257,7 +257,7 @@ describe("SARIF export", () => {
 
 describe("determinism (FR-006a parity basis)", () => {
   it("produces identical fingerprints across two runs", async () => {
-    const files = { "dist/app.js": 'var k="AKIAIOSFODNN7EXAMPLE";', "db.sql": "create table t (id uuid);" };
+    const files = { "dist/app.js": 'var k="AKIA3M7QZKPBW4NVXR2T";', "db.sql": "create table t (id uuid);" };
     const a = await scanTree(files);
     const b = await scanTree(files);
     expect(a.findings.map((f) => f.fingerprint)).toEqual(b.findings.map((f) => f.fingerprint));

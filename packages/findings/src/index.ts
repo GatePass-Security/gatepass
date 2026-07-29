@@ -1,4 +1,5 @@
 export * from "./schema.js";
+export * from "./fix.js";
 export * from "./redaction.js";
 export * from "./sarif.js";
 export * from "./diff.js";

@@ -19,8 +19,20 @@ export interface GitHubUser {
 
 type FetchLike = typeof fetch;
 
+/**
+ * Scopes requested at sign-in.
+ *
+ * `read:org` is here so the session's role can be derived from the user's actual GitHub
+ * organization membership instead of being assumed — `authCallback` used to hardcode
+ * `role: "member"` for everyone, which made the whole role hierarchy decorative. It is the
+ * narrowest scope that answers "is this person an owner of the org", and it grants no access
+ * to code. Nothing here asks for `repo`: Gatepass reads repositories through its App
+ * installation, never through a user token.
+ */
+export const DEFAULT_OAUTH_SCOPE = "read:user read:org";
+
 /** The URL to send a user to in order to begin the OAuth flow. */
-export function authorizeUrl(config: OAuthConfig, state: string, scope = "read:user"): string {
+export function authorizeUrl(config: OAuthConfig, state: string, scope = DEFAULT_OAUTH_SCOPE): string {
   const params = new URLSearchParams({
     client_id: config.clientId,
     scope,
@@ -64,4 +76,39 @@ export async function exchangeCodeForUser(
   if (!user.id || !user.login) throw new OAuthError("incomplete user profile");
 
   return { githubUserId: user.id, login: user.login, accessToken: tokenJson.access_token };
+}
+
+/** A user's membership in one GitHub organization, as GitHub reports it. */
+export interface OrgMembership {
+  /** `"active"`, or `"pending"` for an unaccepted invitation. */
+  state: string;
+  /** `"admin"` (owner) or `"member"`. */
+  role: string;
+}
+
+/**
+ * Read the signed-in user's membership of `org` using their own access token
+ * (`GET /user/memberships/orgs/{org}`, needs the `read:org` scope).
+ *
+ * Returns undefined when GitHub says the user is not a member (404) or the token lacks the
+ * scope (403). Both are answers rather than failures, and both must resolve to the *lowest*
+ * privilege — so this deliberately does not throw, and the caller treats undefined as "no
+ * membership established".
+ */
+export async function fetchOrgMembership(
+  org: string,
+  accessToken: string,
+  fetchImpl: FetchLike = fetch,
+): Promise<OrgMembership | undefined> {
+  const res = await fetchImpl(`https://api.github.com/user/memberships/orgs/${encodeURIComponent(org)}`, {
+    headers: {
+      authorization: `Bearer ${accessToken}`,
+      accept: "application/vnd.github+json",
+      "x-github-api-version": "2022-11-28",
+    },
+  });
+  if (!res.ok) return undefined;
+  const json = (await res.json()) as { state?: string; role?: string };
+  if (!json.role) return undefined;
+  return { state: json.state ?? "active", role: json.role };
 }

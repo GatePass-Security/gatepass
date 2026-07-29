@@ -1,6 +1,15 @@
 // Re-export canonical types from packages
 export type { Finding, Tier, Surface, Location, Reproduction, FindingsDocument } from "@gatepass/findings";
-import type { Finding, Severity } from "@gatepass/findings";
+/*
+ * The suggested-fix vocabulary comes from the same schema the API validates
+ * against (`packages/findings/src/schema.ts`), so it is re-exported rather than
+ * restated here. That matters more than usual: the schema enforces
+ * `kind === "diff"` ⇔ `edit` present, and a hand-copied declaration would let
+ * the dashboard render a "diff" with no edit — a state the server cannot emit.
+ * `Finding["suggestedFix"]` is already this type, so nothing else needs wiring.
+ */
+export type { FixOperation, FixEdit, SuggestedFix } from "@gatepass/findings";
+import type { Finding, Severity, SuggestedFix } from "@gatepass/findings";
 export type { Severity };
 import type { PlanTier } from "@gatepass/shared";
 export type { PlanTier };
@@ -17,17 +26,60 @@ export interface OrgRecord {
   planTier: PlanTier;
   llmEnabled: boolean;
   agentLoopEnabled: boolean;
+  /**
+   * Opt-in for `POST /v1/orgs/:org/scans/:id/fix-pr`. Optional because older org
+   * records predate the column — absent means off, which is the only safe
+   * default for a flag that permits a write to a customer repository.
+   */
+  fixPrEnabled?: boolean;
 }
 
-/** `GET /v1/orgs/:org/repos` — apps/api/src/handlers.ts:444 */
+/**
+ * `GET /v1/orgs/:org/repos` — a connected repository (`handlers.ts`, `toRepoView`).
+ *
+ * `visibility` is **optional and never defaulted**. The API omits it entirely unless GitHub
+ * actually reported it, so `undefined` here means "not known" and the UI must render nothing
+ * rather than a guess. It used to be a required `string` that the API filled with the literal
+ * `"private"` for every row — a security dashboard printing "Private" beside a public
+ * repository states something false about exposure, which is the one mistake this product
+ * cannot make.
+ */
 export interface RepoRecord {
   name: string;
-  visibility: string;
+  /** `github` for an `owner/name` repository; `local_path` for a directory on the API host. */
+  source: "github" | "local_path";
+  visibility?: "public" | "private";
+  defaultBranch?: string;
   scanStatus: "never_scanned" | "scanning" | "complete" | "failed";
-  gateMode: "off" | "block_verified" | "block_threshold";
-  gateFailureMode: "fail_open" | "fail_closed";
+  gateMode: GateMode;
+  gateFailureMode: GateFailureMode;
+  agentLoopEnabled: boolean;
   frameworks: string[];
   lastScanId?: string;
+  lastScanAt?: string;
+  connectedAt: string;
+}
+
+/** Body of `PATCH /v1/orgs/:org/repos/:repo`. */
+export interface RepoSettingsPatch {
+  gate_mode?: GateMode;
+  gate_failure_mode?: GateFailureMode;
+  agent_loop_enabled?: boolean;
+}
+
+/**
+ * `GET /v1/orgs/:org/repos/available` — repositories the Gatepass App installation can read
+ * and this org has not connected. `configured: false` means the deployment has no GitHub App;
+ * that is the ordinary case, not a failure.
+ *
+ * `visibility` is optional here for the same reason it is optional on `RepoRecord`: the
+ * installation listing reports what GitHub said, and a payload that carried neither `private`
+ * nor `visibility` omits the key rather than guessing. Rendering must therefore tolerate its
+ * absence instead of assuming every entry in this list has one.
+ */
+export interface AvailableRepos {
+  configured: boolean;
+  repos: Array<{ githubRepoId: number; name: string; visibility?: "public" | "private"; defaultBranch?: string }>;
 }
 
 /** `POST /v1/orgs/:org/scans` — apps/api/src/handlers.ts:118 */
@@ -50,6 +102,8 @@ export interface ScanSummary {
   id: string;
   createdAt?: string;
   repo?: string;
+  /** The commit the scan actually read, when the repo was fetched rather than read from disk. */
+  commitSha?: string;
   verified: number;
   research: number;
   bySeverity: Partial<Record<Severity, number>>;
@@ -82,13 +136,43 @@ export interface FleetView {
   rollup: FleetRollup;
 }
 
-/** `GET /v1/orgs/:org/scans/:id/agent-guidance` — apps/api/src/handlers.ts:290 */
+/**
+ * `GET /v1/orgs/:org/scans/:id/agent-guidance` — apps/api/src/handlers.ts:334.
+ *
+ * `guidance` is the finding's whole `SuggestedFix`, so it can carry an `edit`;
+ * it is not a `{ kind, content }` pair. `classId` names the finding without a
+ * second round trip.
+ */
 export interface AgentGuidance {
   fingerprint: string;
-  guidance: {
-    kind: string;
-    content: string;
-  };
+  classId: string;
+  guidance: SuggestedFix;
+}
+
+/** One fix that was deliberately not committed — packages/github/src/fix-pr.ts:133. */
+export interface SkippedFix {
+  fingerprint: string;
+  classId: string;
+  path: string;
+  reason: string;
+}
+
+/**
+ * `POST /v1/orgs/:org/scans/:id/fix-pr` — packages/github/src/fix-pr.ts:140.
+ *
+ * Declared here rather than imported: `@gatepass/github` holds App credentials
+ * and is server-only, and the dashboard must not take a runtime dependency on it.
+ */
+export interface FixPullRequestResult {
+  number: number;
+  url: string;
+  branch: string;
+  base: string;
+  /** Paths actually written, in the order committed. */
+  files: string[];
+  /** Fingerprints whose fix landed in the branch. */
+  applied: string[];
+  skipped: SkippedFix[];
 }
 
 /**
@@ -160,12 +244,75 @@ export interface GateResult {
   blocking: Finding[];
 }
 
-/** `GET /v1/auth/me` — packages/shared session payload. */
+/** `GET /v1/auth/me` — the session payload plus the orgs this account currently reaches. */
 export interface SessionInfo {
   orgId: string;
   userId: string;
-  role: string;
+  login: string;
+  role: Role;
+  /** Unix seconds. */
+  exp: number;
+  /**
+   * Every org the signed-in GitHub account can reach, resolved live rather than read from the
+   * token — so an org somebody joined this morning appears without a fresh sign-in, and one
+   * they were removed from disappears. Absent on a deployment that does not derive access from
+   * GitHub.
+   */
+  orgs?: OrgMembershipSummary[];
   [key: string]: unknown;
+}
+
+/** Org roles, mirroring `packages/shared/src/roles.ts`. */
+export type Role = "admin" | "member" | "viewer";
+
+/**
+ * `GET /v1/auth/config` — which sign-in doors this deployment has.
+ *
+ * `devAuth` is deployment configuration, not a secret: it is false in production by
+ * construction (`apps/api/src/auth.ts`), so publishing it tells nobody anything they could
+ * act on. The login page needs it to render the truth about this machine.
+ */
+export interface AuthConfig {
+  github: boolean;
+  devAuth: boolean;
+  /**
+   * Whether this deployment has local password accounts. A door for people who should be able
+   * to look at Gatepass without authorizing an OAuth app against their personal GitHub account
+   * first — reviewers, auditors, anyone being shown the product.
+   */
+  password?: boolean;
+  orgId: string;
+}
+
+/** `POST /v1/auth/github/callback` and `POST /v1/auth/dev-session`. */
+/**
+ * One organization the signed-in account can reach.
+ *
+ * `accessGranularity` says how the repository list behind it was established, and is worth
+ * surfacing rather than hiding: `"installation"` and `"collaborator"` mean this person sees
+ * exactly the repositories GitHub grants them, while `"org-membership"` means the deployment
+ * could only establish that they are in the org and is showing them all of its repositories.
+ * Those are different claims about who can see what, and an admin should be able to tell which
+ * one their deployment is making.
+ */
+export interface OrgMembershipSummary {
+  id: string;
+  role: Role;
+  repoCount: number;
+  /** False for an outside collaborator — someone with repository access but not in the org. */
+  member?: boolean;
+  accessGranularity?: "installation" | "collaborator" | "org-membership";
+}
+
+export interface AuthResult {
+  token: string;
+  user: { id: number; login: string };
+  orgId: string;
+  role: Role;
+  /** Every org this account reaches. Empty on a deployment that does not derive access from GitHub. */
+  orgs?: OrgMembershipSummary[];
+  /** Present and true only for a development session. */
+  development?: boolean;
 }
 
 /** `GET /v1/` and `GET /healthz` — the API's own status response. */

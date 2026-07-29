@@ -8,6 +8,8 @@ import {
   TarSlipError,
   TarballRepoFetcher,
   LocalDirFetcher,
+  RepoFetchError,
+  publicTarballDownloader,
   type TarballDownloader,
 } from "../src/index.js";
 
@@ -61,6 +63,79 @@ describe("TarballRepoFetcher", () => {
     expect(ws.sha).toBe("deadbeef");
     await ws.cleanup();
     await expect(fs.access(ws.dir)).rejects.toBeTruthy(); // gone after cleanup
+  });
+});
+
+/**
+ * The anonymous downloader is what makes clone-and-scan work before any GitHub App exists, so
+ * these tests pin the two things that make it safe to offer: it presents no credential, and it
+ * explains a refusal in terms an operator can act on.
+ */
+describe("publicTarballDownloader", () => {
+  /** Minimal stand-in for the two calls the downloader makes. */
+  function fakeFetch(responses: Record<string, { status: number; body?: Buffer; headers?: Record<string, string> }>) {
+    const seen: { url: string; headers: Record<string, string> }[] = [];
+    const impl = (async (url: string, init?: RequestInit) => {
+      seen.push({ url, headers: (init?.headers ?? {}) as Record<string, string> });
+      const match = Object.keys(responses).find((k) => url.includes(k));
+      const r = match ? responses[match]! : { status: 404 };
+      return new Response(r.body ?? "", { status: r.status, headers: r.headers });
+    }) as unknown as typeof fetch;
+    return { impl, seen };
+  }
+
+  it("sends NO authorization header — it claims no access it has not been granted", async () => {
+    const tar = createTarGz({ "repo-sha/a.ts": "x" });
+    const { impl, seen } = fakeFetch({
+      "/commits/": { status: 200, body: Buffer.from("a".repeat(40)) },
+      "/tarball/": { status: 200, body: tar },
+    });
+    await publicTarballDownloader(impl)("acme/app", "HEAD");
+    expect(seen).toHaveLength(2);
+    for (const call of seen) {
+      expect(Object.keys(call.headers).map((h) => h.toLowerCase())).not.toContain("authorization");
+    }
+  });
+
+  it("resolves the ref to a commit SHA so findings are pinned", async () => {
+    const sha = "b".repeat(40);
+    const { impl } = fakeFetch({
+      "/commits/": { status: 200, body: Buffer.from(sha) },
+      "/tarball/": { status: 200, body: createTarGz({ "repo-sha/a.ts": "x" }) },
+    });
+    expect((await publicTarballDownloader(impl)("acme/app", "main")).sha).toBe(sha);
+  });
+
+  it("never fabricates a SHA when the ref cannot be resolved", async () => {
+    const { impl } = fakeFetch({
+      "/commits/": { status: 404 },
+      "/tarball/": { status: 200, body: createTarGz({ "repo-sha/a.ts": "x" }) },
+    });
+    expect((await publicTarballDownloader(impl)("acme/app", "main")).sha).toBeUndefined();
+  });
+
+  it("explains a 404 as 'public only', because GitHub hides private repos behind the same code", async () => {
+    const { impl } = fakeFetch({ "/tarball/": { status: 404 } });
+    await expect(publicTarballDownloader(impl)("acme/private", "HEAD")).rejects.toThrow(
+      /acme\/private was not found.*public repositories/is,
+    );
+  });
+
+  it("names rate-limit exhaustion rather than reporting it as a permissions failure", async () => {
+    const { impl } = fakeFetch({
+      "/tarball/": { status: 403, headers: { "x-ratelimit-remaining": "0" } },
+    });
+    await expect(publicTarballDownloader(impl)("acme/app", "HEAD")).rejects.toThrow(/rate limit is exhausted/i);
+  });
+
+  it("does not mistake an ordinary 403 for rate limiting", async () => {
+    const { impl } = fakeFetch({
+      "/tarball/": { status: 403, headers: { "x-ratelimit-remaining": "58" } },
+    });
+    const err = await publicTarballDownloader(impl)("acme/app", "HEAD").catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(RepoFetchError);
+    expect((err as RepoFetchError).status).toBe(403);
+    expect((err as Error).message).not.toMatch(/rate limit/i);
   });
 });
 

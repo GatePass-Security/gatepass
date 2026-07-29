@@ -12,6 +12,10 @@ export default tseslint.config(
       "**/dist/**",
       "**/.next/**",
       "**/node_modules/**",
+      // Agent worktrees are whole second copies of this repo living inside it. Linting them
+      // reports the same file twice — once as it is, once as it was on another branch — so a
+      // clean tree can fail `pnpm lint` because of code nobody is editing here.
+      ".claude/**",
       "ide/**/extension.ts",
       "**/*.d.ts",
       "corpus/cases/**",

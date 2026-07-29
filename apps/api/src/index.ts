@@ -3,24 +3,85 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { createServer } from "./server.js";
 import { makeHandlers } from "./handlers.js";
-import { MemoryStore } from "./store.js";
+import { MemoryStore, type Store } from "./store.js";
 import { parseRunnerTokens } from "./tokens.js";
-import { PgStore, loadConfig, loadDotEnv } from "@gatepass/shared";
-import { getInstallationToken, RestGitHubClient, TarballRepoFetcher, githubTarballDownloader } from "@gatepass/github";
+import { parseAllowedLogins, parseLocalUsers } from "./auth.js";
+import { devAuthEnabled } from "./auth.js";
+import { PgStore, createMongoStore, loadConfig, loadDotEnv, type Role } from "@gatepass/shared";
+import {
+  createRepoDirectory,
+  getInstallationToken,
+  RestGitHubClient,
+  TarballRepoFetcher,
+  githubTarballDownloader,
+  publicTarballDownloader,
+} from "@gatepass/github";
 import { createNimTransport, DEFAULT_MODEL } from "@gatepass/semantic";
 
 export { createServer } from "./server.js";
 export { makeHandlers };
 export { MemoryStore } from "./store.js";
 
-const isEntry = process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.argv[1]).href;
-if (isEntry) {
+const ROLES = new Set(["admin", "member", "viewer"]);
+
+/** An explicit off switch. Anything else — including unset — leaves the feature at its default. */
+function isOff(raw: string | undefined): boolean {
+  const v = (raw ?? "").trim().toLowerCase();
+  return v === "0" || v === "false" || v === "no" || v === "off";
+}
+
+/**
+ * Boot the API from the environment.
+ *
+ * Exported so `dev.ts` can start the same server with the local development sign-in turned
+ * on, rather than duplicating this wiring or shipping a shell-specific `VAR=1 tsx` script
+ * that only works on one platform.
+ */
+export async function startServer(): Promise<void> {
   // Dev convenience: pick up .env from the cwd or the repo root. Real env vars always win.
   loadDotEnv(".env");
   loadDotEnv(resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", ".env"));
   const config = loadConfig();
   const dbUrl = config.databaseUrl ?? process.env.DATABASE_URL;
-  const store = dbUrl ? new PgStore(dbUrl) : new MemoryStore();
+  const mongoUri = process.env.MONGODB_URI?.trim();
+
+  /*
+   * Which datastore, and what happens when the configured one is unreachable.
+   *
+   * MongoDB first when `MONGODB_URI` is set, then Postgres, then memory. A deployment that
+   * configures neither runs in memory and says so — that is the local-development posture, and
+   * it is honest about losing everything on restart.
+   *
+   * A configured store that fails to connect **stops the process**. Falling back to memory
+   * would be the worst of the three outcomes: the API would come up, answer every request, and
+   * silently write a customer's scan history into a Map that dies with the process. A refusal
+   * to start is loud, immediate, and points at the actual problem.
+   */
+  let store: Store;
+  let storeLabel: string;
+  let closeStore: (() => Promise<void>) | undefined;
+
+  if (mongoUri) {
+    try {
+      const conn = await createMongoStore(mongoUri, process.env.MONGODB_DB);
+      store = conn.store;
+      closeStore = conn.close;
+      storeLabel = "mongodb";
+    } catch (err) {
+      console.error(`Could not connect to MongoDB: ${(err as Error).message}`);
+      console.error(
+        "The API will not start with a datastore it cannot reach. Check MONGODB_URI, the database " +
+          "user's password, and that this machine's IP is on the Atlas access list (Network Access).",
+      );
+      process.exit(1);
+    }
+  } else if (dbUrl) {
+    store = new PgStore(dbUrl);
+    storeLabel = "postgres";
+  } else {
+    store = new MemoryStore();
+    storeLabel = "memory";
+  }
 
   const appId = process.env.GITHUB_APP_ID;
   const keyPath = process.env.GITHUB_APP_PRIVATE_KEY_PATH;
@@ -30,14 +91,31 @@ if (isEntry) {
   const installationId = process.env.GITHUB_INSTALLATION_ID;
   let githubClient = undefined;
   let repoFetcher = undefined;
+  let repoDirectory = undefined;
+  let installationToken = undefined;
   if (appId && (keyContent || keyPath) && installationId) {
     const privateKey = keyContent ?? readFileSync(resolve(keyPath!), "utf-8");
     const appConfig = { appId, privateKey, installationId };
     const { token } = await getInstallationToken(appConfig);
+    installationToken = token;
     githubClient = new RestGitHubClient(token);
     // Clone-and-scan: fetch real repos as tarballs with the installation token.
     repoFetcher = new TarballRepoFetcher(githubTarballDownloader(appConfig));
-    console.log(`GitHub App client + repo fetcher ready (installation ${installationId})`);
+    // Read-only repository discovery for the connect flow — two GETs, no write surface.
+    repoDirectory = createRepoDirectory(token);
+    console.log(`GitHub App client + repo fetcher + repo directory ready (installation ${installationId})`);
+  } else {
+    /*
+     * No App credentials — clone-and-scan still works, for public repositories only.
+     *
+     * The alternative was leaving `repoFetcher` undefined, which made every remote scan fail
+     * with "no repo fetcher configured" and reduced a deployment without credentials to a
+     * local-directory linter. Anonymous fetching claims no access it has not been granted:
+     * GitHub returns exactly what it returns to anyone, so this widens what can be scanned
+     * without widening what can be reached.
+     */
+    repoFetcher = new TarballRepoFetcher(publicTarballDownloader());
+    console.log("No GitHub App configured — clone-and-scan is limited to public repositories.");
   }
 
   const llmTransport = config.nvidiaApiKey ? createNimTransport({ apiKey: config.nvidiaApiKey }) : undefined;
@@ -63,10 +141,136 @@ if (isEntry) {
       : "Benchmark publishing DISABLED (set GATEPASS_ADMIN_TOKEN to enable)",
   );
 
+  /*
+   * Sign-in wiring.
+   *
+   * `devAuth` is the local development door. It needs an explicit `GATEPASS_DEV_AUTH=1` AND a
+   * non-production `NODE_ENV` (see auth.ts), so it is off by default everywhere and cannot be
+   * switched on in production at all. `pnpm --filter @gatepass/api dev` sets the flag;
+   * `start` — which is what render.yaml runs — does not.
+   *
+   * `defaultRole` is what an allow-listed user gets when their entry does not name a role. It
+   * defaults to `viewer` rather than `member`: a deployment that has not told us how to tell an
+   * owner from a stranger should hand out read-only sessions.
+   */
+  const devAuth = devAuthEnabled();
+  const rawDefaultRole = process.env.GATEPASS_DEFAULT_ROLE?.trim().toLowerCase();
+  const defaultRole = rawDefaultRole && ROLES.has(rawDefaultRole) ? (rawDefaultRole as Role) : undefined;
+  const oauthReady = Boolean(process.env.GITHUB_OAUTH_CLIENT_ID && process.env.GITHUB_OAUTH_CLIENT_SECRET);
+  const allowedLogins = parseAllowedLogins(process.env.GATEPASS_ALLOWED_LOGINS);
+  const githubOrg = process.env.GATEPASS_GITHUB_ORG;
+  // How long a cached access grant stays authoritative. Minutes, because a cached grant is
+  // precisely access GitHub may already have taken away.
+  const rawTtl = Number(process.env.GATEPASS_ACCESS_TTL_SEC);
+  const accessTtlSec = Number.isFinite(rawTtl) && rawTtl > 0 ? rawTtl : undefined;
+  const localUsers = parseLocalUsers(process.env.GATEPASS_LOCAL_USERS);
+  /*
+   * Who may sign in and what they will see, stated at boot.
+   *
+   * The lines below matter because OAuth admits every GitHub account on earth by itself — the
+   * admission rule is the only thing narrowing that, and an operator should be able to read
+   * which one is in force without opening the code. A deployment with credentials but no
+   * admission rule is announced as refusing everyone, because it does.
+   *
+   * GitHub-derived access: tenants are GitHub orgs, and each person sees exactly the
+   * repositories GitHub says they may work on.
+   *
+   * On by default whenever sign-in works, because it is the product's access model and not an
+   * add-on. `GATEPASS_GITHUB_ACCESS=0` turns it off for a deployment that genuinely wants the
+   * older single-org posture — a local install, an air-gapped evaluation — and the boot line
+   * below says which one is in force so nobody has to guess from behaviour.
+   *
+   * `GATEPASS_GITHUB_ORG`, when set, keeps a multi-tenant-capable build serving exactly one
+   * tenant: a user who reaches five installations still only gets the one this deployment is
+   * for.
+   */
+  const githubAccessEnabled =
+    oauthReady && Boolean(process.env.SESSION_SECRET) && !isOff(process.env.GATEPASS_GITHUB_ACCESS);
+  const githubAccess = githubAccessEnabled
+    ? {
+        ...(installationToken ? { installationToken } : {}),
+        ...(githubOrg ? { orgAllowList: [githubOrg.toLowerCase()] } : {}),
+        ...(accessTtlSec !== undefined ? { ttlSec: accessTtlSec } : {}),
+      }
+    : undefined;
+
+  if (!oauthReady || !process.env.SESSION_SECRET) {
+    console.log("GitHub sign-in DISABLED (set GITHUB_OAUTH_CLIENT_ID, GITHUB_OAUTH_CLIENT_SECRET and SESSION_SECRET)");
+  } else if (githubAccess) {
+    console.log(
+      githubOrg
+        ? `GitHub-derived access ON, restricted to the "${githubOrg}" organization — each user sees only the repositories GitHub grants them`
+        : "GitHub-derived access ON — tenants are GitHub orgs with the Gatepass App installed; each user sees only the repositories GitHub grants them",
+    );
+    if (!installationToken) {
+      console.warn(
+        "  No GitHub App installation token (GITHUB_APP_ID / GITHUB_APP_PRIVATE_KEY / GITHUB_INSTALLATION_ID). " +
+          "Per-repository access still works for GitHub App sign-ins; a classic OAuth App sign-in falls back to " +
+          "organization-wide access, which is coarser. /v1/auth/me reports which, per org, as accessGranularity.",
+      );
+    }
+  } else if (githubOrg || allowedLogins.length > 0) {
+    const rules = [
+      ...(githubOrg ? [`active members of the "${githubOrg}" GitHub org`] : []),
+      ...(allowedLogins.length > 0 ? [`${allowedLogins.length} allow-listed login(s)`] : []),
+    ];
+    console.log(`GitHub sign-in enabled for ${rules.join(" and ")}; everyone else is refused a session`);
+  } else {
+    console.warn(
+      "GitHub sign-in has credentials but NO ADMISSION RULE, so every sign-in is refused. " +
+        "Set GATEPASS_GITHUB_ORG to a GitHub organization, or GATEPASS_ALLOWED_LOGINS='login,login:admin'.",
+    );
+  }
+  /*
+   * The local password door, announced loudly because it is a shared credential by design.
+   *
+   * Nothing about it is subtle: anyone holding the password is inside, there is no second
+   * factor, and it does not expire when somebody leaves. That is an acceptable trade for
+   * handing a reviewer a look at a deployment and a bad one for anything else, so the log says
+   * which accounts exist and at what role rather than leaving an operator to discover it.
+   */
+  /*
+   * Seed the environment's accounts into the store.
+   *
+   * This is what makes `GATEPASS_LOCAL_USERS` a bootstrap rather than the permanent home: the
+   * first boot writes them, and after that the database holds them and can hold others that
+   * were never in an environment variable. Rotating still works the way an operator expects,
+   * because sign-in reads the environment *first* for a login it names — see `passwordSignIn`.
+   */
+  let storedAccountCount = 0;
+  if (store.putLocalAccount && store.listLocalAccounts) {
+    for (const u of localUsers) {
+      await store.putLocalAccount({ login: u.login, passwordHash: u.passwordHash, role: u.role });
+    }
+    storedAccountCount = (await store.listLocalAccounts()).length;
+  }
+
+  if (localUsers.length > 0 || storedAccountCount > 0) {
+    const summary =
+      localUsers.length > 0
+        ? localUsers.map((u) => `${u.login} (${u.role})`).join(", ")
+        : `${storedAccountCount} account(s) from the database`;
+    console.warn(
+      `PASSWORD SIGN-IN ENABLED for ${summary}. These are shared credentials with no second factor — ` +
+        `rotate them when whoever you gave them to is done, by regenerating GATEPASS_LOCAL_USERS ` +
+        `(pnpm --filter @gatepass/api hash-password <login> <role>).`,
+    );
+    if (!process.env.SESSION_SECRET) {
+      console.warn("  …but SESSION_SECRET is unset, so no session can be issued and the door stays shut.");
+    }
+  }
+  if (devAuth) {
+    console.warn(
+      "DEV SIGN-IN ENABLED — POST /v1/auth/dev-session issues an admin session to anyone who asks. " +
+        "This is refused when NODE_ENV=production. Never set GATEPASS_DEV_AUTH on a deployment.",
+    );
+  }
+
   const { server } = await createServer({
     store,
     githubClient,
     repoFetcher,
+    repoDirectory,
     llmTransport,
     llmModel: DEFAULT_MODEL,
     webhookSecret: process.env.GITHUB_WEBHOOK_SECRET,
@@ -82,16 +286,68 @@ if (isEntry) {
           }
         : undefined,
     sessionSecret: process.env.SESSION_SECRET,
+    sessionOrgId: process.env.GATEPASS_SESSION_ORG,
+    githubOrgLogin: process.env.GATEPASS_GITHUB_ORG,
+    allowedLogins: parseAllowedLogins(process.env.GATEPASS_ALLOWED_LOGINS),
+    defaultRole,
+    devAuth,
+    devOrgId: process.env.GATEPASS_SESSION_ORG,
     runnerTokens,
     adminToken: process.env.GATEPASS_ADMIN_TOKEN,
+    localUsers,
+    hasStoredAccounts: storedAccountCount > 0,
+    ...(githubAccess ? { githubAccess } : {}),
   });
   if (process.env.GITHUB_WEBHOOK_SECRET) {
     console.log("GitHub webhook receiver ready at POST /v1/webhooks/github");
   }
 
-  // Dev nicety: when running from the repo with an empty store, seed one REAL scan of the
-  // bundled vulnerable fixture repo so the dashboard shows genuine findings, not mock data.
-  const evalRepo = resolve(
+  /*
+   * Seed real scans so an empty deployment has something genuine to show.
+   *
+   * These are **public GitHub repositories fetched over the network**, not the bundled fixture.
+   * Both produce real findings from real code, so this is not about authenticity — it is about
+   * what the result can be checked against. A finding on `owner/repo` at a named commit is one
+   * anybody can open on github.com and confirm in ten seconds; a finding on a fixture this
+   * project wrote is worth exactly as much as the fixture, and one reported against
+   * `/Users/<somebody>/...` cannot be checked at all while also disclosing the host's layout.
+   *
+   * Several rather than one, and deliberately including repositories that come back **clean**.
+   * A scanner is judged on both halves and the corpus can only ever show one of them: it is
+   * built from planted vulnerabilities, so it measures whether Gatepass finds what is there and
+   * says nothing about how it behaves on ordinary well-maintained code. Well-kept repositories
+   * returning no findings is the precision claim demonstrated on code nobody here controls —
+   * and it is the half an evaluator has most reason to doubt, because a noisy scanner is why
+   * their team turned the last one off.
+   *
+   * This also exercises the path that matters: fetch, extract, scan, delete the workspace. A
+   * fixture scan touches none of it.
+   */
+  /*
+   * Chosen by scanning seventy-five public AI/agent repositories and reading every finding.
+   *
+   * `vercel/ai` leads because it is the one result that is about *this* product rather than
+   * about static analysis generally: eleven MCP server transports bound to a port with no
+   * authentication construct anywhere in the file. They are example servers, which is exactly
+   * why they matter — example servers in the most-copied AI SDK are what people paste into
+   * production, and no conventional scanner models an MCP transport at all.
+   * `openai/openai-agents-python` is here because one repository is an anecdote and two are a
+   * pattern. The rest are ordinary hygiene and, deliberately, repositories that report nothing.
+   */
+  const DEFAULT_DEMO_REPOS = [
+    "vercel/ai",
+    "openai/openai-agents-python",
+    "modelcontextprotocol/servers",
+    "punkpeye/fastmcp",
+    "sooperset/mcp-atlassian",
+    "microsoft/playwright-mcp",
+    "browserbase/mcp-server-browserbase",
+  ];
+  const demoReposRaw = process.env.GATEPASS_DEMO_REPOS?.trim();
+  const demoRepos = isOff(demoReposRaw)
+    ? []
+    : (demoReposRaw ? demoReposRaw.split(",") : DEFAULT_DEMO_REPOS).map((r) => r.trim()).filter(Boolean);
+  const fixture = resolve(
     dirname(fileURLToPath(import.meta.url)),
     "..",
     "..",
@@ -100,18 +356,75 @@ if (isEntry) {
     "eval-repos",
     "vulnerable-nextjs-mcp",
   );
-  if (!dbUrl && existsSync(evalRepo)) {
+  const seedDemoScans = async () => {
+    const h = makeHandlers(store, { repoFetcher });
+    let scanned = 0;
+    for (const repo of demoRepos) {
+      try {
+        // Sequential on purpose: five concurrent tarball downloads is the fastest way to spend
+        // an anonymous rate-limit allowance, and nothing is waiting on this.
+        const seed = await h.scanRemoteRepo("demo", repo);
+        scanned++;
+        console.log(
+          `  ${repo}@${seed.sha?.slice(0, 7) ?? "HEAD"} — ${seed.verified} verified, ${seed.research} research`,
+        );
+      } catch (err) {
+        // Offline, rate-limited, or a bad name: say which, and keep going. One unreachable repo
+        // should not cost the deployment the other four.
+        console.warn(`  ${repo} — skipped: ${(err as Error).message}`);
+      }
+    }
+    if (scanned > 0) {
+      console.log(`Seeded ${scanned} demo scan(s) of public repositories.`);
+      return;
+    }
+    if (!existsSync(fixture)) return;
     try {
-      const seed = await makeHandlers(store).createScan("demo", evalRepo);
+      const seed = await h.createScan("demo", fixture, "corpus/eval-repos/vulnerable-nextjs-mcp");
       console.log(
-        `Seeded demo scan of corpus/eval-repos/vulnerable-nextjs-mcp (${seed.verified} verified, ${seed.research} research)`,
+        `Seeded a demo scan of the bundled fixture (${seed.verified} verified, ${seed.research} research). ` +
+          `This is Gatepass's own test repo, not third-party code — the dashboard says so.`,
       );
     } catch (err) {
       console.warn("demo scan seed failed:", (err as Error).message);
     }
-  }
+  };
+
   const port = Number(process.env.PORT ?? 3000);
   server.listen(port, () => {
-    console.log(`Gatepass API on :${port} (store: ${dbUrl ? "postgres" : "memory"})`);
+    console.log(`Gatepass API on :${port} (store: ${storeLabel})`);
+    /*
+     * Close the database on the way out.
+     *
+     * Not tidiness: an Atlas cluster counts open connections against a small free-tier cap, and
+     * a development loop that restarts the API twenty times without closing exhausts it — which
+     * presents as "the database is down" long after the process that held them is gone.
+     */
+    if (closeStore) {
+      const shutdown = () => void closeStore!().finally(() => process.exit(0));
+      process.once("SIGINT", shutdown);
+      process.once("SIGTERM", shutdown);
+    }
+    if (storeLabel === "memory") {
+      console.warn(
+        "  No datastore configured — every org, scan, finding and session lives in this process " +
+          "and is lost on restart. Set MONGODB_URI (or DATABASE_URL) to persist.",
+      );
+    }
+    /*
+     * Seeded after the port is open, not before.
+     *
+     * The seed now makes a network round-trip, and blocking `listen` on it would mean a slow or
+     * unreachable GitHub delays the API being ready — trading a working deployment for a
+     * populated one. And only into an empty org: a persistent store already has this history,
+     * so re-seeding every restart would silently accumulate duplicate scans of the same repo.
+     */
+    void (async () => {
+      const existing = store.listScans ? await store.listScans("demo").catch(() => []) : [];
+      if (existing.length === 0) await seedDemoScans();
+    })();
   });
 }
+
+const isEntry = process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.argv[1]).href;
+if (isEntry) await startServer();

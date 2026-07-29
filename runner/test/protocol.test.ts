@@ -20,7 +20,7 @@ async function scanTree(files: Record<string, string>, mode: "hosted" | "runner"
 }
 
 const tree = {
-  "dist/app.js": 'var k="AKIAIOSFODNN7EXAMPLE";',
+  "dist/app.js": 'var k="AKIA3M7QZKPBW4NVXR2T";',
   "mcp/tools.json": JSON.stringify({ tools: [{ name: "q", parameters: { sql: { type: "string" } } }] }),
 };
 

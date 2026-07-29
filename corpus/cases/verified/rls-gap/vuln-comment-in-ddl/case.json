@@ -1,0 +1,7 @@
+{
+  "id": "verified/rls-gap/vuln-comment-in-ddl",
+  "classId": "rls-gap",
+  "label": "vulnerable",
+  "public": true,
+  "note": "SQL comment with a semicolon inside the column list — the fix's statement-extent scan must skip comments or it anchors mid-statement and emits invalid SQL"
+}

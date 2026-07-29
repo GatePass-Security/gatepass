@@ -1,11 +1,14 @@
-import { createHmac } from "node:crypto";
+import { createHmac, randomUUID } from "node:crypto";
 import { safeEqual } from "./crypto.js";
 import type { Role } from "./roles.js";
 
 /**
  * Signed session tokens (FR-027, T076). A stateless session is a base64url JSON payload plus
  * an HMAC-SHA256 signature over it. Tokens are tamper-evident (signature) and expire (exp).
- * No server-side session store is needed; the secret is the only trust anchor.
+ *
+ * Verification here is deliberately still pure — signature and expiry only, no I/O. Revocation
+ * is a second, separate question ("has this specific token been withdrawn?") that needs a store,
+ * and it is asked by the caller: see `jti` below and `isSessionRevoked` on the API's store.
  */
 
 export interface Session {
@@ -13,6 +16,14 @@ export interface Session {
   login: string;
   orgId: string;
   role: Role;
+  /**
+   * Token id. Unique per issued token, and the handle revocation is keyed on.
+   *
+   * Without it a session could not be withdrawn at all: signing out cleared the browser's cookie
+   * and nothing else, so a token copied off the wire — or out of a shared machine — stayed valid
+   * to its expiry with no way to cut it off. Expiry alone is not revocation.
+   */
+  jti: string;
   /** Unix seconds expiry. */
   exp: number;
 }
@@ -30,16 +41,27 @@ function sign(payloadB64: string, secret: string): string {
 }
 
 export function createSession(
-  session: Omit<Session, "exp"> & { exp?: number },
+  session: Omit<Session, "exp" | "jti"> & { exp?: number; jti?: string },
   secret: string,
   ttlSec = DEFAULT_TTL_SEC,
 ): string {
-  const full: Session = { ...session, exp: session.exp ?? Math.floor(Date.now() / 1000) + ttlSec };
+  const full: Session = {
+    ...session,
+    jti: session.jti ?? randomUUID(),
+    exp: session.exp ?? Math.floor(Date.now() / 1000) + ttlSec,
+  };
   const payloadB64 = b64url(Buffer.from(JSON.stringify(full)));
   return `${payloadB64}.${sign(payloadB64, secret)}`;
 }
 
-/** Verify a session token; returns the session or null if invalid, tampered, or expired. */
+/**
+ * Verify a session token; returns the session or null if invalid, tampered, or expired.
+ *
+ * A token carrying no `jti` is rejected. It is correctly signed, but it cannot be revoked, and
+ * accepting an unrevocable token would leave exactly the hole `jti` was added to close. The cost
+ * is that sessions issued before this shipped stop working — everyone signs in once more, which
+ * is the right trade when the alternative is credentials nobody can withdraw.
+ */
 export function verifySession(token: string | undefined, secret: string, now = Date.now()): Session | null {
   if (!token) return null;
   const dot = token.indexOf(".");
@@ -50,6 +72,7 @@ export function verifySession(token: string | undefined, secret: string, now = D
   try {
     const session = JSON.parse(fromB64url(payloadB64).toString("utf8")) as Session;
     if (typeof session.exp !== "number" || session.exp * 1000 < now) return null;
+    if (typeof session.jti !== "string" || !session.jti) return null;
     return session;
   } catch {
     return null;

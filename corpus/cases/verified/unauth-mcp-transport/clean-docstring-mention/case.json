@@ -1,0 +1,7 @@
+{
+  "id": "verified/unauth-mcp-transport/clean-docstring-mention",
+  "classId": "unauth-mcp-transport",
+  "label": "clean",
+  "public": true,
+  "note": "A docstring and a deprecation message describing `Client.listen()`. Documentation about code is not code. Observed on modelcontextprotocol/python-sdk, where it produced five findings in the SDK's own reference material."
+}

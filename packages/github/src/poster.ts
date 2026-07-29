@@ -1,6 +1,6 @@
 import { AuditedWriter } from "@gatepass/shared";
 import type { Finding } from "@gatepass/findings";
-import { buildReview, type PullReview } from "./review.js";
+import { buildReview, type PullReview, type ReviewSource } from "./review.js";
 import { evaluateGate, type GateConfig, type GateResult } from "./checkrun.js";
 
 /**
@@ -33,9 +33,23 @@ export class Remediator {
     private readonly writer: AuditedWriter,
   ) {}
 
-  /** Post PR review findings as suggestions; recorded in the audit log. */
-  async deliverReview(orgId: string, repo: string, prNumber: number, findings: Finding[]): Promise<PostedReview> {
-    const review = buildReview(findings);
+  /**
+   * Post PR review findings as suggestions; recorded in the audit log.
+   *
+   * `source` is the workspace the scan ran over. It is what lets a fix render as a
+   * click-to-apply ```suggestion``` rather than a copy-paste block — see review.ts for why
+   * an insertion cannot be turned into a suggestion without the anchor text. Omitting it is
+   * safe, just less useful; passing the wrong workspace is not, so callers pass the one they
+   * literally just scanned.
+   */
+  async deliverReview(
+    orgId: string,
+    repo: string,
+    prNumber: number,
+    findings: Finding[],
+    source?: ReviewSource,
+  ): Promise<PostedReview> {
+    const review = buildReview(findings, { source });
     return this.writer.write("pr_comment", orgId, { repo, prNumber, comments: review.comments.length }, () =>
       this.client.postReview(repo, prNumber, review),
     );

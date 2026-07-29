@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { ChevronRight, Radar, ScanLine } from "lucide-react";
 import { api } from "@/lib/api-client";
-import { ORG_ID } from "@/lib/constants";
+import { useOrgId } from "@/providers/SessionProvider";
 import type { ScanSummary } from "@/lib/types";
 import { SEVERITY_ORDER, formatDate, pluralize, relativeTime, repoLabel, severityLabel } from "@/lib/utils";
 import { Badge, Button, EmptyState, ErrorPanel, PageHeader, PageSkeleton, Stat, TONE_FILL } from "@/components/ui";
@@ -26,6 +26,7 @@ function total(scan: ScanSummary): number {
 }
 
 export default function ScansPage() {
+  const orgId = useOrgId();
   const [scans, setScans] = useState<ScanSummary[]>([]);
   const [status, setStatus] = useState<Status>("loading");
   const [failure, setFailure] = useState<unknown>(null);
@@ -34,14 +35,14 @@ export default function ScansPage() {
   const load = useCallback(async () => {
     setStatus("loading");
     try {
-      const rows = await api.listScans(ORG_ID);
+      const rows = await api.listScans(orgId);
       setScans([...rows].sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? "")));
       setStatus("ready");
     } catch (err) {
       setFailure(err);
       setStatus("unreachable");
     }
-  }, []);
+  }, [orgId]);
 
   useEffect(() => {
     void load();

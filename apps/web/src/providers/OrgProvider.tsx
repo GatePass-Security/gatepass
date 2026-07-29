@@ -1,9 +1,16 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import type { OrgRecord } from "@/lib/types";
-import { ORG_ID } from "@/lib/constants";
 import { api } from "@/lib/api-client";
+import { useOrgId } from "./SessionProvider";
+
+/**
+ * The org record (plan tier, analysis toggles) for the signed-in session's org.
+ *
+ * The id used to come from `ORG_ID` — the literal `"demo"` in `lib/constants.ts`. It now comes
+ * from `useOrgId()`, so this provider follows the session rather than a constant.
+ */
 
 interface OrgContextValue {
   org: OrgRecord | null;
@@ -21,26 +28,26 @@ const OrgContext = createContext<OrgContextValue>({
 });
 
 export function OrgProvider({ children }: { children: ReactNode }) {
+  const orgId = useOrgId();
   const [org, setOrg] = useState<OrgRecord | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<unknown>(null);
 
-  async function fetchOrg() {
+  const fetchOrg = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await api.getOrg(ORG_ID);
-      setOrg(data);
+      setOrg(await api.getOrg(orgId));
     } catch (e) {
       setError(e);
     } finally {
       setLoading(false);
     }
-  }
+  }, [orgId]);
 
   useEffect(() => {
-    fetchOrg();
-  }, []);
+    void fetchOrg();
+  }, [fetchOrg]);
 
   return <OrgContext.Provider value={{ org, loading, error, refetch: fetchOrg }}>{children}</OrgContext.Provider>;
 }

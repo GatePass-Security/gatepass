@@ -10,7 +10,7 @@
     {
       "name": "gatepass-api",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--filter", "@gatepass/api", "start"],
+      "runtimeArgs": ["--filter", "@gatepass/api", "dev"],
       "port": 3000
     }
   ]

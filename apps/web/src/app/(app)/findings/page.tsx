@@ -1,5 +1,4 @@
-import { api } from "@/lib/api-client";
-import { ORG_ID } from "@/lib/constants";
+import { requireSession, serverApi } from "@/lib/session";
 
 import type { Finding } from "@/lib/types";
 import FindingsClient from "./FindingsClient";
@@ -13,9 +12,14 @@ export default async function FindingsPage() {
   let scanId: string | undefined;
   let error: string | null = null;
 
+  // Server Component: the org comes from the verified session and the API client carries this
+  // request's session token, rather than both being the `"demo"` literal this file used to import.
+  const { orgId } = await requireSession("/findings");
+  const api = await serverApi();
+
   try {
     // Latest scan for the org drives the findings view (matches the dashboard overview).
-    const scans = await api.listScans(ORG_ID);
+    const scans = await api.listScans(orgId);
     const latest = [...scans].sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""))[0];
     if (latest) {
       scanId = latest.id;

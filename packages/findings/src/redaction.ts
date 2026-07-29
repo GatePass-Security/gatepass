@@ -1,4 +1,4 @@
-import type { Reproduction } from "./schema.js";
+import type { Reproduction, SuggestedFix } from "./schema.js";
 
 /**
  * Redaction linter (contracts/findings-schema.md rule 5): a verified finding's
@@ -25,6 +25,18 @@ export function redactSecrets(text: string, secrets: readonly string[]): string 
 
 export function assertRedacted(reproduction: Reproduction, secrets: readonly string[]): void {
   const haystack = [...reproduction.steps, reproduction.expected].join("\n");
+  const leaked = secrets.filter((s) => s.length > 0 && haystack.includes(s));
+  if (leaked.length > 0) throw new RedactionError(leaked);
+}
+
+/**
+ * The same rule for suggested fixes. A fix is generated from the file the secret was found
+ * in and is delivered further than a reproduction ever is — into a PR comment, and into a
+ * branch if someone opens a fix pull request — so it gets the identical check rather than
+ * relying on fix generation to be careful.
+ */
+export function assertFixRedacted(fix: SuggestedFix, secrets: readonly string[]): void {
+  const haystack = [fix.content, fix.edit?.insertedLines ?? ""].join("\n");
   const leaked = secrets.filter((s) => s.length > 0 && haystack.includes(s));
   if (leaked.length > 0) throw new RedactionError(leaked);
 }

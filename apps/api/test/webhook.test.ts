@@ -7,7 +7,7 @@ import { TarballRepoFetcher, createTarGz, type TarballDownloader, type GitHubCli
 const SECRET = "whsec_test";
 const download: TarballDownloader = async () => ({
   body: createTarGz({
-    "acme-app-sha/dist/bundle.js": 'var k="AKIAIOSFODNN7EXAMPLE";',
+    "acme-app-sha/dist/bundle.js": 'var k="AKIA3M7QZKPBW4NVXR2T";',
     "acme-app-sha/README.md": "# x",
   }),
   sha: "headsha1",

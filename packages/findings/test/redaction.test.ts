@@ -1,9 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { redactSecrets, assertRedacted, RedactionError } from "../src/index.js";
+import { redactSecrets, assertRedacted, assertFixRedacted, RedactionError } from "../src/index.js";
 
 describe("redactSecrets", () => {
   it("replaces a known secret value with «REDACTED»", () => {
-    const result = redactSecrets("The key is AKIAIOSFODNN7EXAMPLE", ["AKIAIOSFODNN7EXAMPLE"]);
+    const result = redactSecrets("The key is AKIA3M7QZKPBW4NVXR2T", ["AKIA3M7QZKPBW4NVXR2T"]);
     expect(result).toBe("The key is «REDACTED»");
   });
 
@@ -42,10 +42,10 @@ describe("assertRedacted", () => {
   it("throws RedactionError when a secret leaks into reproduction steps", () => {
     const repro = {
       kind: "inspection" as const,
-      steps: ["The key is AKIAIOSFODNN7EXAMPLE"],
+      steps: ["The key is AKIA3M7QZKPBW4NVXR2T"],
       expected: "x",
     };
-    expect(() => assertRedacted(repro, ["AKIAIOSFODNN7EXAMPLE"])).toThrow(RedactionError);
+    expect(() => assertRedacted(repro, ["AKIA3M7QZKPBW4NVXR2T"])).toThrow(RedactionError);
   });
 
   it("throws RedactionError when a secret leaks into expected", () => {
@@ -101,5 +101,50 @@ describe("RedactionError", () => {
   it("is an instance of Error", () => {
     const err = new RedactionError(["x"]);
     expect(err).toBeInstanceOf(Error);
+  });
+});
+
+/**
+ * A suggested fix is generated from the same file a secret was found in, and it travels
+ * further than a reproduction does — into a PR comment, and into a branch if someone opens a
+ * fix pull request. So it gets the identical check rather than trusting fix generation to be
+ * careful on its own.
+ */
+describe("assertFixRedacted", () => {
+  const secret = "AKIA3M7QZKPBW4NVXR2T";
+
+  it("passes a fix that never mentions the secret", () => {
+    expect(() =>
+      assertFixRedacted({ kind: "agent_guidance", content: "Rotate the credential at the provider." }, [secret]),
+    ).not.toThrow();
+  });
+
+  it("throws when the rationale quotes the secret verbatim", () => {
+    expect(() =>
+      assertFixRedacted({ kind: "agent_guidance", content: `Remove ${secret} from source.` }, [secret]),
+    ).toThrow(RedactionError);
+  });
+
+  it("throws when the inserted lines carry the secret — the half that would be committed", () => {
+    expect(() =>
+      assertFixRedacted(
+        {
+          kind: "diff",
+          content: "why",
+          edit: {
+            path: "a.ts",
+            startLine: 1,
+            endLine: 1,
+            operation: "insert_after",
+            insertedLines: `const key = "${secret}";`,
+          },
+        },
+        [secret],
+      ),
+    ).toThrow(RedactionError);
+  });
+
+  it("ignores an empty secret rather than matching everything", () => {
+    expect(() => assertFixRedacted({ kind: "agent_guidance", content: "anything" }, [""])).not.toThrow();
   });
 });

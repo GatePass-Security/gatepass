@@ -22,13 +22,13 @@
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.
-Source: `.specify/memory/constitution.md` v1.0.0*
+Source: `.specify/memory/constitution.md` v1.1.0*
 
 | Gate | Principle | Pass? |
 |------|-----------|-------|
 | Any new/changed rule has corpus fixtures and a measured TP/FP plan; no published-precision regression | I. Precision Is the Product | [ ] |
 | Verified findings ship with deterministic reproduction; research-tier findings are confidence-scored, never inflated; tier boundary unblurred | II. Two-Tier Finding Integrity | [ ] |
-| No silent mutation of customer code/CI; remediation is suggest-and-approve; CI gate blocks but never rewrites; agent-loop guidance opt-in | III. Workflow Remediation | [ ] |
+| No silent mutation of customer code/CI; remediation is suggest-and-approve; CI gate blocks but never rewrites; agent-loop guidance opt-in; any repository write is the bounded suggested-fix-PR carve-out only — explicit human trigger, opted-in org, new non-default branch, never CI config, always audited, never auto-merged | III. Workflow Remediation | [ ] |
 | Surfaces read are declared; design preserves cross-surface correlation; framework-aware where applicable | IV. Cross-Surface Context | [ ] |
 | New vulnerability classes follow definition → corpus → rule → measurement order; corpus versioned | V. Research-Fed Corpus | [ ] |
 | No services-tier scope; compliance limited to evidence export/questionnaire drafting from real scan posture | VI. Pure Software / Evidence as Feature | [ ] |

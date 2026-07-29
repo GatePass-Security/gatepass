@@ -1,0 +1,7 @@
+{
+  "id": "verified/unauth-mcp-transport/clean-loopback-bind",
+  "classId": "unauth-mcp-transport",
+  "label": "clean",
+  "public": true,
+  "note": "Servers pinned to loopback, and a socket accept-backlog. Neither is reachable from the network. Observed on strands-agents/sdk-python."
+}

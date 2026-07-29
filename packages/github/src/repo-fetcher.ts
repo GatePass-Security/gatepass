@@ -31,12 +31,43 @@ export type TarballDownloader = (repo: string, ref: string) => Promise<{ body: B
 
 const MAX_TARBALL_BYTES = 512 * 1024 * 1024; // 512 MB safety cap
 
-/** Production downloader: fetch the tarball with a GitHub App installation token. */
-export function githubTarballDownloader(config: GitHubAppConfig, fetchImpl: typeof fetch = fetch): TarballDownloader {
+/**
+ * Thrown when GitHub will not hand over a repository.
+ *
+ * A distinct type because the *reason* is the useful part and the status code alone hides it:
+ * unauthenticated GitHub answers 404 for a private repository as well as a missing one — on
+ * purpose, so that anonymous callers cannot enumerate private repos by their error codes.
+ * Passing a bare "404" up to the dashboard would therefore tell an operator their repo does not
+ * exist when the truth is that Gatepass has not been let in yet.
+ */
+export class RepoFetchError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+  ) {
+    super(message);
+    this.name = "RepoFetchError";
+  }
+}
+
+/** The one thing that differs between the authenticated and anonymous downloaders. */
+type AuthHeaders = () => Promise<Record<string, string>>;
+
+/**
+ * Shared download path: resolve the ref to a commit, then pull the tarball.
+ *
+ * `explain` turns a refusal into something an operator can act on, and is the only other
+ * difference between the two downloaders — what a 404 *means* depends entirely on whether we
+ * presented credentials.
+ */
+function tarballDownloader(
+  auth: AuthHeaders,
+  explain: (repo: string, status: number, res: Response) => string,
+  fetchImpl: typeof fetch,
+): TarballDownloader {
   return async (repo, ref) => {
-    const { token } = await getInstallationToken(config);
     const headers = {
-      authorization: `Bearer ${token}`,
+      ...(await auth()),
       accept: "application/vnd.github+json",
       "x-github-api-version": "2022-11-28",
     };
@@ -56,13 +87,51 @@ export function githubTarballDownloader(config: GitHubAppConfig, fetchImpl: type
       headers,
       redirect: "follow",
     });
-    if (!res.ok) {
-      throw new Error(`tarball download failed for ${repo}@${ref} (${res.status})`);
-    }
+    if (!res.ok) throw new RepoFetchError(explain(repo, res.status, res), res.status);
     const ab = await res.arrayBuffer();
     if (ab.byteLength > MAX_TARBALL_BYTES) throw new Error(`tarball for ${repo} exceeds size cap`);
     return { body: Buffer.from(ab), sha };
   };
+}
+
+/** Production downloader: fetch the tarball with a GitHub App installation token. */
+export function githubTarballDownloader(config: GitHubAppConfig, fetchImpl: typeof fetch = fetch): TarballDownloader {
+  return tarballDownloader(
+    async () => ({ authorization: `Bearer ${await getInstallationToken(config).then((t) => t.token)}` }),
+    (repo, status) =>
+      status === 404
+        ? `${repo} is not visible to this Gatepass installation. Install the Gatepass GitHub App on it, or check the name.`
+        : `tarball download failed for ${repo} (${status})`,
+    fetchImpl,
+  );
+}
+
+/**
+ * Anonymous downloader for public repositories.
+ *
+ * This exists so that clone-and-scan works on a deployment with no GitHub App configured yet.
+ * Without it the entire remote-scan path is dark until credentials land, which means the one
+ * capability that distinguishes Gatepass from a local linter — pointing it at a real repository
+ * and watching it fetch, scan and clean up — cannot be demonstrated or tested at all.
+ *
+ * Public-only by construction: no token is sent, so GitHub returns exactly what any anonymous
+ * client may see. It is not a way around access control; it is the absence of any claim to it.
+ */
+export function publicTarballDownloader(fetchImpl: typeof fetch = fetch): TarballDownloader {
+  return tarballDownloader(
+    async () => ({}),
+    (repo, status, res) => {
+      // GitHub signals anonymous exhaustion as 403 (or 429) with the remaining count at zero,
+      // which reads as "forbidden" and sends people looking for a permissions problem.
+      if ((status === 403 || status === 429) && res.headers.get("x-ratelimit-remaining") === "0") {
+        return `GitHub's anonymous rate limit is exhausted (60 requests/hour per IP). Configure the Gatepass GitHub App to raise it.`;
+      }
+      return status === 404
+        ? `${repo} was not found. Anonymous access can only reach public repositories — configure the Gatepass GitHub App to scan private ones.`
+        : `tarball download failed for ${repo} (${status})`;
+    },
+    fetchImpl,
+  );
 }
 
 /** Fetches by downloading + extracting a tarball into a temp workspace. */

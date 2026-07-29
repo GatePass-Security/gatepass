@@ -1,19 +1,23 @@
 <!--
 Sync Impact Report
 ==================
-- Version change: (none) → 1.0.0 (initial ratification)
-- Modified principles: none (initial document)
-- Added sections: Core Principles (I–VI), Security & Trust Constraints,
-  Development Workflow & Quality Gates, Governance
+- Version change: 1.0.0 → 1.1.0 (MINOR: materially expanded guidance on an existing principle)
+- Modified principles: III. Remediation in the Developer's Workflow — Never Behind Their Back
+  (added a bounded carve-out: Gatepass MAY open a suggested-fix pull request, but only when an
+  explicit human trigger, an opted-in org, a new non-default branch, a CI-config path guard,
+  full audit logging, and a never-auto-merged PR body all hold at once)
+- Added sections: none
 - Removed sections: none
 - Templates:
-  - ✅ .specify/templates/plan-template.md (created; Constitution Check gates map to Principles I–VI)
-  - ✅ .specify/templates/spec-template.md (created; success criteria require measurable precision
-    targets where findings are involved)
-  - ✅ .specify/templates/tasks-template.md (created; task types include rule-corpus fixtures and
-    benchmark regression tasks per Principles I, II, V)
+  - ✅ .specify/templates/plan-template.md (Constitution Check gate row for Principle III updated
+    so it still fails a design that writes CI config, writes the default branch, or writes a
+    repository without an explicit human trigger; version reference bumped to v1.1.0)
+  - — .specify/templates/spec-template.md (not touched; no Principle III gate present, none needed)
+  - — .specify/templates/tasks-template.md (not touched; no Principle III gate present, none needed)
 - Follow-up TODOs: none
-- Source: GATEPASS_ONEPAGER_V4.md (product one-pager, v4 synthesis)
+- Source of this document: GATEPASS_ONEPAGER_V4.md (product one-pager, v4 synthesis)
+- Source of the 1.1.0 amendment: packages/github/src/fix-pr.ts (FixPullRequestClient /
+  FixPullRequestOpener — the narrowed rule this amendment records)
 -->
 
 # Gatepass Constitution
@@ -70,9 +74,25 @@ Gatepass suggests; humans approve.
 - A CI gate MAY block a merge; it MUST NOT rewrite code.
 - Agent-loop fix guidance is strictly opt-in and pre-commit, inside the developer's own loop,
   with a human reviewing final output.
+- **Bounded carve-out**: Gatepass MAY write to a customer repository, and ONLY to open a
+  suggested-fix pull request, and only when ALL of the following hold at once:
+  - the write is triggered by an explicit human request (a dashboard action) against an
+    organization that has opted in — never automatic, never triggered by a webhook;
+  - the write always lands on a NEW branch (`gatepass/fix-<scanId prefix>`); it is never a push
+    to the default branch and never a force-push; a branch that already exists fails the
+    operation rather than being overwritten;
+  - `.github/**` and every other CI configuration path remain absolutely prohibited, enforced by
+    a path guard that refuses the write and is re-checked immediately before each write;
+  - every write is recorded by the audited writer as an `AuditEvent` (action `fix_pr`) naming the
+    repo, branch, base, and every path written;
+  - the pull request is never auto-merged; its body states the fixes are advisory and unverified
+    until a developer reviews them.
 
 Rationale: developer trust is the distribution channel; a tool that edits behind your back is
-uninstalled, not renewed.
+uninstalled, not renewed. The carve-out above is bounded on every axis that matters — trigger,
+target, path, audit trail, and merge — so a human always asked for it, a human always reviews it,
+and CI configuration stays categorically untouched; nothing here reopens the door to silent
+mutation.
 
 ### IV. Cross-Surface Context
 
@@ -164,4 +184,4 @@ Gatepass handles customers' most sensitive asset: their source code and agent co
   justification in the plan's Complexity Tracking table. Reviews of merged work SHOULD verify
   runtime behavior matches the declared finding tiers and approval flows.
 
-**Version**: 1.0.0 | **Ratified**: 2026-07-09 | **Last Amended**: 2026-07-09
+**Version**: 1.1.0 | **Ratified**: 2026-07-09 | **Last Amended**: 2026-07-27

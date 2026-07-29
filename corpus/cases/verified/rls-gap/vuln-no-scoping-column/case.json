@@ -1,0 +1,7 @@
+{
+  "id": "verified/rls-gap/vuln-no-scoping-column",
+  "classId": "rls-gap",
+  "label": "vulnerable",
+  "public": true,
+  "note": "No tenant/user column in the DDL, so the fix can enable RLS but must not guess a policy predicate"
+}

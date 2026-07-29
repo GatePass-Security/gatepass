@@ -3,7 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { buildScanContext } from "@gatepass/engine";
 import { runScan } from "@gatepass/detectors";
-import type { Finding, FindingsDocument } from "@gatepass/findings";
+import { anchorLines, applyFixEdit, type Finding, type FindingsDocument } from "@gatepass/findings";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const CASES_ROOT = path.resolve(HERE, "..", "cases");
@@ -34,11 +34,23 @@ export interface ReproIssue {
   reason: string;
 }
 
+/** A suggested fix that is not actually applicable to the fixture it was generated from. */
+export interface FixIssue {
+  caseId: string;
+  fingerprint: string;
+  reason: string;
+}
+
 export interface MeasureResult {
   corpusVersion: string;
   perClass: ClassMetrics[];
   overallFpRate: number;
   reproIssues: ReproIssue[];
+  fixIssues: FixIssue[];
+  /** Findings that carried a `diff` fix, i.e. one a reviewer could apply in one click. */
+  applicableFixes: number;
+  /** Findings that carried prose guidance instead. */
+  guidanceFixes: number;
   casesMeasured: number;
 }
 
@@ -90,10 +102,61 @@ async function verifyReproduction(treeDir: string, finding: Finding): Promise<st
   return null;
 }
 
+/**
+ * Verify a suggested fix is genuinely applicable to the fixture it was generated from.
+ *
+ * This is the remediation counterpart of `verifyReproduction`, and it exists for the same
+ * reason: a claim Gatepass makes about a customer's code has to be checkable against real
+ * code, not merely well-formed. A `diff` fix is delivered as a GitHub ```suggestion``` that
+ * a reviewer applies in one click, so an anchor that does not exist, or an "insertion" that
+ * loses the lines it was anchored to, is a bug that would land in someone's repository.
+ *
+ * Guidance-kind fixes carry no edit and are not checkable here — their correctness is a
+ * matter of wording, covered by unit tests.
+ */
+async function verifyFix(treeDir: string, finding: Finding): Promise<string | null> {
+  const fix = finding.suggestedFix;
+  if (!fix || fix.kind !== "diff" || !fix.edit) return null;
+
+  const abs = path.join(treeDir, fix.edit.path);
+  let content: string;
+  try {
+    content = await fs.readFile(abs, "utf8");
+  } catch {
+    return `fix targets ${fix.edit.path}, which does not exist in the fixture`;
+  }
+
+  const anchor = anchorLines(content, fix.edit);
+  if (!anchor) {
+    const lineCount = content.split(/\r?\n/).length;
+    return `fix anchors at lines ${fix.edit.startLine}-${fix.edit.endLine}, out of bounds (file has ${lineCount} lines)`;
+  }
+
+  let applied: string;
+  try {
+    applied = applyFixEdit(content, fix.edit);
+  } catch (err) {
+    return `fix is not applicable: ${(err as Error).message}`;
+  }
+
+  // An insertion must be purely additive. If any anchor line went missing, the "fix" would
+  // have deleted the developer's code.
+  for (const line of anchor) {
+    if (!applied.includes(line)) return `applying the fix removed the anchor line ${JSON.stringify(line)}`;
+  }
+  if (!applied.includes(fix.edit.insertedLines.trim().split("\n")[0]!.trim())) {
+    return "applying the fix did not add the suggested lines";
+  }
+  return null;
+}
+
 export async function measure(corpusVersion = "corpus-v1"): Promise<MeasureResult> {
   const cases = await loadCases();
   const byClass = new Map<string, ClassMetrics>();
   const reproIssues: ReproIssue[] = [];
+  const fixIssues: FixIssue[] = [];
+  let applicableFixes = 0;
+  let guidanceFixes = 0;
 
   const ensure = (classId: string): ClassMetrics => {
     let m = byClass.get(classId);
@@ -137,6 +200,11 @@ export async function measure(corpusVersion = "corpus-v1"): Promise<MeasureResul
     for (const f of classFindings) {
       const issue = await verifyReproduction(treeDir, f);
       if (issue) reproIssues.push({ caseId: c.id, fingerprint: f.fingerprint, reason: issue });
+
+      if (f.suggestedFix?.kind === "diff") applicableFixes++;
+      else if (f.suggestedFix) guidanceFixes++;
+      const fixIssue = await verifyFix(treeDir, f);
+      if (fixIssue) fixIssues.push({ caseId: c.id, fingerprint: f.fingerprint, reason: fixIssue });
     }
   }
 
@@ -154,6 +222,9 @@ export async function measure(corpusVersion = "corpus-v1"): Promise<MeasureResul
     perClass: [...byClass.values()].sort((a, b) => a.classId.localeCompare(b.classId)),
     overallFpRate: cleanTotal ? fpTotal / cleanTotal : 0,
     reproIssues,
+    fixIssues,
+    applicableFixes,
+    guidanceFixes,
     casesMeasured: cases.length,
   };
 }

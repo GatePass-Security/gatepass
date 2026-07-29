@@ -1,0 +1,7 @@
+{
+  "id": "verified/exposed-secret/clean-self-describing-mock",
+  "classId": "exposed-secret",
+  "label": "clean",
+  "public": true,
+  "note": "A mock value shaped like a Slack token but lacking its structure, and describing itself as a token. Observed on agno-agi/agno."
+}

@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { Activity, KeyRound, Radio, ServerCog } from "lucide-react";
 import { api } from "@/lib/api-client";
-import { API_BASE, ORG_ID } from "@/lib/constants";
+import { API_BASE } from "@/lib/constants";
+import { useOrgId } from "@/providers/SessionProvider";
 import type { ApiStatus } from "@/lib/types";
 import { Badge, Button, Card, CardTitle, PageHeader, Stat } from "@/components/ui";
 import { cx } from "@/lib/utils";
@@ -81,6 +82,7 @@ const ROUTES = [
 ];
 
 export default function SystemPage() {
+  const orgId = useOrgId();
   const [status, setStatus] = useState<ApiStatus | null>(null);
   const [reachable, setReachable] = useState<boolean | null>(null);
   const [probe, setProbe] = useState<Probe>({ oauth: "unknown", runner: "unknown", benchmarkPublish: "unknown" });
@@ -139,7 +141,7 @@ export default function SystemPage() {
           icon={<Activity size={16} aria-hidden="true" />}
           caption={status?.version ? `v${status.version}` : undefined}
         />
-        <Stat label="Organization" value={ORG_ID} tone="neutral" caption="Fixed for this deployment" />
+        <Stat label="Organization" value={orgId} tone="neutral" caption="From your signed-in session" />
         <Stat
           label="OAuth"
           value={TONE[probe.oauth].label}

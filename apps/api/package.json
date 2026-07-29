@@ -7,7 +7,9 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "start": "tsx src/index.ts"
+    "start": "tsx src/index.ts",
+    "dev": "tsx src/dev.ts",
+    "hash-password": "tsx src/hash-password.ts"
   },
   "dependencies": {
     "@gatepass/benchmark": "workspace:*",

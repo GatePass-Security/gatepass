@@ -2,13 +2,7 @@ import type { ScanContext } from "@gatepass/engine";
 import type { ComplianceCheck } from "../compliance-schema.js";
 import { registerScanner, makeCheck } from "../compliance-scanner.js";
 import type { DomainScanner } from "../compliance-scanner.js";
-import {
-  combineFiles,
-  complianceRelevantFiles,
-  resolveLocations,
-  REPO_WIDE,
-  type CombinedSource,
-} from "../source-map.js";
+import { combineFiles, complianceRelevantFiles, resolveLocations, REPO_WIDE } from "../source-map.js";
 import { ratioFromCss, suggestAccessibleColor, THRESHOLDS } from "../contrast.js";
 
 /**
@@ -29,7 +23,11 @@ import { ratioFromCss, suggestAccessibleColor, THRESHOLDS } from "../contrast.js
 
 const TARGET_SIZE_RE = /(width|height|min-width|min-height|w-|h-)\s*:\s*([0-9]+(\.[0-9]+)?)(px|rem|em)?/gi;
 const SMALL_TARGET = 24; // 24 CSS pixels minimum
-const CONTRAST_COLORS = /(color|background-color|bg-|text-)\s*:\s*(#[0-9a-fA-F]{3,8}|rgb[a]?\([^)]+\))/g;
+/*
+ * There is deliberately no colour-matching regex here any more. Contrast is evaluated by
+ * `COLOR_DECL` + `ratioFromCss` below, which computes a real WCAG ratio; the pattern that used
+ * to live at this line only proved a colour was *mentioned*, which is not a finding.
+ */
 const STICKY_RE = /position\s*:\s*sticky|sticky|fixed\s+(top|bottom)/gi;
 const SCROLL_MARGIN_RE = /scroll-margin|scroll-padding|scrollMargin|scrollPadding/gi;
 const CAPTCHA_RE = /captcha|recaptcha|hcaptcha|turnstile|challenge|puzzle|cognitive/i;
@@ -313,7 +311,9 @@ function checkAccessibleAuth(content: string, filePath: string): ComplianceCheck
   return checks;
 }
 
-function checkFocusNotObscured(content: string, filePath: string): ComplianceCheck[] {
+// `_filePath` is unused: this check reports presence/absence across the whole buffer and emits
+// no locations. The parameter stays so every repo-wide check keeps one call signature.
+function checkFocusNotObscured(content: string, _filePath: string): ComplianceCheck[] {
   const checks: ComplianceCheck[] = [];
   const lines = content.split(/\n/);
   const hasSticky = lines.some((l) => STICKY_RE.test(l));
@@ -391,7 +391,7 @@ function checkConsistentHelp(content: string, filePath: string): ComplianceCheck
       makeCheck(
         "wcag-consistent-help",
         "manual_review",
-        found.slice(0, 2).map((l, i) => ({
+        found.slice(0, 2).map((l, _i) => ({
           path: filePath,
           startLine: lines.indexOf(l) + 1,
           snippet: l.trim(),
@@ -450,7 +450,8 @@ function checkRedundantEntry(content: string, filePath: string): ComplianceCheck
   return checks;
 }
 
-function checkFocusAppearance(content: string, filePath: string): ComplianceCheck[] {
+// `_filePath` unused for the same reason as `checkFocusNotObscured` — no locations are emitted.
+function checkFocusAppearance(content: string, _filePath: string): ComplianceCheck[] {
   const checks: ComplianceCheck[] = [];
   const lines = content.split(/\n/);
   const hasOutlineNone = lines.some((l) => FOCUS_OUTLINE_RE.test(l));
@@ -476,23 +477,45 @@ export const wcagScanner: DomainScanner = {
   domain: "wcag",
   scan(ctx: ScanContext): ComplianceCheck[] {
     const checks: ComplianceCheck[] = [];
-    const relevantFiles = ctx.files.filter((f) => /\.(tsx|ts|jsx|js|css|scss|html)$/i.test(f.relPath));
+    /*
+     * `complianceRelevantFiles` first, extension filter second.
+     *
+     * The engine deliberately does NOT ignore build output — a secret shipped in a bundle is a
+     * real security finding, so `.next/`, `dist/` and `build/` are all in `ctx.files`. That is
+     * right for the security engine and wrong here: a contrast failure inside a minified React
+     * chunk is not something a developer can act on, and reporting it is the false-positive
+     * class this product exists to avoid. `complianceRelevantFiles` is the compliance-only
+     * filter that drops them.
+     */
+    const relevantFiles = complianceRelevantFiles(ctx.files).filter((f) =>
+      /\.(tsx|ts|jsx|js|css|scss|html)$/i.test(f.relPath),
+    );
 
     // Per-file checks report REAL paths and REAL line numbers (a reproduction must be
     // openable — see Constitution Principle II).
     checks.push(...checkTargetSizes(relevantFiles));
     checks.push(...checkContrast(relevantFiles));
 
-    // Repo-wide presence/absence checks legitimately reason over the whole tree; they carry
-    // per-file locations where a specific line is implicated.
-    const combinedContent = relevantFiles.map((f) => `\n/* ${f.relPath} */\n${f.content}`).join("");
-    const firstPath = relevantFiles[0]?.relPath ?? "(no scannable UI files)";
-    checks.push(...checkAccessibleAuth(combinedContent, firstPath));
-    checks.push(...checkFocusNotObscured(combinedContent, firstPath));
-    checks.push(...checkDraggingAlternatives(combinedContent, firstPath));
-    checks.push(...checkConsistentHelp(combinedContent, firstPath));
-    checks.push(...checkRedundantEntry(combinedContent, firstPath));
-    checks.push(...checkFocusAppearance(combinedContent, firstPath));
+    /*
+     * Repo-wide presence/absence checks legitimately reason over the whole tree, so they run
+     * against one combined buffer. They report line numbers into THAT buffer, which is only
+     * meaningful once mapped back: `combineFiles` keeps the offset map and `resolveLocations`
+     * rewrites each location to its real file and real line.
+     *
+     * This previously concatenated the files by hand and passed the FIRST file's path as the
+     * path for every hit, so a violation found in the four-hundredth file was reported at a
+     * line number that did not exist in the file it named. Every such location was unopenable,
+     * which under Principle II makes it not a reproduction at all. `REPO_WIDE` is the honest
+     * placeholder while the numbers are still buffer-relative; nothing keeps it unless the hit
+     * genuinely implicates no single file.
+     */
+    const src = combineFiles(relevantFiles);
+    checks.push(...resolveLocations(checkAccessibleAuth(src.content, REPO_WIDE), src));
+    checks.push(...resolveLocations(checkFocusNotObscured(src.content, REPO_WIDE), src));
+    checks.push(...resolveLocations(checkDraggingAlternatives(src.content, REPO_WIDE), src));
+    checks.push(...resolveLocations(checkConsistentHelp(src.content, REPO_WIDE), src));
+    checks.push(...resolveLocations(checkRedundantEntry(src.content, REPO_WIDE), src));
+    checks.push(...resolveLocations(checkFocusAppearance(src.content, REPO_WIDE), src));
 
     return checks;
   },

@@ -35,6 +35,28 @@ describe("RestGitHubClient (T096) — request construction", () => {
     expect(posted.id).toBe(99);
   });
 
+  /*
+   * GitHub needs `start_line` (with the sides named) to apply a suggestion across a range.
+   * Sending `line` alone collapses the anchor onto one line, and the suggestion then rewrites
+   * a single line of a multi-line statement.
+   */
+  it("maps a multi-line anchor to start_line/start_side, and omits them for a single line", async () => {
+    const cap: { url?: string; init?: any } = {};
+    const client = new RestGitHubClient("tok", fakeFetch(cap));
+    await client.postReview("acme/app", 1, {
+      event: "COMMENT",
+      summary: "s",
+      comments: [
+        { path: "db/schema.sql", startLine: 1, line: 5, body: "multi" },
+        { path: "src/a.ts", line: 9, body: "single" },
+      ],
+    });
+    const body = JSON.parse(cap.init.body);
+    expect(body.comments[0]).toMatchObject({ line: 5, start_line: 1, start_side: "RIGHT", side: "RIGHT" });
+    expect(body.comments[1]).not.toHaveProperty("start_line");
+    expect(body.comments[1].line).toBe(9);
+  });
+
   it("creates a check run with the gate conclusion (no code write)", async () => {
     const cap: { url?: string; init?: any } = {};
     const client = new RestGitHubClient("tok", fakeFetch(cap));

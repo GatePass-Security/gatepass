@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { X, ScanLine, ShieldCheck, FlaskConical } from "lucide-react";
 import { api } from "@/lib/api-client";
-import { ORG_ID } from "@/lib/constants";
+import { useOrgId } from "@/providers/SessionProvider";
 import type { RemoteScanResult, ScanResult } from "@/lib/types";
 import { explainError, type FriendlyError } from "@/lib/errors";
 import { Button, Input, Badge, SegmentedControl, ErrorState } from "./ui";
@@ -28,6 +28,7 @@ function isRemote(r: ScanResult | RemoteScanResult): r is RemoteScanResult {
 
 export function ScanRepoDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const router = useRouter();
+  const orgId = useOrgId();
   const [source, setSource] = useState<Source>("github");
   const [repo, setRepo] = useState("");
   const [ref, setRef] = useState("");
@@ -88,8 +89,8 @@ export function ScanRepoDialog({ open, onClose }: { open: boolean; onClose: () =
     try {
       const res =
         source === "github"
-          ? await api.scanRemoteRepo(ORG_ID, target, ref.trim() || undefined)
-          : await api.triggerScan(ORG_ID, target);
+          ? await api.scanRemoteRepo(orgId, target, ref.trim() || undefined)
+          : await api.triggerScan(orgId, target);
       setResult(res);
       router.refresh();
     } catch (err) {
@@ -214,7 +215,7 @@ export function ScanRepoDialog({ open, onClose }: { open: boolean; onClose: () =
                   placeholder="owner/name"
                   value={repo}
                   onChange={(e) => setRepo(e.target.value)}
-                  hint="A GitHub repository the Gatepass App can read."
+                  hint="Any public repository. Private ones need the Gatepass GitHub App installed on them."
                   autoComplete="off"
                   spellCheck={false}
                   required

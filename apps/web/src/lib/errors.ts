@@ -101,6 +101,50 @@ const PATTERNS: Array<{
     }),
   },
   {
+    /*
+     * Anonymous fetching is public-only, and GitHub answers 404 for a private repository just
+     * as it does for one that does not exist — deliberately, so that anonymous callers cannot
+     * enumerate private repos by their error codes. Rendering that as a bare "not found" sends
+     * people to check their spelling when the actual answer is "we have not been let in".
+     */
+    test: /([\w.-]+\/[\w.-]+) was not found\. Anonymous access can only reach public repositories/i,
+    build: (m) => ({
+      kind: "invalid",
+      title: `Gatepass couldn't reach ${m[1]}`,
+      detail:
+        "Without GitHub App credentials the API fetches anonymously, and GitHub gives an anonymous caller the same answer for a private repository as for one that doesn't exist. So this is either a typo or a repository Gatepass has not been granted access to.",
+      action:
+        "Check the owner/name spelling for a public repository. To scan private ones, install the Gatepass GitHub App and set GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY and GITHUB_INSTALLATION_ID on the API service.",
+      retryable: false,
+    }),
+  },
+  {
+    // Exhaustion arrives as 403, which reads as a permissions problem and sends people looking
+    // in the wrong place entirely. It is a quota, and it refills.
+    test: /anonymous rate limit is exhausted/i,
+    build: () => ({
+      kind: "unconfigured",
+      title: "GitHub's anonymous request limit is used up",
+      detail:
+        "This deployment fetches repositories without credentials, which GitHub caps at 60 requests an hour per IP address. The limit refills on its own — nothing is broken and nothing was rejected on its merits.",
+      action:
+        "Wait for the hour to roll over, or configure the Gatepass GitHub App (GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY, GITHUB_INSTALLATION_ID), which raises the limit to 5,000 an hour and unlocks private repositories.",
+      retryable: true,
+    }),
+  },
+  {
+    test: /([\w.-]+\/[\w.-]+) is not visible to this Gatepass installation/i,
+    build: (m) => ({
+      kind: "denied",
+      title: `${m[1]} isn't shared with Gatepass`,
+      detail:
+        "The API authenticated as the Gatepass GitHub App, and GitHub does not list that repository among the ones the App was installed on.",
+      action:
+        "Add the repository to the Gatepass App's installation on GitHub (Settings → Applications → Gatepass → Configure), or check the owner/name spelling.",
+      retryable: false,
+    }),
+  },
+  {
     // Raw Node fs error from a local-path scan. Recover the path it was given.
     test: /ENOENT.*?['"](.+?)['"]|ENOENT: no such file or directory/i,
     build: (m) => ({
@@ -120,6 +164,74 @@ const PATTERNS: Array<{
       title: "The API can't read that path",
       detail: "The directory exists, but the operating system refused the API process access to it.",
       action: "Grant the API's user read access to that directory, or choose a path it already owns.",
+      retryable: false,
+    }),
+  },
+  {
+    // The fix-PR equivalent of "no repo fetcher configured": opening a PR needs a GitHub App
+    // with contents:write, and most deployments have no App at all.
+    test: /fix pull requests are not configured/i,
+    build: () => ({
+      kind: "unconfigured",
+      title: "Opening pull requests isn't set up on this deployment",
+      detail:
+        "To open a fix pull request, the API has to authenticate as the Gatepass GitHub App with write access to the branch it creates, and this server has no App credentials. Nothing is broken — the feature just isn't configured yet.",
+      action:
+        "The guidance on each finding is complete on its own; you can apply it by hand or hand it to your coding agent. To enable pull requests, install the Gatepass GitHub App with contents:write and set GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY and GITHUB_INSTALLATION_ID on the API service.",
+      retryable: false,
+    }),
+  },
+  {
+    test: /fix pull requests are not enabled for this org/i,
+    build: () => ({
+      kind: "denied",
+      title: "Fix pull requests are turned off for this organization",
+      detail:
+        "Writing to a repository is off by default. Gatepass only ever opens a pull request on a new branch, when a person asks for it — but the organization still has to opt in first.",
+      action: "Turn on “Fix pull requests” in Settings, then try again.",
+      retryable: false,
+    }),
+  },
+  {
+    test: /branch "(.+?)" already exists/i,
+    build: (m) => ({
+      kind: "invalid",
+      title: "That fix branch already exists",
+      detail: `“${m[1]}” is already on the remote. Gatepass never force-pushes over a branch it did not just create, so it stopped rather than overwriting whatever is there.`,
+      action: "Merge or delete that branch, or re-scan the repository to get a fresh one.",
+      retryable: false,
+    }),
+  },
+  {
+    test: /no findings in this scan carry an applicable fix/i,
+    build: () => ({
+      kind: "invalid",
+      title: "Nothing in this scan can be committed as a fix",
+      detail:
+        "Every finding here is guidance-only. Those fixes need a value a person has to choose — an allow-listed origin, a version to pin, an RLS policy predicate — and Gatepass will not commit a placeholder that looks like a decision.",
+      action: "Open a finding to read its guidance and apply it yourself.",
+      retryable: false,
+    }),
+  },
+  {
+    test: /not associated with a GitHub repository/i,
+    build: () => ({
+      kind: "invalid",
+      title: "This scan has no GitHub repository behind it",
+      detail:
+        "It scanned a directory on the API host, which has no remote, so there is nowhere to open a pull request.",
+      action: "Scan the repository from GitHub instead, then open the fix pull request from that scan.",
+      retryable: false,
+    }),
+  },
+  {
+    test: /CI configuration and repository metadata are never modified|every applicable edit targets CI configuration/i,
+    build: () => ({
+      kind: "denied",
+      title: "Gatepass won't write these files",
+      detail:
+        "The only fixes available for this scan land in CI configuration, and Gatepass never modifies a pipeline — that rule has no exception and no override.",
+      action: "Apply the guidance on those findings by hand.",
       retryable: false,
     }),
   },
@@ -146,6 +258,21 @@ const PATTERNS: Array<{
         retryable: false,
       };
     },
+  },
+  {
+    /*
+     * The dashboard reaches the API through its own same-origin proxy
+     * (`app/api/gp/[...path]`), so an API that is down no longer surfaces as a browser
+     * `TypeError` — it surfaces as this 502 from the proxy. Same cause, same message.
+     */
+    test: /upstream API unreachable at (\S+)/i,
+    build: (m) => ({
+      kind: "offline",
+      title: "Can't reach the Gatepass API",
+      detail: `No response from ${m[1]}. The API may be starting up, asleep, or blocked by a network rule.`,
+      action: "Check the API is running, then try again.",
+      retryable: true,
+    }),
   },
   {
     test: /OAuth(\/session)? not configured/i,
@@ -316,6 +443,22 @@ export function explainError(err: unknown, ctx: ErrorContext = {}): FriendlyErro
         retryable: true,
       };
     }
+    case 501:
+      /*
+       * The API says it does not do this — a capability the build supports that this deployment
+       * has no credentials for (sign-in with GitHub, fix pull requests). It sits inside the 5xx
+       * range but is not a fault, so it must not be styled as one or offer a retry: retrying is
+       * futile, and painting configuration gaps red is how people learn to ignore red.
+       */
+      return {
+        kind: "unconfigured",
+        title: "That isn't set up on this deployment",
+        detail: raw || "The API does not have this capability configured.",
+        action: "An operator needs to configure it on the API service.",
+        status,
+        technical,
+        retryable: false,
+      };
     default:
       break;
   }

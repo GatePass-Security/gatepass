@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { CheckCircle2, FileSpreadsheet, ShieldCheck, Upload, XCircle } from "lucide-react";
 import { api } from "@/lib/api-client";
-import { ORG_ID } from "@/lib/constants";
+import { useOrgId } from "@/providers/SessionProvider";
 import type { CompliancePlatform, DraftedAnswer, EvidenceExport, ScanSummary } from "@/lib/types";
 import { pluralize, relativeTime, repoLabel } from "@/lib/utils";
 import { errorToast } from "@/lib/errors";
@@ -51,6 +51,7 @@ Q2,Are secrets prevented from being committed to source control?
 Q3,Do you enforce row-level security on multi-tenant data?`;
 
 export default function EvidencePage() {
+  const orgId = useOrgId();
   const [scans, setScans] = useState<ScanSummary[]>([]);
   const [scanId, setScanId] = useState("");
   const [items, setItems] = useState<EvidenceExport[]>([]);
@@ -61,7 +62,7 @@ export default function EvidencePage() {
   const load = useCallback(async () => {
     setStatus("loading");
     try {
-      const rows = await api.listScans(ORG_ID);
+      const rows = await api.listScans(orgId);
       const sorted = [...rows].sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""));
       setScans(sorted);
       setScanId((current) => current || (sorted[0]?.id ?? ""));
@@ -70,7 +71,7 @@ export default function EvidencePage() {
       setFailure(err);
       setStatus("unreachable");
     }
-  }, []);
+  }, [orgId]);
 
   useEffect(() => {
     void load();
@@ -81,7 +82,7 @@ export default function EvidencePage() {
     let cancelled = false;
     setLoadingItems(true);
     api
-      .getEvidence(ORG_ID, scanId)
+      .getEvidence(orgId, scanId)
       .then((rows) => {
         if (!cancelled) setItems(rows);
       })
@@ -94,7 +95,7 @@ export default function EvidencePage() {
     return () => {
       cancelled = true;
     };
-  }, [scanId]);
+  }, [orgId, scanId]);
 
   if (status === "loading") return <PageSkeleton stats={3} rows={8} />;
 
@@ -248,6 +249,7 @@ function ControlTable({ items, loading }: { items: EvidenceExport[]; loading: bo
  * named third party, not a generic "Export".
  */
 function ExportPanel({ scanId, controlCount }: { scanId: string; controlCount: number }) {
+  const orgId = useOrgId();
   const { toast } = useToast();
   const [platform, setPlatform] = useState<CompliancePlatform>("vanta");
   const [busy, setBusy] = useState(false);
@@ -257,7 +259,7 @@ function ExportPanel({ scanId, controlCount }: { scanId: string; controlCount: n
     setBusy(true);
     setDelivered(null);
     try {
-      const res = await api.exportEvidence(ORG_ID, scanId, platform);
+      const res = await api.exportEvidence(orgId, scanId, platform);
       setDelivered(res.delivered);
       toast(`Delivered ${res.delivered} ${pluralize(res.delivered, "item")} to ${platform}`, "success");
     } catch (err) {
@@ -309,6 +311,7 @@ function ExportPanel({ scanId, controlCount }: { scanId: string; controlCount: n
  * presents an answer as ready to send.
  */
 function QuestionnairePanel({ scanId }: { scanId: string }) {
+  const orgId = useOrgId();
   const { toast } = useToast();
   const [format, setFormat] = useState("csv");
   const [content, setContent] = useState(SAMPLE_QUESTIONNAIRE);
@@ -318,7 +321,7 @@ function QuestionnairePanel({ scanId }: { scanId: string }) {
   async function run() {
     setBusy(true);
     try {
-      const res = await api.draftQuestionnaire(ORG_ID, { scanId, format, content });
+      const res = await api.draftQuestionnaire(orgId, { scanId, format, content });
       setAnswers(res);
       toast(`Drafted ${res.length} ${pluralize(res.length, "answer")}`, "success");
     } catch (err) {

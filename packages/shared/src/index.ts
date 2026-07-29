@@ -7,4 +7,5 @@ export * from "./telemetry.js";
 export * from "./retention.js";
 export * from "./roles.js";
 export * from "./session.js";
+export * from "./password.js";
 export * from "../db/index.js";
