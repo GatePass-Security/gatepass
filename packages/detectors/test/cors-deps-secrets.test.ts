@@ -173,9 +173,12 @@ describe("cors-misconfig — an nginx map is an allowlist", () => {
 
   it("flags the same echo when the map default emits the request origin", async () => {
     const doc = await scanTree({
-      "conf.d/cors_map.conf": ["map $http_origin $cors_origin {", "    default $http_origin;", '    ""      "";', "}"].join(
-        "\n",
-      ),
+      "conf.d/cors_map.conf": [
+        "map $http_origin $cors_origin {",
+        "    default $http_origin;",
+        '    ""      "";',
+        "}",
+      ].join("\n"),
       "conf.d/site.conf": site("$cors_origin"),
     });
     expect(has(doc, "cors-misconfig")).toBe(true);
@@ -323,7 +326,9 @@ describe("exposed-secret — a PEM delimiter is not key material", () => {
   it("flags a key inlined into JSON with escaped newlines", async () => {
     const body = "MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQ" + "A".repeat(200);
     const doc = await scanTree({
-      "config/sa.json": JSON.stringify({ private_key: `-----BEGIN PRIVATE KEY-----\n${body}\n-----END PRIVATE KEY-----\n` }),
+      "config/sa.json": JSON.stringify({
+        private_key: `-----BEGIN PRIVATE KEY-----\n${body}\n-----END PRIVATE KEY-----\n`,
+      }),
     });
     expect(has(doc, "exposed-secret")).toBe(true);
   });

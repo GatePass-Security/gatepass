@@ -66,8 +66,14 @@ function score(truth: Truth[], verdicts: Verdicts): PublishedClass[] {
       // "Vulnerable for this class" is the only thing that makes a claim of it correct. A case
       // that is vulnerable for some *other* class is still clean with respect to this one.
       const actuallyVuln = t.vulnerable && t.classId === classId;
-      if (actuallyVuln) claimed ? tp++ : fn++;
-      else claimed ? fp++ : tn++;
+      if (actuallyVuln) {
+        if (claimed) tp++;
+        else fn++;
+      } else if (claimed) {
+        fp++;
+      } else {
+        tn++;
+      }
     }
     return {
       classId,
@@ -115,11 +121,11 @@ async function buildSampleArtifact() {
     vulnerable: t.label === "vulnerable",
   }));
 
-  const gp = await gatepassVerdicts(entries.map(([sample, t]) => ({ caseId: sample, dir: rel("corpus/cases", t.caseId, "tree") })));
+  const gp = await gatepassVerdicts(
+    entries.map(([sample, t]) => ({ caseId: sample, dir: rel("corpus/cases", t.caseId, "tree") })),
+  );
 
-  const runs: PublishedRun[] = [
-    { tool: "Gatepass", casesMeasured: truth.length, perClass: score(truth, gp) },
-  ];
+  const runs: PublishedRun[] = [{ tool: "Gatepass", casesMeasured: truth.length, perClass: score(truth, gp) }];
 
   /*
    * Prompt conditions, weakest guidance first. "Guided" is the condition that was handed the

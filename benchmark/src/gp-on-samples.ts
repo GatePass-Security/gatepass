@@ -9,20 +9,33 @@ const key = JSON.parse(
   await fs.readFile(path.join(ROOT, "benchmark/reports/llm-baseline/ANSWER-KEY.json"), "utf8"),
 ) as { samples: Record<string, { caseId: string; classId: string; label: string }> };
 
-let tp = 0, fn = 0, fp = 0, vuln = 0, clean = 0;
-const missed: string[] = [], alarms: string[] = [];
+let tp = 0,
+  fp = 0,
+  vuln = 0,
+  clean = 0;
+const missed: string[] = [],
+  alarms: string[] = [];
 
 for (const [sample, t] of Object.entries(key.samples)) {
   const dir = path.join(ROOT, "corpus/cases", t.caseId, "tree");
   const ctx = await buildScanContext(dir);
-  const doc = runScan(ctx, { scanId: sample, rulesetVersion: "corpus-v2", executionMode: "cli", semanticEnabled: true });
+  const doc = runScan(ctx, {
+    scanId: sample,
+    rulesetVersion: "corpus-v2",
+    executionMode: "cli",
+    semanticEnabled: true,
+  });
   const hit = doc.findings.some((f) => f.classId === t.classId);
   if (t.label === "vulnerable") {
     vuln++;
-    if (hit) tp++; else { fn++; missed.push(`${sample} (${t.classId})`); }
+    if (hit) tp++;
+    else missed.push(`${sample} (${t.classId})`);
   } else {
     clean++;
-    if (hit) { fp++; alarms.push(`${sample} (${t.classId})`); }
+    if (hit) {
+      fp++;
+      alarms.push(`${sample} (${t.classId})`);
+    }
   }
 }
 const pct = (a: number, b: number) => (b ? ((a / b) * 100).toFixed(1) + "%" : "n/a");

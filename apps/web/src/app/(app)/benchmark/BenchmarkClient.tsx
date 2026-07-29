@@ -160,8 +160,8 @@ export default function BenchmarkClient({ data, error }: Props) {
           {casesMeasured !== undefined && (
             <>
               {" "}
-              Every figure on this page is scored over those {casesMeasured} cases; numbers from a
-              different corpus version are not comparable to them.
+              Every figure on this page is scored over those {casesMeasured} cases; numbers from a different corpus
+              version are not comparable to them.
             </>
           )}
         </p>

@@ -152,7 +152,6 @@ const GO_FN = /func\s+(?:\([^)]*\)\s*)?(\w+)\s*\(/g;
  */
 const JAVA_FN =
   /\b(?:public|private|protected)\s+(?:static\s+|final\s+|synchronized\s+|abstract\s+|native\s+|default\s+)*[\w<>[\].,\s]+?\s(\w+)\s*\(/g;
-const PY_FN = /^([ \t]*)(?:async\s+)?def\s+(\w+)\s*\(/gm;
 
 function extractScopes(content: string, lang: Lang): Scope[] {
   const scopes: Scope[] = [];

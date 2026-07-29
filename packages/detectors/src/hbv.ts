@@ -758,8 +758,7 @@ function phpTools(file: ScanFile, src: string): ToolDef[] {
     const desc = /(['"])description\1\s*=>\s*(['"])((?:[^'"\\]|\\.)*)\2/.exec(body);
     if (!desc) continue;
 
-    const schema =
-      phpArrayAfterKey(body, /(['"])(?:inputSchema|input_schema|parameters)\1\s*=>\s*\[/) ?? null;
+    const schema = phpArrayAfterKey(body, /(['"])(?:inputSchema|input_schema|parameters)\1\s*=>\s*\[/) ?? null;
     const propsText = schema === null ? null : (phpArrayAfterKey(schema, /(['"])properties\1\s*=>\s*\[/) ?? schema);
 
     // `'handler' => function (...) {...}` or `'handler' => 'some_function'`.

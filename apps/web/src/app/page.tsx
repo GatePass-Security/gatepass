@@ -378,8 +378,8 @@ export default function LandingPage() {
               <div className="gp-bench-topic-list">
                 <a href={SITE.github} target="_blank" rel="noreferrer" className="gp-bench-topic-item">
                   <h3 className="gp-bench-topic-title">
-                    We detect 98.9% — and our own corpus was visible while we built for it. Read that before you
-                    quote it
+                    We detect 98.9% — and our own corpus was visible while we built for it. Read that before you quote
+                    it
                   </h3>
                   <div className="gp-bench-topic-meta">
                     <span className="gp-bench-badge">Method</span>
@@ -421,14 +421,14 @@ export default function LandingPage() {
                   version.
                 </p>
                 <p className="gp-bench-p" style={{ marginTop: 16 }}>
-                  Most of the corpus was written by authors forbidden from reading our detectors, and told that
-                  fixtures which defeat us are a good outcome. Many of them did.{" "}
+                  Most of the corpus was written by authors forbidden from reading our detectors, and told that fixtures
+                  which defeat us are a good outcome. Many of them did.{" "}
                   <strong>
                     All 192 cases were then visible while we closed the gaps, so 98.9% is an upper bound on your
                     repository, not a prediction of it.
                   </strong>{" "}
-                  A fresh set written by authors who have seen none of this is what would make the figure
-                  transferable, and until that exists we say so everywhere the number appears.
+                  A fresh set written by authors who have seen none of this is what would make the figure transferable,
+                  and until that exists we say so everywhere the number appears.
                 </p>
               </Reveal>
 
@@ -470,31 +470,31 @@ export default function LandingPage() {
                 <h3 className="gp-bench-h3">What this does and does not prove</h3>
                 <p className="gp-bench-p" style={{ marginTop: 16 }}>
                   We cover twelve agentic vulnerability classes. On the same 192 cases, Trivy covers none of them,
-                  Gitleaks one, and Semgrep two. That gap is the reason to use us, and it widened rather than closed
-                  as the corpus got larger and considerably meaner.
+                  Gitleaks one, and Semgrep two. That gap is the reason to use us, and it widened rather than closed as
+                  the corpus got larger and considerably meaner.
                 </p>
 
                 <ul className="gp-bench-bullets">
                   <li>
-                    <strong>Detection:</strong> 92 of 93 vulnerable cases. The one miss is an audit table with no
-                    tenant column, and we publish it by name — closing it meant trading away a guard that keeps two
-                    legitimate global lookup tables quiet, which was not a trade worth making.
+                    <strong>Detection:</strong> 92 of 93 vulnerable cases. The one miss is an audit table with no tenant
+                    column, and we publish it by name — closing it meant trading away a guard that keeps two legitimate
+                    global lookup tables quiet, which was not a trade worth making.
                   </li>
                   <li>
                     <strong>Precision under pressure:</strong> zero false positives across 99 clean cases built
-                    specifically to trip a pattern matcher. This is the figure least affected by having seen the
-                    corpus — hard negatives punish a rule that overfits.
+                    specifically to trip a pattern matcher. This is the figure least affected by having seen the corpus
+                    — hard negatives punish a rule that overfits.
                   </li>
                   <li>
                     <strong>Against a frontier model:</strong> on 24 cases scored identically, an unguided LLM matches
-                    our recall and returns eight false positives to our zero. Handed the twelve class names up front
-                    it ties us exactly — we publish that row too, because deleting the one condition where a
-                    competitor draws level is the whole failure mode this page exists to avoid.
+                    our recall and returns eight false positives to our zero. Handed the twelve class names up front it
+                    ties us exactly — we publish that row too, because deleting the one condition where a competitor
+                    draws level is the whole failure mode this page exists to avoid.
                   </li>
                   <li>
-                    <strong>Evidence that holds:</strong> 111 verified findings, zero we could not reproduce. A
-                    finding reaches the verified tier only when its cited file and line re-check against source;
-                    anything unprovable is filed as research with a confidence score instead.
+                    <strong>Evidence that holds:</strong> 111 verified findings, zero we could not reproduce. A finding
+                    reaches the verified tier only when its cited file and line re-check against source; anything
+                    unprovable is filed as research with a confidence score instead.
                   </li>
                   <li>
                     <strong>No model in the merge gate:</strong> byte-identical output across ten runs, so a CI build
@@ -505,11 +505,11 @@ export default function LandingPage() {
                 </ul>
 
                 <blockquote className="gp-bench-quote">
-                  We published CodeQL at zero of twelve. The command was wrong — it needed a database and we handed it
-                  a source tree — so it aborted on every case, and a harness that discarded errors recorded the
-                  silence as a score. Four bugs like that surfaced in one week. Every one made a competitor look worse
-                  and us look better. The numbers are withdrawn and the harnesses can no longer express “did not run”
-                  as “found nothing”.
+                  We published CodeQL at zero of twelve. The command was wrong — it needed a database and we handed it a
+                  source tree — so it aborted on every case, and a harness that discarded errors recorded the silence as
+                  a score. Four bugs like that surfaced in one week. Every one made a competitor look worse and us look
+                  better. The numbers are withdrawn and the harnesses can no longer express “did not run” as “found
+                  nothing”.
                 </blockquote>
 
                 <BenchmarkVisualCard />

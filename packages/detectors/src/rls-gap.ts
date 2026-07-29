@@ -172,10 +172,6 @@ function isTenantColumn(name: string): boolean {
   return TENANT_COLUMN.test(n);
 }
 
-/** Session/JWT accessors a real tenant predicate is built from. */
-const TENANT_PREDICATE =
-  /auth\s*\.\s*(?:uid|jwt|role)\s*\(|current_setting\s*\(|current_user|session_user|request\s*\.\s*jwt|\bjwt\s*\(/i;
-
 /* ------------------------------------------------------------------------- SQL statements */
 
 interface Policy {
@@ -582,7 +578,11 @@ function rawTableAccesses(ctx: ScanContext, tables: Set<string>): RawAccess[] {
     }
     // A hand-written SELECT naming the table, inside a raw-execution call.
     const RAW_SQL = /\b(?:select|delete)\b[\s\S]{0,400}?\bfrom\s+["'`]?([\w.]+)["'`]?/gi;
-    if (/\b(?:DB\s*::\s*(?:select|statement|raw|update|delete)|->\s*(?:executeQuery|executeStatement|query)\s*\(|\.raw\s*\(|find_by_sql|connection\s*\.\s*(?:execute|cursor))/i.test(content)) {
+    if (
+      /\b(?:DB\s*::\s*(?:select|statement|raw|update|delete)|->\s*(?:executeQuery|executeStatement|query)\s*\(|\.raw\s*\(|find_by_sql|connection\s*\.\s*(?:execute|cursor))/i.test(
+        content,
+      )
+    ) {
       while ((m = RAW_SQL.exec(content)) !== null) {
         const table = normIdent(m[1] ?? "");
         if (!tables.has(table)) continue;

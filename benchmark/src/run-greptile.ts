@@ -21,7 +21,7 @@ import os from "node:os";
 import path from "node:path";
 import { execFile } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { loadCases, mapRuleToClasses } from "./run-incumbent.js";
+import { loadCases } from "./run-incumbent.js";
 import { scoreTool, type CorpusCaseLabel, type Detection } from "./score.js";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -36,12 +36,16 @@ function run(
   timeoutMs = 600_000,
 ): Promise<{ stdout: string; stderr: string; code: number }> {
   return new Promise((resolve) => {
-    execFile(command, args, { cwd, timeout: timeoutMs, maxBuffer: 64 * 1024 * 1024, shell: process.platform === "win32" }, (err, stdout, stderr) =>
-      resolve({
-        stdout: stdout ?? "",
-        stderr: stderr ?? "",
-        code: err && "code" in err ? Number(err.code) || 1 : 0,
-      }),
+    execFile(
+      command,
+      args,
+      { cwd, timeout: timeoutMs, maxBuffer: 64 * 1024 * 1024, shell: process.platform === "win32" },
+      (err, stdout, stderr) =>
+        resolve({
+          stdout: stdout ?? "",
+          stderr: stderr ?? "",
+          code: err && "code" in err ? Number(err.code) || 1 : 0,
+        }),
     );
   });
 }
@@ -66,13 +70,15 @@ const CLASS_PHRASES: Record<string, RegExp> = {
   "cors-misconfig": /\b(cors|cross[- ]origin|allow[- ]origin|wildcard origin)\b/i,
   "unpinned-dependency": /\b(unpinned|not pinned|floating (version|tag)|mutable (tag|ref)|latest tag|version range)\b/i,
   "missing-schema-validation": /\b(validat\w+|unvalidated|schema|sanitis|sanitiz|input check)\b/i,
-  "unauth-mcp-transport": /\b(unauthenticat\w+|no auth\w*|missing auth\w*|without authentication|publicly (exposed|accessible))\b/i,
+  "unauth-mcp-transport":
+    /\b(unauthenticat\w+|no auth\w*|missing auth\w*|without authentication|publicly (exposed|accessible))\b/i,
   "rls-gap": /\b(row[- ]level security|\brls\b|tenant isolation|cross[- ]tenant|multi[- ]tenan\w+)\b/i,
   "tool-poisoning": /\b(prompt injection|tool poison\w*|injected instruction|malicious (instruction|description))\b/i,
   "confused-deputy": /\b(confused deputy|ssrf|forward\w* (the )?(credential|token)|server[- ]side request)\b/i,
   hbv: /\b(over[- ]broad|vague description|ambiguous scope|excessive capability)\b/i,
   "over-permissioned-loop": /\b(infinite loop|unbounded loop|no (iteration )?(limit|cap)|runaway|no step limit)\b/i,
-  "cross-surface-scope-mismatch": /\b(scope mismatch|exceeds? (the )?(declared|granted) (scope|permission)|undeclared permission)\b/i,
+  "cross-surface-scope-mismatch":
+    /\b(scope mismatch|exceeds? (the )?(declared|granted) (scope|permission)|undeclared permission)\b/i,
   "unbounded-tool-param": /\b(unbounded|no (max|length|size) (limit|constraint)|unconstrained param\w*)\b/i,
 };
 
@@ -192,7 +198,9 @@ async function main() {
       for (const t of texts) for (const cls of mapCommentToClasses(t)) found.add(cls);
       classesByCase.set(c.id, found);
 
-      console.log(`  [${i + 1}/${cases.length}] ${c.id} → ${texts.length} comment(s), ${[...found].join(", ") || "no class"}`);
+      console.log(
+        `  [${i + 1}/${cases.length}] ${c.id} → ${texts.length} comment(s), ${[...found].join(", ") || "no class"}`,
+      );
     } catch (err) {
       if (!(err instanceof GreptileUnavailable)) throw err;
       /*
@@ -234,7 +242,13 @@ async function main() {
   await fs.writeFile(
     OUT,
     JSON.stringify(
-      { generatedAt: new Date().toISOString(), elapsedMs: Date.now() - started, cases: cases.length, benchmark, rawByCase },
+      {
+        generatedAt: new Date().toISOString(),
+        elapsedMs: Date.now() - started,
+        cases: cases.length,
+        benchmark,
+        rawByCase,
+      },
       null,
       2,
     ),
