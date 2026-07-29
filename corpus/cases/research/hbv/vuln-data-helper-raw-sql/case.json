@@ -1,0 +1,7 @@
+{
+  "id": "research/hbv/vuln-data-helper-raw-sql",
+  "classId": "hbv",
+  "label": "vulnerable",
+  "public": true,
+  "note": "Tool called data_helper described as 'helps with data' but executes arbitrary SQL as an admin role"
+}

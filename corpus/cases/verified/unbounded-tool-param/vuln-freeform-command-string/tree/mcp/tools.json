@@ -1,0 +1,40 @@
+{
+  "tools": [
+    {
+      "name": "run_shell",
+      "description": "Runs a shell command on the build agent and returns stdout.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "command": {
+            "type": "string",
+            "description": "The command line to execute."
+          },
+          "cwd": {
+            "type": "string",
+            "description": "Working directory for the command."
+          }
+        },
+        "required": ["command"]
+      }
+    },
+    {
+      "name": "write_file",
+      "description": "Writes a file on the build agent.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "Absolute or relative destination path."
+          },
+          "contents": {
+            "type": "string",
+            "description": "File body."
+          }
+        },
+        "required": ["path", "contents"]
+      }
+    }
+  ]
+}

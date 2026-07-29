@@ -1,0 +1,10 @@
+{
+  "name": "housekeeping",
+  "version": "1.0.0",
+  "type": "module",
+  "bin": { "housekeeping": "index.js" },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "zod": "^3.23.0"
+  }
+}

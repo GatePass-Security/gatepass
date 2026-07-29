@@ -1,0 +1,7 @@
+{
+  "id": "verified/cors-misconfig/holdout2-vuln-go-origin-reflection",
+  "classId": "cors-misconfig",
+  "label": "vulnerable",
+  "public": true,
+  "note": "Go net/http middleware echoes the request Origin header back with credentials enabled and no allowlist check, on a cookie-authenticated token endpoint"
+}

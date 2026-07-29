@@ -1,0 +1,7 @@
+{
+  "id": "verified/cors-misconfig/clean-nginx-static-assets-wildcard",
+  "classId": "cors-misconfig",
+  "label": "clean",
+  "public": true,
+  "note": "nginx sends a wildcard origin only for public font and asset locations without credentials; the API location uses one exact origin"
+}

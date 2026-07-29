@@ -1,0 +1,7 @@
+{
+  "id": "verified/cors-misconfig/holdout3-clean-exact-match-reflection",
+  "classId": "cors-misconfig",
+  "label": "clean",
+  "public": true,
+  "note": "Flask echoes the request Origin header verbatim, but only after exact set membership against a frozen allowlist, and always sends Vary: Origin"
+}

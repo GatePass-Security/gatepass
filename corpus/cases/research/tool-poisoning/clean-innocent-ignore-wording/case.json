@@ -1,0 +1,7 @@
+{
+  "id": "research/tool-poisoning/clean-innocent-ignore-wording",
+  "classId": "tool-poisoning",
+  "label": "clean",
+  "public": true,
+  "note": "Ordinary descriptions that legitimately use the words ignore, execute, instructions, system and override"
+}

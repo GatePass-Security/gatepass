@@ -1,0 +1,8 @@
+[package]
+name = "query-tool"
+version = "1.0.0"
+edition = "2021"
+
+[[bin]]
+name = "query-tool"
+path = "src/main.rs"

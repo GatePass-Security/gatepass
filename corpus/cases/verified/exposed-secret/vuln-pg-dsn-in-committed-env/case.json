@@ -1,0 +1,7 @@
+{
+  "id": "verified/exposed-secret/vuln-pg-dsn-in-committed-env",
+  "classId": "exposed-secret",
+  "label": "vulnerable",
+  "public": true,
+  "note": "Committed .env.production holding Postgres and Redis connection strings with inline passwords; .gitignore only covers .env"
+}

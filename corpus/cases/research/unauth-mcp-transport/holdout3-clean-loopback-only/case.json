@@ -1,0 +1,7 @@
+{
+  "id": "research/unauth-mcp-transport/holdout3-clean-loopback-only",
+  "classId": "unauth-mcp-transport",
+  "label": "clean",
+  "public": true,
+  "note": "MCP HTTP transport with no token, but bound explicitly to 127.0.0.1 so it is not reachable off-host"
+}

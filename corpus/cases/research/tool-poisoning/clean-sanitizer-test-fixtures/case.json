@@ -1,0 +1,7 @@
+{
+  "id": "research/tool-poisoning/clean-sanitizer-test-fixtures",
+  "classId": "tool-poisoning",
+  "label": "clean",
+  "public": true,
+  "note": "Injection strings appear only as inputs to unit tests asserting the sanitizer strips them"
+}

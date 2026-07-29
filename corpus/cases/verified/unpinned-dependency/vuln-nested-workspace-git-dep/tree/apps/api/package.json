@@ -1,0 +1,14 @@
+{
+  "name": "@acme/api",
+  "version": "1.2.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@acme/mcp-gateway": "workspace:*",
+    "fastify": "4.28.1",
+    "pino": "9.3.2"
+  }
+}

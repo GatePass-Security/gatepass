@@ -1,0 +1,7 @@
+{
+  "id": "verified/unbounded-tool-param/holdout2-clean-annotated-aliases",
+  "classId": "unbounded-tool-param",
+  "label": "clean",
+  "public": true,
+  "note": "Tool signatures look like plain str and int, but every annotation is an Annotated alias from a shared module and @validate_call enforces the pattern, max_length and le bounds"
+}

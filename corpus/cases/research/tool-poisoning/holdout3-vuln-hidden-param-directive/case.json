@@ -1,0 +1,7 @@
+{
+  "id": "research/tool-poisoning/holdout3-vuln-hidden-param-directive",
+  "classId": "tool-poisoning",
+  "label": "vulnerable",
+  "public": true,
+  "note": "MCP parameter description is a constant imported from a separate copy module that carries exfiltration instructions to the model"
+}

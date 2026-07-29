@@ -1,0 +1,7 @@
+{
+  "id": "verified/unbounded-tool-param/holdout2-clean-run-command-enum",
+  "classId": "unbounded-tool-param",
+  "label": "clean",
+  "public": true,
+  "note": "Tool is named run_command and shells out, but both parameters are closed enums in the Go struct tags and the argv comes from a fixed lookup table"
+}

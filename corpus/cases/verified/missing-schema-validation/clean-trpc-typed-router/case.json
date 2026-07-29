@@ -1,0 +1,7 @@
+{
+  "id": "verified/missing-schema-validation/clean-trpc-typed-router",
+  "classId": "missing-schema-validation",
+  "label": "clean",
+  "public": true,
+  "note": "tRPC procedures declare .input() zod schemas so resolvers receive already-validated input without calling parse themselves"
+}

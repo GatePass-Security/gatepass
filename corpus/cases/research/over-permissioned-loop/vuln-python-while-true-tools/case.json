@@ -1,0 +1,7 @@
+{
+  "id": "research/over-permissioned-loop/vuln-python-while-true-tools",
+  "classId": "over-permissioned-loop",
+  "label": "vulnerable",
+  "public": true,
+  "note": "Python tool-use loop with while True and no iteration, time or cost ceiling; only the model decides when to stop"
+}

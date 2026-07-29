@@ -1,0 +1,7 @@
+{
+  "id": "cross-surface/cross-surface-scope-mismatch/clean-scope-gate-at-dispatch",
+  "classId": "cross-surface-scope-mismatch",
+  "label": "clean",
+  "public": true,
+  "note": "Write operations exist in the operation table but the dispatcher refuses any op whose requiredScopes are not in the manifest's grantedScopes"
+}

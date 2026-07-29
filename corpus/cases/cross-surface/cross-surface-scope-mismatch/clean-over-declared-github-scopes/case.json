@@ -1,0 +1,7 @@
+{
+  "id": "cross-surface/cross-surface-scope-mismatch/clean-over-declared-github-scopes",
+  "classId": "cross-surface-scope-mismatch",
+  "label": "clean",
+  "public": true,
+  "note": "Manifest declares contents/issues/pull_requests write but the code only reads; over-declaration is the safe direction, not a mismatch"
+}

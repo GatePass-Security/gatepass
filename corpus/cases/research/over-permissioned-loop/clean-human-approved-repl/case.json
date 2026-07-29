@@ -1,0 +1,7 @@
+{
+  "id": "research/over-permissioned-loop/clean-human-approved-repl",
+  "classId": "over-permissioned-loop",
+  "label": "clean",
+  "public": true,
+  "note": "while (true) REPL where each iteration blocks on human input and every tool call needs an explicit y/N approval, so it cannot run away"
+}

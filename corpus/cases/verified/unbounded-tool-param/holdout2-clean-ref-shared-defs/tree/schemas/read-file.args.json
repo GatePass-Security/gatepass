@@ -1,0 +1,13 @@
+{
+  "$id": "https://tools.internal.example/schemas/read-file.args.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "read_repo_file arguments",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["runId", "path"],
+  "properties": {
+    "runId": { "$ref": "common.schema.json#/$defs/RunId" },
+    "path": { "$ref": "common.schema.json#/$defs/RepoRelativePath" },
+    "maxLines": { "$ref": "common.schema.json#/$defs/LineCount" }
+  }
+}

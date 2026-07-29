@@ -1,0 +1,37 @@
+"""
+Agent tool surface. Argument bounds are carried by the scalar types
+themselves - see scalars.js for the enforcing implementations.
+"""
+
+"Integer in 1..1000."
+scalar PageSize
+
+"Repo-relative path, at most 200 chars, no traversal."
+scalar RepoPath
+
+"Relative duration such as 30m or 12h, at most 168h."
+scalar Duration
+
+type Query {
+  readFile(path: RepoPath!, maxBytes: PageSize!): FileContents!
+  recentBuilds(within: Duration!, first: PageSize!): [Build!]!
+}
+
+type FileContents {
+  path: RepoPath!
+  text: String!
+  truncated: Boolean!
+}
+
+type Build {
+  id: ID!
+  branch: String!
+  status: BuildStatus!
+}
+
+enum BuildStatus {
+  QUEUED
+  RUNNING
+  PASSED
+  FAILED
+}

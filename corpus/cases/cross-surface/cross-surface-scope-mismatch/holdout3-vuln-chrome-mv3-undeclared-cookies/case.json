@@ -1,0 +1,7 @@
+{
+  "id": "cross-surface/cross-surface-scope-mismatch/holdout3-vuln-chrome-mv3-undeclared-cookies",
+  "classId": "cross-surface-scope-mismatch",
+  "label": "vulnerable",
+  "public": true,
+  "note": "MV3 manifest declares storage/scripting/activeTab and one host, while the tool worker uses chrome.cookies, chrome.downloads and an undeclared internal host"
+}

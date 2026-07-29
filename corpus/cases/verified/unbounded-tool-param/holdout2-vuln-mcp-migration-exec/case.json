@@ -1,0 +1,7 @@
+{
+  "id": "verified/unbounded-tool-param/holdout2-vuln-mcp-migration-exec",
+  "classId": "unbounded-tool-param",
+  "label": "vulnerable",
+  "public": true,
+  "note": "MCP tool constrains environment (enum) and timeout (min/max) but leaves migrationArgs a bare string interpolated into execSync"
+}

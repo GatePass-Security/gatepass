@@ -1,0 +1,7 @@
+{
+  "id": "verified/unbounded-tool-param/clean-enum-constrained-action",
+  "classId": "unbounded-tool-param",
+  "label": "clean",
+  "public": true,
+  "note": "String params look free-form because type and enum are separated by title and description lines, but every one is constrained"
+}

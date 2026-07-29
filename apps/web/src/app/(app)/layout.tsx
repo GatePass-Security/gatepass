@@ -1,13 +1,14 @@
 import { headers } from "next/headers";
+import { API_BASE } from "@/lib/constants";
+import { PATHNAME_HEADER } from "@/lib/session-cookie";
+import { requireSession, SessionUnavailableError } from "@/lib/session";
+import type { Role, SessionInfo } from "@/lib/types";
 import { OrgProvider } from "@/providers/OrgProvider";
 import { SessionProvider, type SessionUser } from "@/providers/SessionProvider";
 import { Sidebar } from "@/components/Sidebar";
 import { TopNavBar } from "@/components/TopNavBar";
 import { ToastProvider } from "@/components/ui/Toast";
-import { requireSession, SessionUnavailableError } from "@/lib/session";
-import { PATHNAME_HEADER } from "@/lib/session-cookie";
-import { API_BASE } from "@/lib/constants";
-import type { Role, SessionInfo } from "@/lib/types";
+import { DemoProvider } from "@/components/demo/DemoProvider";
 
 /**
  * The API did not answer, so we cannot tell whether this session is still good.
@@ -99,21 +100,30 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       >
         Skip to content
       </a>
-      <ToastProvider>
-        <SessionProvider session={user}>
+      {/*
+        `SessionProvider` is outermost of the client providers because everything below it reads
+        the session: `OrgProvider` derives the active org from it, the tour asks it which tenant to
+        drive, and `TopNavBar` renders who you are signed in as. It is the verified session from
+        `requireSession()` above, handed down as a prop — no page re-fetches it, and none of them
+        can disagree about who is signed in.
+      */}
+      <SessionProvider session={user}>
+        <ToastProvider>
           <OrgProvider>
-            <div className="relative z-10 flex min-h-screen">
-              <Sidebar />
-              <div className="flex min-w-0 flex-1 flex-col">
-                <TopNavBar />
-                <main id="main" className="flex-1 overflow-x-hidden">
-                  <div className="mx-auto w-full max-w-[88rem] px-5 py-7 sm:px-7 lg:px-9">{children}</div>
-                </main>
+            <DemoProvider>
+              <div className="relative z-10 flex min-h-screen">
+                <Sidebar />
+                <div className="flex min-w-0 flex-1 flex-col">
+                  <TopNavBar />
+                  <main id="main" className="flex-1 overflow-x-hidden">
+                    <div className="mx-auto w-full max-w-[88rem] px-5 py-7 sm:px-7 lg:px-9">{children}</div>
+                  </main>
+                </div>
               </div>
-            </div>
+            </DemoProvider>
           </OrgProvider>
-        </SessionProvider>
-      </ToastProvider>
+        </ToastProvider>
+      </SessionProvider>
     </>
   );
 }

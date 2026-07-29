@@ -1,0 +1,14 @@
+{
+  "name": "mcp-description-guard",
+  "version": "0.6.2",
+  "private": true,
+  "type": "module",
+  "main": "dist/guard/scan.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "check:tools": "node dist/guard/cli.js mcp/tools.json"
+  },
+  "devDependencies": {
+    "typescript": "5.5.4"
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "$id": "https://tools.internal.example/schemas/common.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Shared argument primitives for repository tools",
+  "$defs": {
+    "RepoRelativePath": {
+      "type": "string",
+      "description": "Path inside the checked-out repository, at most eight segments deep.",
+      "pattern": "^[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+){0,8}$",
+      "maxLength": 200
+    },
+    "RunId": {
+      "type": "string",
+      "description": "Identifier of the agent run requesting the read.",
+      "format": "uuid",
+      "maxLength": 36
+    },
+    "LineCount": {
+      "type": "integer",
+      "description": "Number of lines to return.",
+      "minimum": 1,
+      "maximum": 500
+    }
+  }
+}

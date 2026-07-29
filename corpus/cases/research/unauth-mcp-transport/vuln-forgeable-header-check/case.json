@@ -1,0 +1,7 @@
+{
+  "id": "research/unauth-mcp-transport/vuln-forgeable-header-check",
+  "classId": "unauth-mcp-transport",
+  "label": "vulnerable",
+  "public": true,
+  "note": "Go SSE MCP server on 0.0.0.0 whose only gate is an X-Internal-Request / X-Forwarded-For header any client can set"
+}

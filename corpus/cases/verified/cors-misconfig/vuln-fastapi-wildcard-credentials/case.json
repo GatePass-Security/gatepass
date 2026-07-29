@@ -1,0 +1,7 @@
+{
+  "id": "verified/cors-misconfig/vuln-fastapi-wildcard-credentials",
+  "classId": "cors-misconfig",
+  "label": "vulnerable",
+  "public": true,
+  "note": "FastAPI CORSMiddleware with allow_origins=[\"*\"] and allow_credentials=True on cookie-authenticated routes"
+}

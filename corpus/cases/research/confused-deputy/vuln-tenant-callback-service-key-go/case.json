@@ -1,0 +1,7 @@
+{
+  "id": "research/confused-deputy/vuln-tenant-callback-service-key-go",
+  "classId": "confused-deputy",
+  "label": "vulnerable",
+  "public": true,
+  "note": "Go webhook dispatcher attaches the mesh service token and internal API key to a tenant-registered callback URL"
+}

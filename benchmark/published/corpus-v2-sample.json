@@ -1,0 +1,464 @@
+{
+  "corpusVersion": "corpus-v2-sample",
+  "casesMeasured": 24,
+  "population": "24 cases drawn from the clean-room holdout — one vulnerable and one clean per class. Every tool saw exactly these cases.",
+  "runs": [
+    {
+      "tool": "Gatepass",
+      "casesMeasured": 24,
+      "perClass": [
+        {
+          "classId": "confused-deputy",
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "tn": 23,
+          "recall": 1,
+          "precision": 1
+        },
+        {
+          "classId": "cors-misconfig",
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "tn": 23,
+          "recall": 1,
+          "precision": 1
+        },
+        {
+          "classId": "cross-surface-scope-mismatch",
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "tn": 23,
+          "recall": 1,
+          "precision": 1
+        },
+        {
+          "classId": "exposed-secret",
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "tn": 23,
+          "recall": 1,
+          "precision": 1
+        },
+        {
+          "classId": "hbv",
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "tn": 23,
+          "recall": 1,
+          "precision": 1
+        },
+        {
+          "classId": "missing-schema-validation",
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "tn": 23,
+          "recall": 1,
+          "precision": 1
+        },
+        {
+          "classId": "over-permissioned-loop",
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "tn": 23,
+          "recall": 1,
+          "precision": 1
+        },
+        {
+          "classId": "rls-gap",
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "tn": 23,
+          "recall": 1,
+          "precision": 1
+        },
+        {
+          "classId": "tool-poisoning",
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "tn": 23,
+          "recall": 1,
+          "precision": 1
+        },
+        {
+          "classId": "unauth-mcp-transport",
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "tn": 23,
+          "recall": 1,
+          "precision": 1
+        },
+        {
+          "classId": "unbounded-tool-param",
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "tn": 23,
+          "recall": 1,
+          "precision": 1
+        },
+        {
+          "classId": "unpinned-dependency",
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "tn": 23,
+          "recall": 1,
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "tool": "Claude (frontier LLM) — naive prompt",
+      "casesMeasured": 24,
+      "perClass": [
+        {
+          "classId": "confused-deputy",
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "tn": 23,
+          "recall": 1,
+          "precision": 1
+        },
+        {
+          "classId": "cors-misconfig",
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "tn": 23,
+          "recall": 1,
+          "precision": 1
+        },
+        {
+          "classId": "cross-surface-scope-mismatch",
+          "tp": 1,
+          "fp": 1,
+          "fn": 0,
+          "tn": 22,
+          "recall": 1,
+          "precision": 0.5
+        },
+        {
+          "classId": "exposed-secret",
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "tn": 23,
+          "recall": 1,
+          "precision": 1
+        },
+        {
+          "classId": "hbv",
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "tn": 23,
+          "recall": 1,
+          "precision": 1
+        },
+        {
+          "classId": "missing-schema-validation",
+          "tp": 1,
+          "fp": 3,
+          "fn": 0,
+          "tn": 20,
+          "recall": 1,
+          "precision": 0.25
+        },
+        {
+          "classId": "over-permissioned-loop",
+          "tp": 1,
+          "fp": 1,
+          "fn": 0,
+          "tn": 22,
+          "recall": 1,
+          "precision": 0.5
+        },
+        {
+          "classId": "rls-gap",
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "tn": 23,
+          "recall": 1,
+          "precision": 1
+        },
+        {
+          "classId": "tool-poisoning",
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "tn": 23,
+          "recall": 1,
+          "precision": 1
+        },
+        {
+          "classId": "unauth-mcp-transport",
+          "tp": 1,
+          "fp": 2,
+          "fn": 0,
+          "tn": 21,
+          "recall": 1,
+          "precision": 0.3333333333333333
+        },
+        {
+          "classId": "unbounded-tool-param",
+          "tp": 1,
+          "fp": 1,
+          "fn": 0,
+          "tn": 22,
+          "recall": 1,
+          "precision": 0.5
+        },
+        {
+          "classId": "unpinned-dependency",
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "tn": 23,
+          "recall": 1,
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "tool": "Claude (frontier LLM) — practitioner prompt",
+      "casesMeasured": 24,
+      "perClass": [
+        {
+          "classId": "confused-deputy",
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "tn": 23,
+          "recall": 1,
+          "precision": 1
+        },
+        {
+          "classId": "cors-misconfig",
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "tn": 23,
+          "recall": 1,
+          "precision": 1
+        },
+        {
+          "classId": "cross-surface-scope-mismatch",
+          "tp": 0,
+          "fp": 1,
+          "fn": 1,
+          "tn": 22,
+          "recall": 0,
+          "precision": 0
+        },
+        {
+          "classId": "exposed-secret",
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "tn": 23,
+          "recall": 1,
+          "precision": 1
+        },
+        {
+          "classId": "hbv",
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "tn": 23,
+          "recall": 1,
+          "precision": 1
+        },
+        {
+          "classId": "missing-schema-validation",
+          "tp": 1,
+          "fp": 3,
+          "fn": 0,
+          "tn": 20,
+          "recall": 1,
+          "precision": 0.25
+        },
+        {
+          "classId": "over-permissioned-loop",
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "tn": 23,
+          "recall": 1,
+          "precision": 1
+        },
+        {
+          "classId": "rls-gap",
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "tn": 23,
+          "recall": 1,
+          "precision": 1
+        },
+        {
+          "classId": "tool-poisoning",
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "tn": 23,
+          "recall": 1,
+          "precision": 1
+        },
+        {
+          "classId": "unauth-mcp-transport",
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "tn": 23,
+          "recall": 1,
+          "precision": 1
+        },
+        {
+          "classId": "unbounded-tool-param",
+          "tp": 1,
+          "fp": 1,
+          "fn": 0,
+          "tn": 22,
+          "recall": 1,
+          "precision": 0.5
+        },
+        {
+          "classId": "unpinned-dependency",
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "tn": 23,
+          "recall": 1,
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "tool": "Claude (frontier LLM) — guided, given the class list",
+      "casesMeasured": 24,
+      "perClass": [
+        {
+          "classId": "confused-deputy",
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "tn": 23,
+          "recall": 1,
+          "precision": 1
+        },
+        {
+          "classId": "cors-misconfig",
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "tn": 23,
+          "recall": 1,
+          "precision": 1
+        },
+        {
+          "classId": "cross-surface-scope-mismatch",
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "tn": 23,
+          "recall": 1,
+          "precision": 1
+        },
+        {
+          "classId": "exposed-secret",
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "tn": 23,
+          "recall": 1,
+          "precision": 1
+        },
+        {
+          "classId": "hbv",
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "tn": 23,
+          "recall": 1,
+          "precision": 1
+        },
+        {
+          "classId": "missing-schema-validation",
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "tn": 23,
+          "recall": 1,
+          "precision": 1
+        },
+        {
+          "classId": "over-permissioned-loop",
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "tn": 23,
+          "recall": 1,
+          "precision": 1
+        },
+        {
+          "classId": "rls-gap",
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "tn": 23,
+          "recall": 1,
+          "precision": 1
+        },
+        {
+          "classId": "tool-poisoning",
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "tn": 23,
+          "recall": 1,
+          "precision": 1
+        },
+        {
+          "classId": "unauth-mcp-transport",
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "tn": 23,
+          "recall": 1,
+          "precision": 1
+        },
+        {
+          "classId": "unbounded-tool-param",
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "tn": 23,
+          "recall": 1,
+          "precision": 1
+        },
+        {
+          "classId": "unpinned-dependency",
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "tn": 23,
+          "recall": 1,
+          "precision": 1
+        }
+      ]
+    }
+  ],
+  "publishedAt": "2026-07-29T01:31:27.182Z"
+}

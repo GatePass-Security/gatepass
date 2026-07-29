@@ -1,0 +1,7 @@
+{
+  "id": "research/unauth-mcp-transport/vuln-auth-flag-defaults-off",
+  "classId": "unauth-mcp-transport",
+  "label": "vulnerable",
+  "public": true,
+  "note": "Fastify MCP server whose bearer hook is registered only when MCP_AUTH=1, which the shipped compose file never sets"
+}

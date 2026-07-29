@@ -1,0 +1,29 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install
+        run: npm ci
+
+      - name: Run billing migrations
+        env:
+          STRIPE_SECRET_KEY: sk_live_0000000000000000
+          STRIPE_WEBHOOK_SECRET: whsec_00000000000000000000000000000000
+        run: node scripts/migrate-billing.js
+
+      - name: Notify release channel
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: node scripts/notify.js

@@ -1,0 +1,11 @@
+name: release-notes
+description: Drafts release notes from merged pull requests.
+public: false
+default_permissions:
+  contents: write
+  issues: write
+  pull_requests: write
+  metadata: read
+default_events:
+  - pull_request
+  - release

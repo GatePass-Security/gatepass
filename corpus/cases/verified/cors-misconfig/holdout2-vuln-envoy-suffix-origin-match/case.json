@@ -1,0 +1,7 @@
+{
+  "id": "verified/cors-misconfig/holdout2-vuln-envoy-suffix-origin-match",
+  "classId": "cors-misconfig",
+  "label": "vulnerable",
+  "public": true,
+  "note": "Envoy edge proxy allows any origin whose string suffix is example.com with allow_credentials true, so an attacker-owned evil-example.com passes the check"
+}

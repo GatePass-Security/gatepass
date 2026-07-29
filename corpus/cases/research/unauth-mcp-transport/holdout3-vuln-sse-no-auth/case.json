@@ -1,0 +1,7 @@
+{
+  "id": "research/unauth-mcp-transport/holdout3-vuln-sse-no-auth",
+  "classId": "unauth-mcp-transport",
+  "label": "vulnerable",
+  "public": true,
+  "note": "Python MCP server binds SSE transport to 0.0.0.0 with no authentication middleware on the routes"
+}

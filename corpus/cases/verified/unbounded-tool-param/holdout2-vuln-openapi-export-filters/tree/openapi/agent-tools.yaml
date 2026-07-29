@@ -1,0 +1,43 @@
+openapi: 3.1.0
+info:
+  title: Analytics Agent Tools
+  version: 1.4.0
+paths:
+  /tools/export-rows:
+    post:
+      operationId: exportRows
+      summary: Export rows from an analytics table for the agent to summarise.
+      x-agent-tool: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [table, rowLimit]
+              properties:
+                table:
+                  type: string
+                  description: Source table to read from.
+                  enum: [events, sessions, invoices]
+                rowLimit:
+                  type: integer
+                  description: Maximum number of rows to pull into the response.
+                  minimum: 1
+                filters:
+                  type: object
+                  description: Column/value pairs appended to the WHERE clause.
+                  additionalProperties: true
+      responses:
+        "200":
+          description: Exported rows.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  rows:
+                    type: array
+                    items:
+                      type: object

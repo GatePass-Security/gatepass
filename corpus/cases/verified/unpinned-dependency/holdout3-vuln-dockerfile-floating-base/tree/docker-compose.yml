@@ -1,0 +1,35 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      NODE_ENV: production
+      REDIS_URL: redis://cache:6379
+      DATABASE_URL: postgres://app@db:5432/app
+    ports:
+      - "8080:8080"
+    depends_on:
+      - cache
+      - db
+
+  cache:
+    image: redis:latest
+    command: ["redis-server", "--appendonly", "yes"]
+
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_HOST_AUTH_METHOD: trust
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  migrate:
+    image: ghcr.io/amacneil/dbmate:latest
+    command: ["--wait", "up"]
+    depends_on:
+      - db
+
+volumes:
+  pgdata:

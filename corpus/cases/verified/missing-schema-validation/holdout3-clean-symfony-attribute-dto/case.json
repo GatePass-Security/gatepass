@@ -1,0 +1,7 @@
+{
+  "id": "verified/missing-schema-validation/holdout3-clean-symfony-attribute-dto",
+  "classId": "missing-schema-validation",
+  "label": "clean",
+  "public": true,
+  "note": "ORDER BY is interpolated from request data, but MapRequestPayload runs the DTO's Assert\\Choice constraints before the controller body executes"
+}

@@ -1,0 +1,7 @@
+{
+  "id": "research/confused-deputy/vuln-proxy-service-token-python",
+  "classId": "confused-deputy",
+  "label": "vulnerable",
+  "public": true,
+  "note": "FastAPI relay POSTs to a caller-supplied target_url with the service's own bearer token attached"
+}

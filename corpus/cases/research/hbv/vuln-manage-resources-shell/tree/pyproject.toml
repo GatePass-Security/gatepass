@@ -1,0 +1,12 @@
+[project]
+name = "ops-assistant-mcp"
+version = "0.2.0"
+description = "MCP tools for the platform on-call rotation"
+requires-python = ">=3.11"
+dependencies = [
+  "fastmcp==2.3.4",
+]
+
+[build-system]
+requires = ["hatchling==1.25.0"]
+build-backend = "hatchling.build"

@@ -1,0 +1,7 @@
+{
+  "id": "research/over-permissioned-loop/vuln-self-requeue-worker",
+  "classId": "over-permissioned-loop",
+  "label": "vulnerable",
+  "public": true,
+  "note": "Agent iterates by re-enqueueing itself from inside the worker: no loop keyword, no step count, no cost ceiling anywhere"
+}

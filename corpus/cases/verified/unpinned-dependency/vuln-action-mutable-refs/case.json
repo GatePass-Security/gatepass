@@ -1,0 +1,7 @@
+{
+  "id": "verified/unpinned-dependency/vuln-action-mutable-refs",
+  "classId": "unpinned-dependency",
+  "label": "vulnerable",
+  "public": true,
+  "note": "Release workflow consumes third-party GitHub Actions at @main and @master, so the action code can change without a commit here"
+}

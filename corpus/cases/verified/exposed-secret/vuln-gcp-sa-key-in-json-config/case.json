@@ -1,0 +1,7 @@
+{
+  "id": "verified/exposed-secret/vuln-gcp-sa-key-in-json-config",
+  "classId": "exposed-secret",
+  "label": "vulnerable",
+  "public": true,
+  "note": "Google service account JSON with an inline PEM private key committed under config/"
+}

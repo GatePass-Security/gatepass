@@ -1,0 +1,7 @@
+{
+  "id": "verified/exposed-secret/vuln-npm-token-in-lockfile",
+  "classId": "exposed-secret",
+  "label": "vulnerable",
+  "public": true,
+  "note": "Private registry auth token leaked into package-lock.json resolved URLs while .npmrc itself looks clean"
+}

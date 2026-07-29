@@ -1,0 +1,7 @@
+{
+  "id": "verified/missing-schema-validation/vuln-express-body-mongo-filter",
+  "classId": "missing-schema-validation",
+  "label": "vulnerable",
+  "public": true,
+  "note": "Express route passes req.body straight into a Mongo find filter, sort and limit with no shape check"
+}

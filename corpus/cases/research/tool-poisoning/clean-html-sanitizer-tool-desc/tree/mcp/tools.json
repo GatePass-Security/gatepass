@@ -1,0 +1,32 @@
+{
+  "tools": [
+    {
+      "name": "sanitize_html",
+      "description": "Cleans untrusted HTML before it is stored on a comment thread. Comment nodes such as <!-- tracking pixel --> are removed, <script> and <style> elements are dropped entirely, and every surviving attribute is checked against the allow-list in policy.json.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "html": { "type": "string", "maxLength": 65536 },
+          "mode": {
+            "type": "string",
+            "enum": ["strip-comments", "ignore-scripts", "text-only"],
+            "default": "strip-comments",
+            "description": "strip-comments keeps formatting tags and removes comment nodes; ignore-scripts additionally drops event-handler attributes; text-only returns the plain text content."
+          }
+        },
+        "required": ["html"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "preview_sanitized",
+      "description": "Returns a diff between the submitted HTML and the sanitized output so a moderator can see which nodes, comments and attributes were removed.",
+      "inputSchema": {
+        "type": "object",
+        "properties": { "html": { "type": "string", "maxLength": 65536 } },
+        "required": ["html"],
+        "additionalProperties": false
+      }
+    }
+  ]
+}

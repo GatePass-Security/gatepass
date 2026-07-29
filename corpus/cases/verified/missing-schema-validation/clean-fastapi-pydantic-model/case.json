@@ -1,0 +1,7 @@
+{
+  "id": "verified/missing-schema-validation/clean-fastapi-pydantic-model",
+  "classId": "missing-schema-validation",
+  "label": "clean",
+  "public": true,
+  "note": "FastAPI route body is typed as a pydantic model imported from another module, so FastAPI validates before the handler body runs"
+}

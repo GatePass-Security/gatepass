@@ -38,11 +38,11 @@ export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: "Gatepass — Deterministic security for AI-native code",
   description:
-    "Gatepass catches the vulnerability classes that appear when AI writes the code and agents run it — tool poisoning, confused deputy, unauthenticated MCP transports — and blocks them in the pull request. Deterministic, ~1ms, with a runnable reproduction on every verified finding.",
+    "Gatepass catches the vulnerability classes that appear when AI writes the code and agents run it — tool poisoning, confused deputy, unauthenticated MCP transports — and blocks them in the pull request. Deterministic, with a runnable reproduction on every verified finding.",
   openGraph: {
     title: "Gatepass — Deterministic security for AI-native code",
     description:
-      "12/12 agentic vulnerability classes detected where Semgrep finds 1 and Trivy finds 0. Byte-identical across runs. No LLM in the loop.",
+      "Twelve agentic vulnerability classes, where CodeQL and Trivy cover none and Semgrep covers two. 180-case corpus, a third held out. We publish the held-out number.",
     type: "website",
   },
 };

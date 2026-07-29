@@ -1,0 +1,7 @@
+{
+  "id": "verified/unpinned-dependency/vuln-docker-latest-base",
+  "classId": "unpinned-dependency",
+  "label": "vulnerable",
+  "public": true,
+  "note": "Dockerfile builds on floating node:latest and alpine:latest tags with unpinned apk packages"
+}

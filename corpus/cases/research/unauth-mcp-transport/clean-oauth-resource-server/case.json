@@ -1,0 +1,7 @@
+{
+  "id": "research/unauth-mcp-transport/clean-oauth-resource-server",
+  "classId": "unauth-mcp-transport",
+  "label": "clean",
+  "public": true,
+  "note": "Go MCP over HTTP on 0.0.0.0 behind JWT scope validation; only the RFC 9728 metadata route is intentionally public"
+}

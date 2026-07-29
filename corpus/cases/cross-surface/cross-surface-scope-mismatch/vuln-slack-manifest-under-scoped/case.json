@@ -1,0 +1,7 @@
+{
+  "id": "cross-surface/cross-surface-scope-mismatch/vuln-slack-manifest-under-scoped",
+  "classId": "cross-surface-scope-mismatch",
+  "label": "vulnerable",
+  "public": true,
+  "note": "Slack app manifest declares only channels:history, channels:read and chat:write, but the handler invites, archives and uploads files"
+}

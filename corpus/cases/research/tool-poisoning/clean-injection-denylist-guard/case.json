@@ -1,0 +1,7 @@
+{
+  "id": "research/tool-poisoning/clean-injection-denylist-guard",
+  "classId": "tool-poisoning",
+  "label": "clean",
+  "public": true,
+  "note": "Defensive denylist of injection regexes that refuses to publish poisoned descriptions"
+}

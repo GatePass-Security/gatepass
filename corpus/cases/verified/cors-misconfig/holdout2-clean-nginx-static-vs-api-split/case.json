@@ -1,0 +1,7 @@
+{
+  "id": "verified/cors-misconfig/holdout2-clean-nginx-static-vs-api-split",
+  "classId": "cors-misconfig",
+  "label": "clean",
+  "public": true,
+  "note": "nginx applies a wildcard origin only to the public immutable /static/ location while the credentialed /api/ location echoes the origin only via an exact-match map that defaults to an empty header"
+}

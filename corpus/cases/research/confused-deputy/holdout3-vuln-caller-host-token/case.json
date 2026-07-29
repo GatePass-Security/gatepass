@@ -1,0 +1,7 @@
+{
+  "id": "research/confused-deputy/holdout3-vuln-caller-host-token",
+  "classId": "confused-deputy",
+  "label": "vulnerable",
+  "public": true,
+  "note": "Spring controller lets the caller choose the host while a client helper attaches the internal service token to every outbound call"
+}

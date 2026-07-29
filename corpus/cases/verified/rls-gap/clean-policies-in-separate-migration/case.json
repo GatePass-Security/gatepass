@@ -1,0 +1,7 @@
+{
+  "id": "verified/rls-gap/clean-policies-in-separate-migration",
+  "classId": "rls-gap",
+  "label": "clean",
+  "public": true,
+  "note": "RLS is enabled in the table migration and the per-org policies are created in the very next migration file"
+}

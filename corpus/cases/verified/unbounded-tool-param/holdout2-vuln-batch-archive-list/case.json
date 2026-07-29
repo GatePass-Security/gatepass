@@ -1,0 +1,7 @@
+{
+  "id": "verified/unbounded-tool-param/holdout2-vuln-batch-archive-list",
+  "classId": "unbounded-tool-param",
+  "label": "vulnerable",
+  "public": true,
+  "note": "Pydantic tool schema bounds each path string but puts no max_length on the list itself, so the agent can move an unbounded number of files"
+}

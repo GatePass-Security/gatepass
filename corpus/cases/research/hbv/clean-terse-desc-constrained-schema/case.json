@@ -1,0 +1,7 @@
+{
+  "id": "research/hbv/clean-terse-desc-constrained-schema",
+  "classId": "hbv",
+  "label": "clean",
+  "public": true,
+  "note": "Very short descriptions but read-only single-record lookups with pattern-constrained ids and closed schemas"
+}

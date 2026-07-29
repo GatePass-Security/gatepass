@@ -1,0 +1,17 @@
+version: v2
+
+modules:
+  - path: proto
+
+deps:
+  - buf.build/bufbuild/protovalidate
+
+lint:
+  use:
+    - STANDARD
+  except:
+    - PACKAGE_VERSION_SUFFIX
+
+breaking:
+  use:
+    - FILE

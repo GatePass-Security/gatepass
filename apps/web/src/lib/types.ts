@@ -330,6 +330,14 @@ export interface BenchmarkData {
   publishedAt: string;
   runs: Array<{
     tool: string;
+    /** How many cases this run was scored on. Every run in one artifact shares it. */
+    casesMeasured?: number;
+    /**
+     * One sentence naming what was measured. Present because two artifacts can each be
+     * internally comparable while meaning nothing against each other — a reader who cannot see
+     * the population will compare the headline numbers anyway.
+     */
+    population?: string;
     perClass: Array<{
       classId: string;
       tp: number;

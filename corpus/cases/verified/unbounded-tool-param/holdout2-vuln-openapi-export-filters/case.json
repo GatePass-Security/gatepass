@@ -1,0 +1,7 @@
+{
+  "id": "verified/unbounded-tool-param/holdout2-vuln-openapi-export-filters",
+  "classId": "unbounded-tool-param",
+  "label": "vulnerable",
+  "public": true,
+  "note": "OpenAPI agent-tool operation exposes rowLimit as an integer with a minimum but no maximum and filters as an object with additionalProperties true, both flowing into a SQL query"
+}

@@ -1,0 +1,7 @@
+{
+  "id": "research/unauth-mcp-transport/clean-auth-in-separate-middleware",
+  "classId": "unauth-mcp-transport",
+  "label": "clean",
+  "public": true,
+  "note": "MCP over HTTP bound to 0.0.0.0 but every /mcp route is gated by a bearer middleware in a separate file"
+}

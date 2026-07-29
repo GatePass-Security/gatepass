@@ -1,0 +1,7 @@
+{
+  "id": "verified/cors-misconfig/holdout3-vuln-dotnet-suffix-origin-check",
+  "classId": "cors-misconfig",
+  "label": "vulnerable",
+  "public": true,
+  "note": "ASP.NET Core allows any origin whose host merely ends with the partner domain, so attacker-owned evilcontoso.com reads credentialed responses"
+}

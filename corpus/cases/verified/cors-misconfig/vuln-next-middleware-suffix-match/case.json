@@ -1,0 +1,7 @@
+{
+  "id": "verified/cors-misconfig/vuln-next-middleware-suffix-match",
+  "classId": "cors-misconfig",
+  "label": "vulnerable",
+  "public": true,
+  "note": "Next.js middleware reflects the request Origin with credentials after an endsWith() check that any attacker-registered acme.com suffix satisfies"
+}

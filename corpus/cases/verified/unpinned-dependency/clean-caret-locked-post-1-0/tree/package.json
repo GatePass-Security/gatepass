@@ -1,0 +1,17 @@
+{
+  "name": "acme-checkout",
+  "version": "7.2.0",
+  "private": true,
+  "engines": {
+    "node": "22.x"
+  },
+  "scripts": {
+    "start": "node dist/server.js",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "pino": "^9.3.2",
+    "zod": "^3.23.8"
+  }
+}

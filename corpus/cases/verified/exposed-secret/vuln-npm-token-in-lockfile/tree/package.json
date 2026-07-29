@@ -1,0 +1,16 @@
+{
+  "name": "acme-dashboard",
+  "version": "5.4.2",
+  "private": true,
+  "scripts": {
+    "build": "next build",
+    "dev": "next dev"
+  },
+  "dependencies": {
+    "@acme/ui": "2.3.1",
+    "@acme/telemetry": "1.9.0",
+    "next": "14.2.5",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  }
+}

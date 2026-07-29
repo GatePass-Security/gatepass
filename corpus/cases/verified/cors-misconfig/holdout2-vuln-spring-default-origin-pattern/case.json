@@ -1,0 +1,7 @@
+{
+  "id": "verified/cors-misconfig/holdout2-vuln-spring-default-origin-pattern",
+  "classId": "cors-misconfig",
+  "label": "vulnerable",
+  "public": true,
+  "note": "Spring MVC CORS mapping takes its origin pattern from a property whose unset default is '*', combined with allowCredentials(true), so Spring reflects any origin on a session-authenticated invoices API"
+}

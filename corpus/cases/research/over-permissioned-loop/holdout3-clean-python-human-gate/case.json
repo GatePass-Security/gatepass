@@ -1,0 +1,7 @@
+{
+  "id": "research/over-permissioned-loop/holdout3-clean-python-human-gate",
+  "classId": "over-permissioned-loop",
+  "label": "clean",
+  "public": true,
+  "note": "while True agent loop with no step cap, but every single tool call blocks on a human approval ticket that defaults to deny"
+}

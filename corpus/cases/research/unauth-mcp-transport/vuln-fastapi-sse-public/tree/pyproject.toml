@@ -1,0 +1,14 @@
+[project]
+name = "inventory-mcp"
+version = "1.1.0"
+description = "Warehouse inventory tools over MCP/SSE"
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi==0.115.0",
+  "mcp==1.9.0",
+  "uvicorn==0.30.6",
+]
+
+[build-system]
+requires = ["hatchling==1.25.0"]
+build-backend = "hatchling.build"

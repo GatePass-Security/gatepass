@@ -1,0 +1,30 @@
+server:
+  port: 8080
+  servlet:
+    session:
+      cookie:
+        name: BILLINGSESSION
+        http-only: true
+        secure: true
+        # The dashboard is on a different host than the API, so the session
+        # cookie has to survive cross-site requests.
+        same-site: none
+
+spring:
+  application:
+    name: billing-api
+  datasource:
+    url: jdbc:postgresql://db.internal:5432/billing
+    username: billing_app
+    password: not-a-real-password
+  jpa:
+    hibernate:
+      ddl-auto: validate
+
+# NOTE: billing.cors.allowed-origin-pattern is left to the deployment overlay.
+# Neither the staging nor the production overlay defines it today.
+
+logging:
+  level:
+    root: INFO
+    com.example.billing: DEBUG

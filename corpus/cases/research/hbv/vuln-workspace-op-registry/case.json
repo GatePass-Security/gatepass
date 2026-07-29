@@ -1,0 +1,7 @@
+{
+  "id": "research/hbv/vuln-workspace-op-registry",
+  "classId": "hbv",
+  "label": "vulnerable",
+  "public": true,
+  "note": "Single workspace_op tool described as 'performs a workspace operation' dispatches to a registry that includes shell and recursive delete"
+}

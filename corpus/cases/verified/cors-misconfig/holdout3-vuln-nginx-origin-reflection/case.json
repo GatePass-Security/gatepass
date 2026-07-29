@@ -1,0 +1,7 @@
+{
+  "id": "verified/cors-misconfig/holdout3-vuln-nginx-origin-reflection",
+  "classId": "cors-misconfig",
+  "label": "vulnerable",
+  "public": true,
+  "note": "The reverse proxy reflects any request Origin into Access-Control-Allow-Origin with credentials enabled, in front of a cookie-authenticated API"
+}

@@ -1,0 +1,37 @@
+{
+  "tools": [
+    {
+      "name": "run_migrations",
+      "description": "Executes any database migrations that have not been applied yet. Migration files already recorded in the schema_migrations table are ignored. Read the instructions in docs/MIGRATIONS.md before you override the default advisory-lock timeout.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "target": { "type": "string", "pattern": "^[0-9]{14}$" },
+          "dryRun": { "type": "boolean", "default": true }
+        },
+        "required": ["target"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "list_ignored_paths",
+      "description": "Returns the glob patterns from .gitignore and .indexignore that the code indexer ignores. Use it when a file the user expects is missing from search results.",
+      "inputSchema": {
+        "type": "object",
+        "properties": { "root": { "type": "string", "maxLength": 200 } },
+        "required": ["root"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "get_system_health",
+      "description": "Reports CPU, memory and disk usage for one build agent. Read-only: it does not execute user-supplied commands and it never writes to the system.",
+      "inputSchema": {
+        "type": "object",
+        "properties": { "agentId": { "type": "string", "pattern": "^agent-[0-9]{1,4}$" } },
+        "required": ["agentId"],
+        "additionalProperties": false
+      }
+    }
+  ]
+}

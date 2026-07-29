@@ -1,6 +1,6 @@
 import http from "node:http";
 import { URL, fileURLToPath } from "node:url";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { MemoryStore, type Store } from "./store.js";
 import { makeHandlers, NotFoundError, ForbiddenError, NotConfiguredError, AuthFailedError } from "./handlers.js";
@@ -27,9 +27,30 @@ import { RunnerUploadError } from "@gatepass/runner";
  * Routes mirror contracts/api.md.
  */
 
-/** Path of a published-benchmark artifact (repo-root benchmark/published/). */
-function resolvePublished(file: string): string {
-  return resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "benchmark", "published", file);
+/** Directory holding the published-benchmark artifacts (repo-root benchmark/published/). */
+function publishedDir(): string {
+  return resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "benchmark", "published");
+}
+
+/**
+ * Every published artifact, newest corpus first — the dashboard's version selector defaults to
+ * the first one it is given, and defaulting to a superseded corpus is how a stale number gets
+ * quoted at you months later.
+ *
+ * Enumerated rather than named, because the filename used to be hardcoded: publishing a new
+ * corpus meant editing the API, and until someone remembered to, the dashboard kept serving the
+ * previous corpus under a build that had moved on. A directory listing cannot fall out of date.
+ */
+function publishedArtifacts(): string[] {
+  try {
+    return readdirSync(publishedDir())
+      .filter((f) => f.endsWith(".json"))
+      .sort()
+      .reverse()
+      .map((f) => resolve(publishedDir(), f));
+  } catch {
+    return [];
+  }
 }
 
 export interface ServerOptions {
@@ -165,29 +186,34 @@ export async function createServer(opts: ServerOptions = {}): Promise<{ server: 
   // `pnpm corpus:publish` from the actual corpus gate + incumbent runs). No fabricated numbers —
   // an empty benchmark page is honest; invented precision is not.
   if (store.publishBenchmark && opts.seedBenchmark !== false) {
-    try {
-      const artifactPath = resolvePublished("corpus-v1.json");
-      const artifact = JSON.parse(readFileSync(artifactPath, "utf8")) as {
-        corpusVersion: string;
-        casesMeasured?: number;
-        runs: { tool: string; perClass: unknown[] }[];
-      };
-      for (const run of artifact.runs) {
-        await store.publishBenchmark(
-          artifact.corpusVersion,
-          run.tool,
-          JSON.stringify({
-            ...run,
-            corpusVersion: artifact.corpusVersion,
-            // Carried onto each run so a reader can state the corpus size. Dropped, the only
-            // honest thing to say is "a small corpus" — true, but weaker than the number.
-            ...(artifact.casesMeasured !== undefined ? { casesMeasured: artifact.casesMeasured } : {}),
-            publishedAt: new Date().toISOString(),
-          }),
-        );
+    for (const artifactPath of publishedArtifacts()) {
+      try {
+        const artifact = JSON.parse(readFileSync(artifactPath, "utf8")) as {
+          corpusVersion: string;
+          casesMeasured?: number;
+          population?: string;
+          runs: { tool: string; perClass: unknown[]; casesMeasured?: number }[];
+        };
+        for (const run of artifact.runs) {
+          await store.publishBenchmark(
+            artifact.corpusVersion,
+            run.tool,
+            JSON.stringify({
+              ...run,
+              corpusVersion: artifact.corpusVersion,
+              // Carried onto each run so a reader can state the corpus size. Dropped, the only
+              // honest thing to say is "a small corpus" — true, but weaker than the number.
+              ...(artifact.casesMeasured !== undefined ? { casesMeasured: artifact.casesMeasured } : {}),
+              // What the run was measured on. Two tools in one artifact always share a
+              // population — this is the sentence that stops a reader comparing across them.
+              ...(artifact.population !== undefined ? { population: artifact.population } : {}),
+              publishedAt: new Date().toISOString(),
+            }),
+          );
+        }
+      } catch {
+        // A malformed or unreadable artifact must not take the others down with it.
       }
-    } catch {
-      // No published artifact available (e.g. minimal checkout) — serve an empty benchmark.
     }
   }
 

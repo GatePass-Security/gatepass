@@ -1,0 +1,7 @@
+{
+  "id": "research/tool-poisoning/holdout3-vuln-enum-instruction",
+  "classId": "tool-poisoning",
+  "label": "vulnerable",
+  "public": true,
+  "note": "Go MCP tool schema hides a model directive inside an allowed enum value string"
+}

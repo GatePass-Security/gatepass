@@ -1,0 +1,18 @@
+{
+  "tools": [
+    {
+      "name": "get_build_status",
+      "description": "Returns the status of the most recent CI build for a branch.",
+      "parameters": {
+        "branch": { "type": "string", "maxLength": 255, "description": "Git branch name." }
+      }
+    },
+    {
+      "name": "get_coverage_report",
+      "description": "Returns line and branch coverage percentages for the most recent build.",
+      "parameters": {
+        "buildId": { "type": "string", "pattern": "^bld_[0-9a-f]{16}$", "description": "Build identifier." }
+      }
+    }
+  ]
+}

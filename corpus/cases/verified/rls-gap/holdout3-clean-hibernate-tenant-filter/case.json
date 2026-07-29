@@ -1,0 +1,7 @@
+{
+  "id": "verified/rls-gap/holdout3-clean-hibernate-tenant-filter",
+  "classId": "rls-gap",
+  "label": "clean",
+  "public": true,
+  "note": "JPQL queries carry no visible tenant predicate, but an always-on Hibernate entity filter enabled per request appends the tenant condition to every read"
+}

@@ -1,0 +1,14 @@
+[package]
+name = "registry_api"
+version = "0.1.0"
+edition = "2021"
+description = "Public, read-only package index for the example.com registry"
+
+[dependencies]
+axum = "0.7"
+serde_json = "1"
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+tower-http = { version = "0.5", features = ["cors"] }
+
+[dev-dependencies]
+tower = { version = "0.4", features = ["util"] }

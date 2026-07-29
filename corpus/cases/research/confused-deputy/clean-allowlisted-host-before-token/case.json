@@ -1,0 +1,7 @@
+{
+  "id": "research/confused-deputy/clean-allowlisted-host-before-token",
+  "classId": "confused-deputy",
+  "label": "clean",
+  "public": true,
+  "note": "Caller-supplied URL receives the service token only after a strict host allowlist, scheme, port and userinfo check"
+}

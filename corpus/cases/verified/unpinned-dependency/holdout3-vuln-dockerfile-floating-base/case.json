@@ -1,0 +1,7 @@
+{
+  "id": "verified/unpinned-dependency/holdout3-vuln-dockerfile-floating-base",
+  "classId": "unpinned-dependency",
+  "label": "vulnerable",
+  "public": true,
+  "note": "Container build pulls a mutable base tag, unversioned apk packages and a piped remote installer, so the image contents change without a commit"
+}

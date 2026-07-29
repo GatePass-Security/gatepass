@@ -1,0 +1,7 @@
+{
+  "id": "verified/rls-gap/vuln-firestore-open-read",
+  "classId": "rls-gap",
+  "label": "vulnerable",
+  "public": true,
+  "note": "Firestore rules allow unauthenticated read of every organization's invoices and member records"
+}

@@ -1,0 +1,4 @@
+creation_rules:
+  - path_regex: deploy/.*\.enc\.yaml$
+    encrypted_regex: "^(aws_access_key_id|aws_secret_access_key|stripe_api_key|datadog_api_key)$"
+    age: age1ql3z7hjy54pw3hyww5ayyfg7zqgvc7w3j2elw8zmrj2kg5sfn9aqmcac8p

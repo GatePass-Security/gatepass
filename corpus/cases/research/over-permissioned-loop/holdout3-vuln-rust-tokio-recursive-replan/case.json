@@ -1,0 +1,7 @@
+{
+  "id": "research/over-permissioned-loop/holdout3-vuln-rust-tokio-recursive-replan",
+  "classId": "over-permissioned-loop",
+  "label": "vulnerable",
+  "public": true,
+  "note": "Rust async agent iterates by recursion; the step cap is reset to 64 whenever a tool result asks for more budget"
+}

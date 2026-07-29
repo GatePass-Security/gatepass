@@ -1,0 +1,7 @@
+{
+  "id": "verified/rls-gap/vuln-migration-disables-rls",
+  "classId": "rls-gap",
+  "label": "vulnerable",
+  "public": true,
+  "note": "A later migration permanently disables row level security on the tenant-scoped orders table to unblock a reporting job"
+}

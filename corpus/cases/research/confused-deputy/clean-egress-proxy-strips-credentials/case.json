@@ -1,0 +1,7 @@
+{
+  "id": "research/confused-deputy/clean-egress-proxy-strips-credentials",
+  "classId": "confused-deputy",
+  "label": "clean",
+  "public": true,
+  "note": "Egress proxy forwards to a caller-chosen target but deny-lists every credential header; the service token is used only for a fixed metering endpoint"
+}

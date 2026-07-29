@@ -1,0 +1,18 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>Inbox Copilot</title>
+<main>
+  <h1>Inbox Copilot</h1>
+  <textarea id="prompt" rows="4" placeholder="Ask about this thread"></textarea>
+  <button id="send">Ask</button>
+  <pre id="out"></pre>
+</main>
+<script type="module">
+  const out = document.getElementById("out");
+
+  document.getElementById("send").addEventListener("click", async () => {
+    const plan = { tool: "read_thread", args: { id: location.hash.slice(1) } };
+    const reply = await chrome.runtime.sendMessage(plan);
+    out.textContent = JSON.stringify(reply, null, 2);
+  });
+</script>

@@ -1,0 +1,17 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # --require-hashes refuses any spec that is not fully pinned, so a stray
+      # ">=" range in requirements.txt would fail the build rather than float.
+      - run: pip install --require-hashes -r requirements.txt
+      - run: pytest

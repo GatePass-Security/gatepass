@@ -1,0 +1,10 @@
+name: release-bot
+description: Cuts release tags and updates the changelog on the default branch.
+public: false
+default_permissions:
+  contents: write
+  pull_requests: read
+  metadata: read
+default_events:
+  - release
+  - workflow_dispatch

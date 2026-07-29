@@ -1,0 +1,7 @@
+{
+  "id": "verified/cors-misconfig/holdout2-clean-rust-public-registry-wildcard",
+  "classId": "cors-misconfig",
+  "label": "clean",
+  "public": true,
+  "note": "Rust axum service serves a public read-only package index with a wildcard origin and credentials explicitly disabled; the integration test asserts the wildcard header on purpose"
+}

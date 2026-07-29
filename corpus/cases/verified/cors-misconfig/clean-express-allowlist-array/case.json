@@ -1,0 +1,7 @@
+{
+  "id": "verified/cors-misconfig/clean-express-allowlist-array",
+  "classId": "cors-misconfig",
+  "label": "clean",
+  "public": true,
+  "note": "Express cors() with an exact-match origin allowlist and credentials; the only wildcard is on Access-Control-Allow-Headers"
+}

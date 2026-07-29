@@ -1,0 +1,15 @@
+{
+  "name": "tool-description-sanitizer",
+  "version": "1.2.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/sanitize.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "typescript": "5.5.4",
+    "vitest": "2.0.5"
+  }
+}

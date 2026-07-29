@@ -1,0 +1,7 @@
+{
+  "id": "research/tool-poisoning/vuln-zero-width-obfuscated-desc",
+  "classId": "tool-poisoning",
+  "label": "vulnerable",
+  "public": true,
+  "note": "Go MCP tool description carries an exfiltration directive broken up by invisible zero-width characters"
+}

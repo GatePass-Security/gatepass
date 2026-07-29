@@ -1,0 +1,464 @@
+{
+  "corpusVersion": "corpus-v2",
+  "casesMeasured": 192,
+  "population": "The full versioned corpus. Every tool listed ran every case.",
+  "runs": [
+    {
+      "tool": "Gatepass",
+      "casesMeasured": 192,
+      "perClass": [
+        {
+          "classId": "confused-deputy",
+          "tp": 7,
+          "fn": 0,
+          "fp": 0,
+          "tn": 7,
+          "recall": 1,
+          "precision": 1
+        },
+        {
+          "classId": "cors-misconfig",
+          "tp": 10,
+          "fn": 0,
+          "fp": 0,
+          "tn": 10,
+          "recall": 1,
+          "precision": 1
+        },
+        {
+          "classId": "cross-surface-scope-mismatch",
+          "tp": 7,
+          "fn": 0,
+          "fp": 0,
+          "tn": 7,
+          "recall": 1,
+          "precision": 1
+        },
+        {
+          "classId": "exposed-secret",
+          "tp": 7,
+          "fn": 0,
+          "fp": 0,
+          "tn": 10,
+          "recall": 1,
+          "precision": 1
+        },
+        {
+          "classId": "hbv",
+          "tp": 7,
+          "fn": 0,
+          "fp": 0,
+          "tn": 7,
+          "recall": 1,
+          "precision": 1
+        },
+        {
+          "classId": "missing-schema-validation",
+          "tp": 7,
+          "fn": 0,
+          "fp": 0,
+          "tn": 7,
+          "recall": 1,
+          "precision": 1
+        },
+        {
+          "classId": "over-permissioned-loop",
+          "tp": 7,
+          "fn": 0,
+          "fp": 0,
+          "tn": 7,
+          "recall": 1,
+          "precision": 1
+        },
+        {
+          "classId": "rls-gap",
+          "tp": 9,
+          "fn": 1,
+          "fp": 0,
+          "tn": 8,
+          "recall": 0.9,
+          "precision": 1
+        },
+        {
+          "classId": "tool-poisoning",
+          "tp": 7,
+          "fn": 0,
+          "fp": 0,
+          "tn": 7,
+          "recall": 1,
+          "precision": 1
+        },
+        {
+          "classId": "unauth-mcp-transport",
+          "tp": 7,
+          "fn": 0,
+          "fp": 0,
+          "tn": 12,
+          "recall": 1,
+          "precision": 1
+        },
+        {
+          "classId": "unbounded-tool-param",
+          "tp": 10,
+          "fn": 0,
+          "fp": 0,
+          "tn": 10,
+          "recall": 1,
+          "precision": 1
+        },
+        {
+          "classId": "unpinned-dependency",
+          "tp": 7,
+          "fn": 0,
+          "fp": 0,
+          "tn": 7,
+          "recall": 1,
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "tool": "gitleaks@8.30.1",
+      "casesMeasured": 192,
+      "perClass": [
+        {
+          "classId": "confused-deputy",
+          "tp": 0,
+          "fp": 0,
+          "fn": 7,
+          "tn": 7,
+          "recall": 0,
+          "precision": 0
+        },
+        {
+          "classId": "cors-misconfig",
+          "tp": 0,
+          "fp": 0,
+          "fn": 10,
+          "tn": 10,
+          "recall": 0,
+          "precision": 0
+        },
+        {
+          "classId": "cross-surface-scope-mismatch",
+          "tp": 0,
+          "fp": 0,
+          "fn": 7,
+          "tn": 7,
+          "recall": 0,
+          "precision": 0
+        },
+        {
+          "classId": "exposed-secret",
+          "tp": 2,
+          "fp": 1,
+          "fn": 5,
+          "tn": 9,
+          "recall": 0.2857142857142857,
+          "precision": 0.6666666666666666
+        },
+        {
+          "classId": "hbv",
+          "tp": 0,
+          "fp": 0,
+          "fn": 7,
+          "tn": 7,
+          "recall": 0,
+          "precision": 0
+        },
+        {
+          "classId": "missing-schema-validation",
+          "tp": 0,
+          "fp": 0,
+          "fn": 7,
+          "tn": 7,
+          "recall": 0,
+          "precision": 0
+        },
+        {
+          "classId": "over-permissioned-loop",
+          "tp": 0,
+          "fp": 0,
+          "fn": 7,
+          "tn": 7,
+          "recall": 0,
+          "precision": 0
+        },
+        {
+          "classId": "rls-gap",
+          "tp": 0,
+          "fp": 0,
+          "fn": 10,
+          "tn": 8,
+          "recall": 0,
+          "precision": 0
+        },
+        {
+          "classId": "tool-poisoning",
+          "tp": 0,
+          "fp": 0,
+          "fn": 7,
+          "tn": 7,
+          "recall": 0,
+          "precision": 0
+        },
+        {
+          "classId": "unauth-mcp-transport",
+          "tp": 0,
+          "fp": 0,
+          "fn": 7,
+          "tn": 12,
+          "recall": 0,
+          "precision": 0
+        },
+        {
+          "classId": "unbounded-tool-param",
+          "tp": 0,
+          "fp": 0,
+          "fn": 10,
+          "tn": 10,
+          "recall": 0,
+          "precision": 0
+        },
+        {
+          "classId": "unpinned-dependency",
+          "tp": 0,
+          "fp": 0,
+          "fn": 7,
+          "tn": 7,
+          "recall": 0,
+          "precision": 0
+        }
+      ]
+    },
+    {
+      "tool": "trivy@0.72.0 (secret + misconfig)",
+      "casesMeasured": 192,
+      "perClass": [
+        {
+          "classId": "confused-deputy",
+          "tp": 0,
+          "fp": 0,
+          "fn": 7,
+          "tn": 7,
+          "recall": 0,
+          "precision": 0
+        },
+        {
+          "classId": "cors-misconfig",
+          "tp": 0,
+          "fp": 0,
+          "fn": 10,
+          "tn": 10,
+          "recall": 0,
+          "precision": 0
+        },
+        {
+          "classId": "cross-surface-scope-mismatch",
+          "tp": 0,
+          "fp": 0,
+          "fn": 7,
+          "tn": 7,
+          "recall": 0,
+          "precision": 0
+        },
+        {
+          "classId": "exposed-secret",
+          "tp": 0,
+          "fp": 0,
+          "fn": 7,
+          "tn": 10,
+          "recall": 0,
+          "precision": 0
+        },
+        {
+          "classId": "hbv",
+          "tp": 0,
+          "fp": 0,
+          "fn": 7,
+          "tn": 7,
+          "recall": 0,
+          "precision": 0
+        },
+        {
+          "classId": "missing-schema-validation",
+          "tp": 0,
+          "fp": 0,
+          "fn": 7,
+          "tn": 7,
+          "recall": 0,
+          "precision": 0
+        },
+        {
+          "classId": "over-permissioned-loop",
+          "tp": 0,
+          "fp": 0,
+          "fn": 7,
+          "tn": 7,
+          "recall": 0,
+          "precision": 0
+        },
+        {
+          "classId": "rls-gap",
+          "tp": 0,
+          "fp": 0,
+          "fn": 10,
+          "tn": 8,
+          "recall": 0,
+          "precision": 0
+        },
+        {
+          "classId": "tool-poisoning",
+          "tp": 0,
+          "fp": 0,
+          "fn": 7,
+          "tn": 7,
+          "recall": 0,
+          "precision": 0
+        },
+        {
+          "classId": "unauth-mcp-transport",
+          "tp": 0,
+          "fp": 0,
+          "fn": 7,
+          "tn": 12,
+          "recall": 0,
+          "precision": 0
+        },
+        {
+          "classId": "unbounded-tool-param",
+          "tp": 0,
+          "fp": 0,
+          "fn": 10,
+          "tn": 10,
+          "recall": 0,
+          "precision": 0
+        },
+        {
+          "classId": "unpinned-dependency",
+          "tp": 0,
+          "fp": 0,
+          "fn": 7,
+          "tn": 7,
+          "recall": 0,
+          "precision": 0
+        }
+      ]
+    },
+    {
+      "tool": "semgrep@1.170.1 (p/security-audit + p/secrets + p/default)",
+      "casesMeasured": 192,
+      "perClass": [
+        {
+          "classId": "confused-deputy",
+          "tp": 0,
+          "fp": 0,
+          "fn": 7,
+          "tn": 7,
+          "recall": 0,
+          "precision": 0
+        },
+        {
+          "classId": "cors-misconfig",
+          "tp": 1,
+          "fp": 0,
+          "fn": 9,
+          "tn": 10,
+          "recall": 0.1,
+          "precision": 1
+        },
+        {
+          "classId": "cross-surface-scope-mismatch",
+          "tp": 0,
+          "fp": 0,
+          "fn": 7,
+          "tn": 7,
+          "recall": 0,
+          "precision": 0
+        },
+        {
+          "classId": "exposed-secret",
+          "tp": 4,
+          "fp": 1,
+          "fn": 3,
+          "tn": 9,
+          "recall": 0.5714285714285714,
+          "precision": 0.8
+        },
+        {
+          "classId": "hbv",
+          "tp": 0,
+          "fp": 0,
+          "fn": 7,
+          "tn": 7,
+          "recall": 0,
+          "precision": 0
+        },
+        {
+          "classId": "missing-schema-validation",
+          "tp": 0,
+          "fp": 0,
+          "fn": 7,
+          "tn": 7,
+          "recall": 0,
+          "precision": 0
+        },
+        {
+          "classId": "over-permissioned-loop",
+          "tp": 0,
+          "fp": 0,
+          "fn": 7,
+          "tn": 7,
+          "recall": 0,
+          "precision": 0
+        },
+        {
+          "classId": "rls-gap",
+          "tp": 0,
+          "fp": 0,
+          "fn": 10,
+          "tn": 8,
+          "recall": 0,
+          "precision": 0
+        },
+        {
+          "classId": "tool-poisoning",
+          "tp": 0,
+          "fp": 0,
+          "fn": 7,
+          "tn": 7,
+          "recall": 0,
+          "precision": 0
+        },
+        {
+          "classId": "unauth-mcp-transport",
+          "tp": 0,
+          "fp": 0,
+          "fn": 7,
+          "tn": 12,
+          "recall": 0,
+          "precision": 0
+        },
+        {
+          "classId": "unbounded-tool-param",
+          "tp": 0,
+          "fp": 0,
+          "fn": 10,
+          "tn": 10,
+          "recall": 0,
+          "precision": 0
+        },
+        {
+          "classId": "unpinned-dependency",
+          "tp": 0,
+          "fp": 0,
+          "fn": 7,
+          "tn": 7,
+          "recall": 0,
+          "precision": 0
+        }
+      ]
+    }
+  ],
+  "publishedAt": "2026-07-29T01:31:27.178Z"
+}

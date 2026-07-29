@@ -1,0 +1,51 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: drift-agent-observe
+  namespace: apps
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list", "watch"]
+---
+# Remediation verbs live in their own Role so they can be audited separately.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: drift-agent-remediate
+  namespace: apps
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["patch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: drift-agent-observe
+  namespace: apps
+subjects:
+  - kind: ServiceAccount
+    name: drift-agent
+    namespace: apps
+roleRef:
+  kind: Role
+  name: drift-agent-observe
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: drift-agent-remediate
+  namespace: apps
+subjects:
+  - kind: ServiceAccount
+    name: drift-agent
+    namespace: apps
+roleRef:
+  kind: Role
+  name: drift-agent-remediate
+  apiGroup: rbac.authorization.k8s.io

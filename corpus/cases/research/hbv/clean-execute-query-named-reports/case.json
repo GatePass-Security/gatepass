@@ -1,0 +1,7 @@
+{
+  "id": "research/hbv/clean-execute-query-named-reports",
+  "classId": "hbv",
+  "label": "clean",
+  "public": true,
+  "note": "Tool named execute_query that only selects among three pre-written parameterized reports on a read-only role"
+}

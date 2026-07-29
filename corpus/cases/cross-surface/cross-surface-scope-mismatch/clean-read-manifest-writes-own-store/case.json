@@ -1,0 +1,7 @@
+{
+  "id": "cross-surface/cross-surface-scope-mismatch/clean-read-manifest-writes-own-store",
+  "classId": "cross-surface-scope-mismatch",
+  "label": "clean",
+  "public": true,
+  "note": "GitHub App declares contents: read and only reads from GitHub; the inserts and deletes go to the app's own inventory database"
+}

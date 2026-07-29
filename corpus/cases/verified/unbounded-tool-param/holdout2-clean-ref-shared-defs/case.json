@@ -1,0 +1,7 @@
+{
+  "id": "verified/unbounded-tool-param/holdout2-clean-ref-shared-defs",
+  "classId": "unbounded-tool-param",
+  "label": "clean",
+  "public": true,
+  "note": "Every parameter is a bare $ref into a shared schema file whose $defs carry pattern, maxLength, format and maximum, so the properties block only looks unconstrained"
+}

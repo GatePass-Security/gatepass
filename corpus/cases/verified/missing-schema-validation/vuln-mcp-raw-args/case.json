@@ -1,0 +1,7 @@
+{
+  "id": "verified/missing-schema-validation/vuln-mcp-raw-args",
+  "classId": "missing-schema-validation",
+  "label": "vulnerable",
+  "public": true,
+  "note": "MCP tools registered with no input schema; the handlers read args.path and args.ref straight into fs and execFile"
+}

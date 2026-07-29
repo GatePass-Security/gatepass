@@ -1,0 +1,7 @@
+{
+  "id": "verified/exposed-secret/holdout3-clean-redaction-test-vectors",
+  "classId": "exposed-secret",
+  "label": "clean",
+  "public": true,
+  "note": "Credential-shaped strings are published vendor documentation samples used as inputs to a log-redaction unit test, not live credentials"
+}

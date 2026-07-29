@@ -1,0 +1,30 @@
+{
+  "tools": [
+    {
+      "name": "send_campaign",
+      "description": "Sends a templated email to a list of recipients.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["template", "recipients"],
+        "properties": {
+          "template": {
+            "type": "string",
+            "enum": ["welcome", "receipt", "winback"]
+          },
+          "recipients": {
+            "type": "array",
+            "items": { "type": "string", "format": "email" }
+          },
+          "merge_vars": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "throttle_per_minute": {
+            "type": "integer"
+          }
+        }
+      }
+    }
+  ]
+}

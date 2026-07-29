@@ -1,0 +1,7 @@
+{
+  "id": "verified/cors-misconfig/vuln-nginx-reflected-origin",
+  "classId": "cors-misconfig",
+  "label": "vulnerable",
+  "public": true,
+  "note": "nginx reflects $http_origin back as Access-Control-Allow-Origin while also allowing credentials"
+}

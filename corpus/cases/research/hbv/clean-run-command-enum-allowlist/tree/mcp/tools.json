@@ -1,0 +1,21 @@
+{
+  "tools": [
+    {
+      "name": "run_command",
+      "description": "Runs one of four fixed, read-only diagnostic commands on this build agent and returns its stdout. The command is selected from a closed list; the caller cannot supply arguments and nothing is passed to a shell.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "command": {
+            "type": "string",
+            "enum": ["status", "version", "uptime", "disk_free"],
+            "description": "Which diagnostic to run."
+          }
+        },
+        "required": ["command"],
+        "additionalProperties": false
+      },
+      "annotations": { "readOnlyHint": true, "destructiveHint": false, "openWorldHint": false }
+    }
+  ]
+}

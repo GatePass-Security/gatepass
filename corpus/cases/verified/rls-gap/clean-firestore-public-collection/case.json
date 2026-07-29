@@ -1,0 +1,7 @@
+{
+  "id": "verified/rls-gap/clean-firestore-public-collection",
+  "classId": "rls-gap",
+  "label": "clean",
+  "public": true,
+  "note": "Firestore rules allow public read only on non-tenant marketing collections while all org data is membership gated"
+}

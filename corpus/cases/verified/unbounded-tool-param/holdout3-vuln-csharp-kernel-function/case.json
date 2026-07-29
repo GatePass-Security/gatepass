@@ -1,0 +1,7 @@
+{
+  "id": "verified/unbounded-tool-param/holdout3-vuln-csharp-kernel-function",
+  "classId": "unbounded-tool-param",
+  "label": "vulnerable",
+  "public": true,
+  "note": "KernelFunction parameters carry only Description attributes; query, maxResults, destination and byteLimit have no Range, Length or AllowedValues"
+}

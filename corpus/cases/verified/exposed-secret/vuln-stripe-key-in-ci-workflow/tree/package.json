@@ -1,0 +1,11 @@
+{
+  "name": "acme-billing",
+  "version": "3.1.0",
+  "private": true,
+  "scripts": {
+    "migrate:billing": "node scripts/migrate-billing.js"
+  },
+  "dependencies": {
+    "stripe": "16.2.0"
+  }
+}

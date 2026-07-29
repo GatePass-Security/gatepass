@@ -1,0 +1,7 @@
+{
+  "id": "verified/missing-schema-validation/vuln-python-typeddict-no-runtime-check",
+  "classId": "missing-schema-validation",
+  "label": "vulnerable",
+  "public": true,
+  "note": "Python tool handler annotates its input as a TypedDict, which is erased at runtime, then writes and gzips whatever path arrives"
+}

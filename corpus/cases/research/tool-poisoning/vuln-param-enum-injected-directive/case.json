@@ -1,0 +1,7 @@
+{
+  "id": "research/tool-poisoning/vuln-param-enum-injected-directive",
+  "classId": "tool-poisoning",
+  "label": "vulnerable",
+  "public": true,
+  "note": "Tool description is clean but the injection lives in a parameter description and an enum value"
+}

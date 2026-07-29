@@ -1,0 +1,24 @@
+{
+  "tools": [
+    {
+      "name": "read_thread",
+      "description": "Read recent messages in a deal-room channel.",
+      "handler": "com.example.dealdesk.SlackTools#readThread"
+    },
+    {
+      "name": "roster",
+      "description": "List every workspace member so owners can be identified.",
+      "handler": "com.example.dealdesk.SlackTools#roster"
+    },
+    {
+      "name": "attach_summary",
+      "description": "Upload the generated deal summary PDF to a channel.",
+      "handler": "com.example.dealdesk.SlackTools#attachSummary"
+    },
+    {
+      "name": "retire_channel",
+      "description": "Archive a deal room once the opportunity is closed.",
+      "handler": "com.example.dealdesk.SlackTools#retireChannel"
+    }
+  ]
+}

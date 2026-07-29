@@ -1,0 +1,17 @@
+{
+  "name": "directory-mcp",
+  "version": "0.4.1",
+  "private": true,
+  "type": "module",
+  "main": "dist/handlers.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/server.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.12.1"
+  },
+  "devDependencies": {
+    "typescript": "5.5.4"
+  }
+}

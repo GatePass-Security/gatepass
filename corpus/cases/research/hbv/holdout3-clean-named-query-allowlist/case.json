@@ -1,0 +1,7 @@
+{
+  "id": "research/hbv/holdout3-clean-named-query-allowlist",
+  "classId": "hbv",
+  "label": "clean",
+  "public": true,
+  "note": "Tool named execute_sql looks broad but only dispatches a fixed allowlist of parameterized named queries"
+}

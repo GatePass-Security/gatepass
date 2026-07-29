@@ -1,0 +1,7 @@
+{
+  "id": "verified/unpinned-dependency/clean-caret-locked-post-1-0",
+  "classId": "unpinned-dependency",
+  "label": "clean",
+  "public": true,
+  "note": "Caret ranges on post-1.0 packages that are fully resolved by a committed lockfile installed with npm ci"
+}

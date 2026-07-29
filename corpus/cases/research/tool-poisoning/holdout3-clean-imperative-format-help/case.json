@@ -1,0 +1,7 @@
+{
+  "id": "research/tool-poisoning/holdout3-clean-imperative-format-help",
+  "classId": "tool-poisoning",
+  "label": "clean",
+  "public": true,
+  "note": "Parameter descriptions use imperative Always/Never phrasing but only constrain the tool's own argument format"
+}

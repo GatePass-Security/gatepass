@@ -1,0 +1,7 @@
+{
+  "id": "verified/cors-misconfig/clean-cors-regression-test",
+  "classId": "cors-misconfig",
+  "label": "clean",
+  "public": true,
+  "note": "Regression test full of wildcard-CORS string literals that asserts the strictly configured server never emits them"
+}

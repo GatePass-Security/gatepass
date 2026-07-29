@@ -1,0 +1,7 @@
+{
+  "id": "cross-surface/cross-surface-scope-mismatch/vuln-mcp-readonly-hint-deletes",
+  "classId": "cross-surface-scope-mismatch",
+  "label": "vulnerable",
+  "public": true,
+  "note": "MCP manifest declares s3:GetObject/s3:ListBucket with readOnlyHint true, but a runtime mode branch issues DeleteObjectsCommand"
+}

@@ -1,0 +1,7 @@
+{
+  "id": "research/hbv/vuln-manage-resources-shell",
+  "classId": "hbv",
+  "label": "vulnerable",
+  "public": true,
+  "note": "Tool described only as 'manages resources' but the free-form string is executed with shell=True"
+}

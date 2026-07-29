@@ -1,0 +1,7 @@
+{
+  "id": "verified/unbounded-tool-param/vuln-pydantic-maxlength-wrong-field",
+  "classId": "unbounded-tool-param",
+  "label": "vulnerable",
+  "public": true,
+  "note": "Pydantic tool model puts max_length on the cosmetic title field while the query regex and the result limit stay unbounded"
+}

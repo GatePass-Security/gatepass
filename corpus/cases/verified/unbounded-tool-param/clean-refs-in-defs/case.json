@@ -1,0 +1,7 @@
+{
+  "id": "verified/unbounded-tool-param/clean-refs-in-defs",
+  "classId": "unbounded-tool-param",
+  "label": "clean",
+  "public": true,
+  "note": "Tool params are $ref pointers into $defs where the pattern, maxLength and numeric range constraints are declared"
+}

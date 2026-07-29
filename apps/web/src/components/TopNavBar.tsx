@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Search, ScanLine, LogOut, TerminalSquare } from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle";
 import { ScanRepoDialog } from "./ScanRepoDialog";
+import { DemoButton } from "./demo/DemoProvider";
 import { OrgSwitcher } from "./OrgSwitcher";
 import { Button } from "./ui/Button";
 import { api } from "@/lib/api-client";
@@ -134,6 +135,7 @@ export function TopNavBar() {
 
         <div className="ml-auto flex shrink-0 items-center gap-2">
           <ApiStatus />
+          <DemoButton />
           <ThemeToggle />
           <Button variant="primary" size="sm" onClick={() => setScanOpen(true)}>
             <ScanLine size={14} aria-hidden="true" />

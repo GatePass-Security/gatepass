@@ -1,0 +1,7 @@
+{
+  "id": "cross-surface/cross-surface-scope-mismatch/clean-two-apps-separate-manifests",
+  "classId": "cross-surface-scope-mismatch",
+  "label": "clean",
+  "public": true,
+  "note": "Monorepo with two GitHub Apps: the read-only reviewer and the write-capable release bot each stay within their own manifest"
+}

@@ -1,0 +1,7 @@
+{
+  "id": "verified/missing-schema-validation/holdout3-clean-go-allowlist-exec",
+  "classId": "missing-schema-validation",
+  "label": "clean",
+  "public": true,
+  "note": "exec.CommandContext on model input, but the body is strict-decoded into a struct, range checked, and the argv comes from a fixed allowlist map"
+}

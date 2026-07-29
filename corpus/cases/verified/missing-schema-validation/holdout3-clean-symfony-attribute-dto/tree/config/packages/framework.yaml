@@ -1,0 +1,18 @@
+framework:
+  http_method_override: false
+  handle_all_throwables: true
+
+  validation:
+    email_validation_mode: html5
+    # Attribute constraints on DTOs are what MapRequestPayload enforces.
+    enable_attributes: true
+
+  serializer:
+    enable_attributes: true
+
+  php_errors:
+    log: true
+
+when@test:
+  framework:
+    test: true

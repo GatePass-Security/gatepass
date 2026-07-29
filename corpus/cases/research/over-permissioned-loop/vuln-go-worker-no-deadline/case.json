@@ -1,0 +1,7 @@
+{
+  "id": "research/over-permissioned-loop/vuln-go-worker-no-deadline",
+  "classId": "over-permissioned-loop",
+  "label": "vulnerable",
+  "public": true,
+  "note": "Go agent loop uses context.Background() with no deadline and no step counter, so termination is entirely model-controlled"
+}

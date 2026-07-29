@@ -1,0 +1,7 @@
+{
+  "id": "research/confused-deputy/clean-user-url-uncredentialed",
+  "classId": "confused-deputy",
+  "label": "clean",
+  "public": true,
+  "note": "Link preview fetches the untrusted user URL with no credentials; the service token only ever goes to a fixed internal endpoint in the same function"
+}

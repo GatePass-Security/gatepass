@@ -1,0 +1,7 @@
+{
+  "id": "research/over-permissioned-loop/clean-python-cost-ceiling",
+  "classId": "over-permissioned-loop",
+  "label": "clean",
+  "public": true,
+  "note": "Python while True tool loop bounded by three independent ceilings: max tool calls, USD spend and wall-clock seconds"
+}

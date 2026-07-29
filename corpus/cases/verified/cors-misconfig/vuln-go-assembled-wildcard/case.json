@@ -1,0 +1,7 @@
+{
+  "id": "verified/cors-misconfig/vuln-go-assembled-wildcard",
+  "classId": "cors-misconfig",
+  "label": "vulnerable",
+  "public": true,
+  "note": "Go net/http middleware whose allowed origin falls back to a defaultOrigin constant equal to \"*\" while credentials stay enabled"
+}

@@ -1,0 +1,7 @@
+{
+  "id": "verified/exposed-secret/clean-env-example-template",
+  "classId": "exposed-secret",
+  "label": "clean",
+  "public": true,
+  "note": ".env.example template with zeroed placeholder values; real .env files are gitignored"
+}

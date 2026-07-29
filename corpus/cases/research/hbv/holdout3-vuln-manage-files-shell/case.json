@@ -1,0 +1,7 @@
+{
+  "id": "research/hbv/holdout3-vuln-manage-files-shell",
+  "classId": "hbv",
+  "label": "vulnerable",
+  "public": true,
+  "note": "Tool vaguely described as 'tidy up files' actually shells out to an arbitrary command built from its argument"
+}

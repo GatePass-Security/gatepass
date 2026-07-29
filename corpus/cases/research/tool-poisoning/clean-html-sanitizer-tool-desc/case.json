@@ -1,0 +1,7 @@
+{
+  "id": "research/tool-poisoning/clean-html-sanitizer-tool-desc",
+  "classId": "tool-poisoning",
+  "label": "clean",
+  "public": true,
+  "note": "HTML-sanitizer tool whose description legitimately contains an HTML comment example and ignore-* enum values"
+}

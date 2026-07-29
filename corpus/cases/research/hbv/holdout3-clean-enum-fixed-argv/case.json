@@ -1,0 +1,7 @@
+{
+  "id": "research/hbv/holdout3-clean-enum-fixed-argv",
+  "classId": "hbv",
+  "label": "clean",
+  "public": true,
+  "note": "Tool named run_command uses subprocess but maps a closed enum to fixed argv arrays with no shell and no user-supplied args"
+}

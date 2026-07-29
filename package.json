@@ -9,11 +9,12 @@
     "node": ">=22"
   },
   "scripts": {
+    "dev": "node scripts/dev.mjs",
     "build": "tsc --build",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "typecheck": "tsc -p tsconfig.json --noEmit && pnpm --filter @gatepass/web typecheck",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
@@ -31,7 +32,14 @@
     "benchmark:determinism": "tsx benchmark/src/determinism.ts",
     "research:report": "tsx research/generate-report.ts",
     "research:verify": "tsx research/verify-sample.ts",
-    "research:leads": "tsx research/build-leads.ts"
+    "research:leads": "tsx research/build-leads.ts",
+    "demo:record": "node scripts/record-demo.mjs",
+    "benchmark:llm-samples": "tsx benchmark/src/llm-samples.ts",
+    "benchmark:matrix": "tsx benchmark/src/full-matrix.ts",
+    "benchmark:split": "tsx benchmark/src/corpus-split.ts",
+    "benchmark:semgrep": "tsx benchmark/src/run-semgrep-docker.ts",
+    "benchmark:greptile": "tsx benchmark/src/run-greptile.ts",
+    "benchmark:llm-score": "tsx benchmark/src/llm-score.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

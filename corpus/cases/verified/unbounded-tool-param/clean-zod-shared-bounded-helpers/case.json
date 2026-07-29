@@ -1,0 +1,7 @@
+{
+  "id": "verified/unbounded-tool-param/clean-zod-shared-bounded-helpers",
+  "classId": "unbounded-tool-param",
+  "label": "clean",
+  "public": true,
+  "note": "Tool schemas build every param from shared bounded zod helpers defined in another module, so the schema file shows no inline constraints"
+}

@@ -1,0 +1,39 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function memberOf(orgId) {
+      return request.auth != null
+        && request.auth.token.orgs is list
+        && orgId in request.auth.token.orgs;
+    }
+
+    // Marketing content. No customer data lives under /public - the same
+    // bytes are already served anonymously from the website CDN.
+    match /public/changelog/{entryId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /public/pricing/{planId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Everything tenant scoped is gated on org membership.
+    match /organizations/{orgId}/invoices/{invoiceId} {
+      allow read: if memberOf(orgId);
+      allow write: if memberOf(orgId) && request.auth.token.role == 'admin';
+    }
+
+    match /organizations/{orgId}/members/{memberId} {
+      allow read: if memberOf(orgId);
+      allow write: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

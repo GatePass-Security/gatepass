@@ -1,0 +1,11 @@
+{
+  "name": "github-ops",
+  "version": "0.9.1",
+  "grantedScopes": ["contents:read", "issues:read", "metadata:read"],
+  "tools": [
+    { "name": "read_file", "description": "Read a file from the default branch." },
+    { "name": "list_issues", "description": "List open issues." },
+    { "name": "write_file", "description": "Write a file. Requires contents:write." },
+    { "name": "close_issue", "description": "Close an issue. Requires issues:write." }
+  ]
+}

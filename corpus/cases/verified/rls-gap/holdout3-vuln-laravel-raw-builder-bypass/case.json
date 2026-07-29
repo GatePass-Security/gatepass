@@ -1,0 +1,7 @@
+{
+  "id": "verified/rls-gap/holdout3-vuln-laravel-raw-builder-bypass",
+  "classId": "rls-gap",
+  "label": "vulnerable",
+  "public": true,
+  "note": "Tenancy is enforced only by an Eloquent global scope, and the reporting controller queries the same table through DB::table, which never applies it"
+}

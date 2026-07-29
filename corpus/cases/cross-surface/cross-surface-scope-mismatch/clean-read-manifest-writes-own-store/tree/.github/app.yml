@@ -1,0 +1,9 @@
+name: dependency-inventory
+description: Builds a searchable inventory of dependencies across installed repositories.
+public: false
+default_permissions:
+  contents: read
+  metadata: read
+default_events:
+  - push
+  - installation_repositories

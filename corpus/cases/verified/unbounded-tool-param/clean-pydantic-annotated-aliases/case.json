@@ -1,0 +1,7 @@
+{
+  "id": "verified/unbounded-tool-param/clean-pydantic-annotated-aliases",
+  "classId": "unbounded-tool-param",
+  "label": "clean",
+  "public": true,
+  "note": "Pydantic tool models use Annotated constraint aliases declared in a separate types module, so the model bodies show bare type names"
+}

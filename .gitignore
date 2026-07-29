@@ -41,6 +41,11 @@ Thumbs.db
 .env
 .env.*
 !.env.example
+# ...but corpus fixtures INTENTIONALLY contain committed env files with planted
+# placeholder secrets (that's the whole point of the exposed-secret cases).
+# Same carve-out as the dist/build one above. Never ignore them.
+!corpus/**/tree/**/.env
+!corpus/**/tree/**/.env.*
 
 # VSIX builds
 *.vsix
@@ -64,3 +69,4 @@ research/out/disclosure-worklist.md
 research/out/leads.json
 research/out/leads-gh-cache.json
 .gstack/
+demo-recordings/

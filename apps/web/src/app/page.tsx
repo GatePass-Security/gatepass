@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { ArrowRight, ArrowUpRight } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import { LandingNav } from "@/components/landing/LandingNav";
 import { DetectionSlider } from "@/components/landing/DetectionSlider";
 import { HowItWorksInteractive } from "@/components/landing/HowItWorksInteractive";
+import { ServicesAccordion } from "@/components/landing/ServicesAccordion";
 import { BenchmarkVisualCard } from "@/components/landing/BenchmarkVisualCard";
 import { GatepassLogo } from "@/components/landing/GatepassLogo";
 import { Reveal } from "@/components/landing/motion";
@@ -11,12 +12,28 @@ import "@/styles/landing.css";
 /**
  * Marketing landing page.
  *
- * Every number on this page is measured, not estimated, and is regenerable from the repo:
- *   pnpm corpus:measure          → 12/12 classes, 100% TP, 0% FP
- *   pnpm benchmark:incumbent     → Semgrep 1/12 · Gitleaks 1/12 · Trivy 0/12
- *   pnpm benchmark:determinism   → byte-identical ×10 · 0.9 ms · 0 tokens
- *   pnpm research:scan-mcp       → 168 servers · 18 affected
- * If a measurement changes, change it here in the same commit.
+ * Every number here is measured on corpus-v2 (192 cases) and regenerable:
+ *   pnpm benchmark:matrix                 → 92/93 detection · 0/99 FP
+ *   pnpm benchmark:semgrep                → Semgrep 2/12 classes · 5/93
+ *   pnpm benchmark:incumbent              → Gitleaks 1/12 · Trivy 0/12 · CodeQL SKIPPED
+ *   pnpm benchmark:llm-score              → the blind frontier-LLM baseline
+ *   pnpm benchmark:determinism            → byte-identical ×10 · 4.1 ms · 0 tokens
+ *   pnpm research:scan-mcp                → 168 servers · 18 affected
+ *
+ * TWO THINGS THIS PAGE MUST KEEP SAYING OUT LOUD.
+ *
+ * 1. 98.9% is an UPPER BOUND. Earlier versions led with a clean-room figure — cases written by
+ *    authors who had seen neither the detectors nor any fixture — because that predicted a
+ *    stranger's repository. Detector work has since had access to all 192 cases, so no population
+ *    here is held out any more and the clean-room subset now measures recognition of fixtures we
+ *    tuned against. Corpus v1 made exactly this mistake at 12/12 and fell to 26.7% the moment
+ *    somebody independent wrote the tests. Quote the caveat with the number, every time.
+ *
+ * 2. CodeQL has NEVER been measured. A published 0/12 came from `codeql database analyze` pointed
+ *    at a source tree, which aborts before reading anything; the runner discarded stderr and read
+ *    a report that was never written. Do not restore that row without a run that produced output.
+ *
+ * See benchmark/COMPETITIVE-BENCHMARK.md.
  */
 
 /** Outbound destinations. Edit these once the real URLs exist. */
@@ -41,10 +58,17 @@ const MARQUEE = [
   { src: "/landing/repro.svg", alt: "The reproduction record attached to every verified finding" },
 ];
 
+/*
+ * Four numbers, each traceable to an artifact rather than to a claim about somebody else.
+ *
+ * The first used to read "CodeQL detects none of them". It was withdrawn: that run never
+ * executed (see the note above COMPARISON). What replaced it says only what our own corpus
+ * measured, which is the only thing we can stand behind under questioning.
+ */
 const STATS = [
-  { value: "12/12", label: "Agentic vulnerability classes detected on the public corpus" },
-  { value: "0%", label: "False positive rate across all 24 corpus cases" },
-  { value: "0.9 ms", label: "Mean scan time. No model call, no network round trip" },
+  { value: "12 / 12", label: "Agentic vulnerability classes detected across 192 corpus cases" },
+  { value: "98.9%", label: "Detection rate — 92 of 93 vulnerable cases, and we publish the miss" },
+  { value: "0", label: "False positives across 99 clean cases written to induce them" },
   { value: "1 in 9", label: "Public MCP servers we scanned shipped an agentic vulnerability" },
 ];
 
@@ -82,56 +106,56 @@ const SERVICES = [
  * `packages/findings` rejects one that has no reproduction attached, so this
  * column is a structural guarantee rather than a marketing line.
  */
+/*
+ * Every row here was executed against the same 192 cases (93 vulnerable · 99 clean) on
+ * 2026-07-28. `benchmark/published/corpus-v2.json` is the artifact these figures come from, and
+ * the publisher refuses to place two tools in one table unless their case counts match exactly.
+ *
+ * Three rows have been deleted rather than updated, all for the same reason: nothing was behind
+ * them.
+ *
+ *  · CodeRabbit claimed 2/12. The harness skipped it every run for want of an install — and the
+ *    `coderabbit` package on npm is a security holding placeholder with no code in it.
+ *  · A frontier-LLM row claimed 12/12, from a run that handed the model the twelve class ids and
+ *    asked it to pick from them. That is multiple-choice recall, not detection. The fair blind
+ *    re-run now exists and lives on the benchmark page, where the population it was measured on
+ *    can be stated alongside it; it is not comparable to this table's 192 cases.
+ *  · GitHub Advanced Security (CodeQL) claimed 0/12. The harness invoked
+ *    `codeql database analyze <source-dir>`, which needs a database rather than a source tree, so
+ *    it aborted with "is not a recognized CodeQL database" on every case and the runner recorded
+ *    the absent report as zero findings. CodeQL has never been measured here. Publishing 0/12 for
+ *    a competitor's product on the strength of a run that read no code is the single worst thing
+ *    this table could do, and it did it until someone typed the command by hand.
+ *
+ * The runner now returns a skip with the reason attached instead of a zero (`run-incumbent.ts`),
+ * so a tool that did not run cannot reach this file at all.
+ */
 const COMPARISON = [
   {
-    tool: "Gatepass Security Engine",
-    detected: "12 / 12 (100%)",
-    fp: "0%",
+    tool: "Gatepass",
+    classes: "12 / 12",
+    cases: "92 / 93",
+    fp: "0",
     deterministic: "Yes",
-    speed: "0.9 ms",
     repro: "Every verified finding",
     us: true,
   },
   {
-    tool: "CodeRabbit AI (LLM Reviewer)",
-    detected: "2 / 12 (16%)",
-    fp: "High (LLM Hallucinations)",
-    deterministic: "No",
-    speed: "~60,000 ms",
-    repro: "No",
-  },
-  {
-    tool: "GitHub Advanced Security (CodeQL 2.26.1)",
-    detected: "0 / 12 (0%)",
-    fp: "0%",
-    deterministic: "Yes",
-    speed: "~18,000 ms",
-    repro: "No",
-  },
-  {
-    tool: "Frontier LLM (Claude Opus 5 / GPT-5.6)",
-    detected: "12 / 12*",
-    fp: "2 Misattributions (False Alarms)",
-    deterministic: "No",
-    speed: "~75,000 ms",
-    repro: "Described, never executed",
-  },
-  {
     tool: "Semgrep OSS 1.170.1",
-    detected: "1 / 12 (8%)",
-    fp: "0%",
+    classes: "2 / 12",
+    cases: "5 / 93",
+    fp: "1",
     deterministic: "Yes",
-    speed: "~1,200 ms",
     repro: "No",
   },
-  { tool: "Gitleaks 8.30.1", detected: "1 / 12 (8%)", fp: "0%", deterministic: "Yes", speed: "~1,100 ms", repro: "No" },
-  { tool: "Trivy 0.72.0", detected: "0 / 12 (0%)", fp: "0%", deterministic: "Yes", speed: "~4,200 ms", repro: "No" },
+  { tool: "Gitleaks 8.30.1", classes: "1 / 12", cases: "2 / 93", fp: "1", deterministic: "Yes", repro: "No" },
+  { tool: "Trivy 0.72.0", classes: "0 / 12", cases: "0 / 93", fp: "0", deterministic: "Yes", repro: "No" },
   {
     tool: "Snyk Agent Scan",
-    detected: "Cannot scan source",
+    classes: "Cannot scan source",
+    cases: "—",
     fp: "—",
     deterministic: "—",
-    speed: "—",
     repro: "—",
   },
 ];
@@ -296,24 +320,7 @@ export default function LandingPage() {
           </div>
 
           <Reveal>
-            <div className="gp-svc-list" role="list">
-              {SERVICES.map((s) => (
-                <div key={s.title} className="gp-svc" role="listitem">
-                  <button type="button" className="gp-svc-trigger" aria-label={`Expand ${s.title}`}>
-                    <span className="gp-svc-title">{s.title}</span>
-                    <ArrowRight className="gp-svc-arrow" size={22} />
-                  </button>
-                  <div className="gp-svc-expand">
-                    <div className="gp-svc-expand-inner">
-                      <div className="gp-svc-content">
-                        <p className="gp-svc-body">{s.body}</p>
-                        <img src={s.image} alt="" className="gp-svc-img" loading="lazy" />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <ServicesAccordion items={SERVICES} />
           </Reveal>
         </div>
       </section>
@@ -366,28 +373,37 @@ export default function LandingPage() {
               <div className="gp-bench-role">Deterministic Security Engine</div>
               <div className="gp-bench-divider" />
 
+              {/* Findings, not article stubs. The three entries here previously carried invented
+                  categories and publication dates for posts that do not exist. */}
               <div className="gp-bench-topic-list">
-                <a href="#benchmarks" className="gp-bench-topic-item">
-                  <h3 className="gp-bench-topic-title">Frontier Models vs. Gatepass: Full Determinism Analysis</h3>
+                <a href={SITE.github} target="_blank" rel="noreferrer" className="gp-bench-topic-item">
+                  <h3 className="gp-bench-topic-title">
+                    We detect 98.9% — and our own corpus was visible while we built for it. Read that before you
+                    quote it
+                  </h3>
                   <div className="gp-bench-topic-meta">
-                    <span className="gp-bench-badge">Portfolio</span>
-                    <span className="gp-bench-date">Sep 2025</span>
+                    <span className="gp-bench-badge">Method</span>
+                    <span className="gp-bench-date">192 cases, upper bound</span>
                   </div>
                 </a>
 
-                <a href="#benchmarks" className="gp-bench-topic-item">
-                  <h3 className="gp-bench-topic-title">Semgrep &amp; Gitleaks baseline: 1 of 12 classes detected</h3>
+                <a href={SITE.github} target="_blank" rel="noreferrer" className="gp-bench-topic-item">
+                  <h3 className="gp-bench-topic-title">
+                    We published CodeQL at zero of twelve. The run had never read a line of code
+                  </h3>
                   <div className="gp-bench-topic-meta">
-                    <span className="gp-bench-badge">Tutorials</span>
-                    <span className="gp-bench-date">Aug 2025</span>
+                    <span className="gp-bench-badge">Withdrawn</span>
+                    <span className="gp-bench-date">4 harness bugs, all in our favour</span>
                   </div>
                 </a>
 
-                <a href="#benchmarks" className="gp-bench-topic-item">
-                  <h3 className="gp-bench-topic-title">0.9 ms and no inference call, against 110,000-token reviews</h3>
+                <a href={SITE.github} target="_blank" rel="noreferrer" className="gp-bench-topic-item">
+                  <h3 className="gp-bench-topic-title">
+                    Three contamination incidents, logged. Including the one nobody would have found
+                  </h3>
                   <div className="gp-bench-topic-meta">
-                    <span className="gp-bench-badge">Production</span>
-                    <span className="gp-bench-date">Jul 2025</span>
+                    <span className="gp-bench-badge">Integrity log</span>
+                    <span className="gp-bench-date">corpus/INTEGRITY.md</span>
                   </div>
                 </a>
               </div>
@@ -396,25 +412,37 @@ export default function LandingPage() {
             {/* Right Content */}
             <div className="gp-bench-content">
               <Reveal>
-                <h2 className="gp-bench-h2">Understanding the benchmark methodology</h2>
+                <h2 className="gp-bench-h2">Every number here ships with the reason to doubt it</h2>
                 <p className="gp-bench-p" style={{ marginTop: 16 }}>
-                  24 cases — one vulnerable and one clean fixture per class, so a tool can fail by missing a
-                  vulnerability or by crying wolf on safe code. Identical corpus, identical scoring, every tool at a
-                  pinned version.
+                  192 cases across 12 classes. Half are vulnerable, half are hard negatives — safe code written to fool
+                  a pattern matcher, like a redaction test full of credential-shaped strings, a CORS regression test
+                  whose <em>title</em> is a sentence about wildcards, or schema constraints reachable only through a{" "}
+                  <code>$ref</code> in another file. Identical corpus, identical scoring, every tool at a pinned
+                  version.
+                </p>
+                <p className="gp-bench-p" style={{ marginTop: 16 }}>
+                  Most of the corpus was written by authors forbidden from reading our detectors, and told that
+                  fixtures which defeat us are a good outcome. Many of them did.{" "}
+                  <strong>
+                    All 192 cases were then visible while we closed the gaps, so 98.9% is an upper bound on your
+                    repository, not a prediction of it.
+                  </strong>{" "}
+                  A fresh set written by authors who have seen none of this is what would make the figure
+                  transferable, and until that exists we say so everywhere the number appears.
                 </p>
               </Reveal>
 
               <Reveal delay={1}>
-                <h3 className="gp-bench-h3">24-Case Scoring Matrix</h3>
+                <h3 className="gp-bench-h3">192-case scoring matrix</h3>
                 <div className="gp-table-wrap" style={{ marginTop: 16 }}>
                   <table className="gp-table">
                     <thead>
                       <tr>
                         <th>Tool</th>
-                        <th>Agentic classes detected</th>
+                        <th>Classes with a detection</th>
+                        <th>Vulnerable cases</th>
                         <th>False positives</th>
                         <th>Deterministic</th>
-                        <th>Execution Speed</th>
                         <th>Runnable reproduction</th>
                       </tr>
                     </thead>
@@ -423,11 +451,11 @@ export default function LandingPage() {
                         <tr key={row.tool} className={row.us ? "gp-row-us" : undefined}>
                           <td style={{ fontWeight: row.us ? 600 : 400 }}>{row.tool}</td>
                           <td className="gp-num" style={{ color: row.us ? "var(--accent)" : undefined }}>
-                            {row.detected}
+                            {row.classes}
                           </td>
+                          <td className="gp-num">{row.cases}</td>
                           <td className="gp-num">{row.fp}</td>
                           <td className="gp-num">{row.deterministic}</td>
-                          <td className="gp-num">{row.speed}</td>
                           <td className="gp-num" style={{ color: row.us ? "var(--accent)" : undefined }}>
                             {row.repro}
                           </td>
@@ -439,38 +467,49 @@ export default function LandingPage() {
               </Reveal>
 
               <Reveal delay={2}>
-                <h3 className="gp-bench-h3">Dominating AI-Native &amp; Agentic Security Benchmarks</h3>
+                <h3 className="gp-bench-h3">What this does and does not prove</h3>
                 <p className="gp-bench-p" style={{ marginTop: 16 }}>
-                  In head-to-head testing across the 12 OWASP Agentic Application vulnerability classes, Gatepass
-                  delivers total domain dominance over AI code reviewers like CodeRabbit, raw LLM prompts, and legacy
-                  SAST scanners.
+                  We cover twelve agentic vulnerability classes. On the same 192 cases, Trivy covers none of them,
+                  Gitleaks one, and Semgrep two. That gap is the reason to use us, and it widened rather than closed
+                  as the corpus got larger and considerably meaner.
                 </p>
 
                 <ul className="gp-bench-bullets">
                   <li>
-                    <strong>100% Detection &amp; Zero False Alarms:</strong> Catches all 12/12 agentic vulnerability
-                    classes with 0% false positives, and ships a runnable reproduction with every verified finding —
-                    anything we cannot reproduce is filed as research and labelled with its confidence instead.
+                    <strong>Detection:</strong> 92 of 93 vulnerable cases. The one miss is an audit table with no
+                    tenant column, and we publish it by name — closing it meant trading away a guard that keeps two
+                    legitimate global lookup tables quiet, which was not a trade worth making.
                   </li>
                   <li>
-                    <strong>Sub-Millisecond Execution (0.9ms):</strong> Operates up to 80,000x faster than LLM code
-                    tools (60s–90s), preventing developer PR pipeline bottlenecks.
+                    <strong>Precision under pressure:</strong> zero false positives across 99 clean cases built
+                    specifically to trip a pattern matcher. This is the figure least affected by having seen the
+                    corpus — hard negatives punish a rule that overfits.
                   </li>
                   <li>
-                    <strong>100% Deterministic Merge Gate:</strong> Produces byte-identical output across runs so CI
-                    builds never randomly fail or pass based on non-deterministic model temperature.
+                    <strong>Against a frontier model:</strong> on 24 cases scored identically, an unguided LLM matches
+                    our recall and returns eight false positives to our zero. Handed the twelve class names up front
+                    it ties us exactly — we publish that row too, because deleting the one condition where a
+                    competitor draws level is the whole failure mode this page exists to avoid.
                   </li>
                   <li>
-                    <strong>No model in the merge gate:</strong> The gate that blocks your pull request is static
-                    analysis — no inference call, no rate limit, no provider outage between a commit and a verdict.
-                    Semantic research-tier analysis is the one path that calls a model, it only adjusts confidence on
-                    findings that are already flagged as unproven, and it is a per-org setting you can switch off.
+                    <strong>Evidence that holds:</strong> 111 verified findings, zero we could not reproduce. A
+                    finding reaches the verified tier only when its cited file and line re-check against source;
+                    anything unprovable is filed as research with a confidence score instead.
+                  </li>
+                  <li>
+                    <strong>No model in the merge gate:</strong> byte-identical output across ten runs, so a CI build
+                    never flips on model temperature. Research-tier semantic analysis is the one path that calls a
+                    model, it only adjusts confidence on findings already flagged unproven, and you can switch it off
+                    per organisation.
                   </li>
                 </ul>
 
                 <blockquote className="gp-bench-quote">
-                  “Against traditional scanners and AI code reviewers, Gatepass stands alone: CodeRabbit missed 10 of 12
-                  agentic classes, Semgrep and Gitleaks caught only 1, and Snyk cannot parse agentic infrastructure.”
+                  We published CodeQL at zero of twelve. The command was wrong — it needed a database and we handed it
+                  a source tree — so it aborted on every case, and a harness that discarded errors recorded the
+                  silence as a score. Four bugs like that surfaced in one week. Every one made a competitor look worse
+                  and us look better. The numbers are withdrawn and the harnesses can no longer express “did not run”
+                  as “found nothing”.
                 </blockquote>
 
                 <BenchmarkVisualCard />

@@ -1,0 +1,20 @@
+{
+  "name": "deploy-bot-mcp",
+  "version": "1.6.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/server.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/server.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.12.1",
+    "express": "4.21.0",
+    "zod": "3.23.8"
+  },
+  "devDependencies": {
+    "@types/express": "4.17.21",
+    "typescript": "5.5.4"
+  }
+}

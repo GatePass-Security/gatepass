@@ -1,0 +1,7 @@
+{
+  "id": "verified/cors-misconfig/holdout2-clean-flask-exact-allowlist-echo",
+  "classId": "cors-misconfig",
+  "label": "clean",
+  "public": true,
+  "note": "Flask app echoes the request Origin with credentials only after exact membership in a fixed allowlist set, which is the correct way to support credentialed CORS for several origins"
+}

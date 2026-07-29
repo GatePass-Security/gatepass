@@ -1,0 +1,7 @@
+{
+  "id": "verified/unbounded-tool-param/vuln-zod-one-unconstrained-field",
+  "classId": "unbounded-tool-param",
+  "label": "vulnerable",
+  "public": true,
+  "note": "Zod tool schemas constrain most fields but leave the read path and the write contents as bare z.string()"
+}

@@ -1,0 +1,10 @@
+name: pr-reviewer
+description: Leaves automated review comments on pull requests.
+public: false
+default_permissions:
+  contents: read
+  pull_requests: write
+  metadata: read
+default_events:
+  - pull_request
+  - pull_request_review

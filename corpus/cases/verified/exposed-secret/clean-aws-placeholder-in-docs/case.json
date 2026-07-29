@@ -1,0 +1,7 @@
+{
+  "id": "verified/exposed-secret/clean-aws-placeholder-in-docs",
+  "classId": "exposed-secret",
+  "label": "clean",
+  "public": true,
+  "note": "Documentation using AWS's own published example key values; runtime code reads credentials from the environment"
+}

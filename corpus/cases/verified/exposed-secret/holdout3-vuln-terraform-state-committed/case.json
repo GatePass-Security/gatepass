@@ -1,0 +1,7 @@
+{
+  "id": "verified/exposed-secret/holdout3-vuln-terraform-state-committed",
+  "classId": "exposed-secret",
+  "label": "vulnerable",
+  "public": true,
+  "note": "Terraform local state file committed to the repo carries the generated IAM access key id and secret in cleartext"
+}

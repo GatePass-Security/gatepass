@@ -1,0 +1,7 @@
+{
+  "id": "verified/missing-schema-validation/holdout3-vuln-fastapi-raw-body-sql",
+  "classId": "missing-schema-validation",
+  "label": "vulnerable",
+  "public": true,
+  "note": "A pydantic ExportRequest model is defined and advertised in the tool manifest but the handler reads request.json() raw and f-strings it into SQL"
+}

@@ -1,0 +1,7 @@
+{
+  "id": "cross-surface/cross-surface-scope-mismatch/vuln-github-contents-read-writes-file",
+  "classId": "cross-surface-scope-mismatch",
+  "label": "vulnerable",
+  "public": true,
+  "note": "GitHub App manifest declares contents: read but the fix tool calls repos.createOrUpdateFileContents, which needs contents: write"
+}

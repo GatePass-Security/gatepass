@@ -1,0 +1,7 @@
+{
+  "id": "verified/rls-gap/clean-global-lookup-table",
+  "classId": "rls-gap",
+  "label": "clean",
+  "public": true,
+  "note": "Global reference tables with no tenant column and no customer rows, where row level security is legitimately unnecessary"
+}

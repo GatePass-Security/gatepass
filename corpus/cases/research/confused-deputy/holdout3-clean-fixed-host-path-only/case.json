@@ -1,0 +1,7 @@
+{
+  "id": "research/confused-deputy/holdout3-clean-fixed-host-path-only",
+  "classId": "confused-deputy",
+  "label": "clean",
+  "public": true,
+  "note": "Server credential goes to a hardcoded host; the caller supplies only a validated resource id used as a path segment"
+}

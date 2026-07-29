@@ -1,0 +1,7 @@
+{
+  "id": "cross-surface/cross-surface-scope-mismatch/holdout3-clean-k8s-rbac-second-role",
+  "classId": "cross-surface-scope-mismatch",
+  "label": "clean",
+  "public": true,
+  "note": "Rust operator patches configmaps and deployments; the patch verb is granted by a second Role and RoleBinding later in the same multi-document manifest"
+}

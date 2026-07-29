@@ -1,0 +1,7 @@
+{
+  "id": "verified/unbounded-tool-param/holdout3-vuln-proto-tool-params",
+  "classId": "unbounded-tool-param",
+  "label": "vulnerable",
+  "public": true,
+  "note": "protobuf tool request constrains window_minutes with buf.validate but leaves host, pattern and byte_limit unbounded, and the Go server uses all three directly"
+}

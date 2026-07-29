@@ -1,0 +1,11 @@
+name = "acme-assets"
+compatibility_date = "2025-01-15"
+pages_build_output_dir = "public"
+
+# No bindings: no KV, no D1, no service tokens. Nothing behind this origin can
+# read user data, so there is no authenticated response for CORS to leak.
+[env.production]
+route = "assets.acme-cdn.io/*"
+
+[env.production.vars]
+ASSET_MANIFEST_VERSION = "2025.01.15"

@@ -1,0 +1,7 @@
+{
+  "id": "verified/exposed-secret/holdout3-vuln-ipynb-output-secret",
+  "classId": "exposed-secret",
+  "label": "vulnerable",
+  "public": true,
+  "note": "Notebook source loads the Stripe live key from the environment but a saved cell output leaks the key value into the committed .ipynb"
+}

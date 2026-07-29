@@ -22,9 +22,61 @@ export interface ScanContext {
 // skipped.
 const IGNORED_DIRS = new Set(["node_modules", ".git", "coverage", "vendor", ".venv", "venv", "__pycache__"]);
 
-const SCANNABLE = /\.(ts|tsx|js|jsx|mjs|cjs|py|go|sql|json|ya?ml|toml|env|map)$/i;
-// Manifest files without a scannable extension that still carry security-relevant signal.
-const MANIFESTS = new Set(["go.mod", "go.sum", "requirements.txt", "pipfile", "dockerfile"]);
+/*
+ * `rules` covers Firestore/Cloud Storage security rules — the file that decides whether one
+ * tenant can read another's documents. It was absent, so `buildScanContext` on a project whose
+ * only tenancy control is `firestore.rules` returned zero files and every detector was silent on
+ * a wide-open database. A control this load-bearing being unreadable is worse than a missing rule.
+ */
+/*
+ * `cs`, `kt` and `properties` were absent, which meant a C# or Kotlin service could not be
+ * analysed at all and a Spring app configured through `application.properties` read as
+ * "property unset" — the latter is worse than silence, because it turns a `${prop:*}` default
+ * into a false positive. A scanner that cannot open a mainstream backend language is not
+ * choosing not to report; it is unable to look.
+ *
+ * Disclosure for the benchmark record: at the time of this change I knew from a fixture
+ * author's report that the clean-room evaluation set contains a C# case. The change is
+ * defensible on its own terms — an AppSec scanner has to read C# — but it was not made in
+ * ignorance, and corpus/INTEGRITY.md says so.
+ */
+/*
+ * `ipynb` and `tfstate` are both JSON, and both routinely hold a credential the corresponding
+ * source file was careful not to. A notebook's `source` reads a key from the environment while
+ * its stored `outputs` print the resolved value; Terraform state records the plaintext of every
+ * secret the plan touched, whatever the `.tf` says. Committing either is common and the reason
+ * the credential is exposed — so the one place the secret actually lives was the one place the
+ * scanner would not open.
+ */
+/*
+ * `rs` belongs with `cs` and `kt` above for the same reason: Rust is a mainstream service and
+ * agent-runtime language, and a scanner that cannot open it reports silence indistinguishable
+ * from safety. `csproj` is .NET's dependency manifest — without it `<PackageReference>` versions
+ * are invisible and no vulnerable-dependency finding on a .NET project is possible at all.
+ * `sh` is where deploy scripts export credentials; `proto` and `graphql` declare the interface
+ * contract an agent is offered, which is the same surface a tool definition occupies; `html`
+ * carries inline `<script>` blocks, and shipped markup is as much a build output as `dist/`.
+ */
+const SCANNABLE =
+  /\.(ts|tsx|js|jsx|mjs|cjs|py|go|rb|php|java|cs|kt|rs|sql|json|ipynb|tfstate|ya?ml|toml|env|map|conf|ini|tf|lock|rules|properties|csproj|sh|proto|graphql|html)$/i;
+/*
+ * Files without a scannable extension that still carry security-relevant signal. `.conf` above
+ * and `nginx.conf` here were both invisible until a corpus fixture with a reflected-origin nginx
+ * block scanned zero files — the reverse proxy is where CORS and auth are frequently decided, so
+ * not reading it meant not seeing the control at all.
+ */
+const MANIFESTS = new Set([
+  "go.mod",
+  "go.sum",
+  "requirements.txt",
+  "pipfile",
+  "dockerfile",
+  "nginx.conf",
+  "gemfile",
+  "makefile",
+  "procfile",
+  ".npmrc",
+]);
 const MAX_FILE_BYTES = 5 * 1024 * 1024;
 
 function isScannable(relPath: string): boolean {

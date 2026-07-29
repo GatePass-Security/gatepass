@@ -1,0 +1,7 @@
+{
+  "id": "verified/unpinned-dependency/holdout3-clean-digest-pinned-actions",
+  "classId": "unpinned-dependency",
+  "label": "clean",
+  "public": true,
+  "note": "Floating-looking version comments and a :latest tag are both accompanied by immutable commit SHAs and image digests that fully pin the build"
+}

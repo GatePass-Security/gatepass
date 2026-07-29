@@ -1,0 +1,7 @@
+{
+  "id": "verified/missing-schema-validation/clean-validated-in-middleware",
+  "classId": "missing-schema-validation",
+  "label": "clean",
+  "public": true,
+  "note": "Express route destructures req.body raw, but a validateBody middleware in another file already parsed and replaced it"
+}

@@ -142,13 +142,23 @@ export function attributeToCases(
   return { classesByCase, rulesByCase };
 }
 
-function run(command: string, args: string[], cwd: string): Promise<{ stdout: string; code: number }> {
+/*
+ * `stderr` is captured, not discarded. Every one of these tools reports its refusal to run there
+ * and nowhere else — dropping it is what made a broken CodeQL invocation indistinguishable from a
+ * CodeQL run that found nothing, for as long as it took someone to try the command by hand.
+ */
+function run(command: string, args: string[], cwd: string): Promise<{ stdout: string; stderr: string; code: number }> {
   return new Promise((resolve) => {
     execFile(
       command,
       args,
       { cwd, timeout: 600_000, maxBuffer: 256 * 1024 * 1024, env: { ...process.env, PYTHONUTF8: "1" } },
-      (err, stdout) => resolve({ stdout: stdout ?? "", code: err && "code" in err ? Number(err.code) || 1 : 0 }),
+      (err, stdout, stderr) =>
+        resolve({
+          stdout: stdout ?? "",
+          stderr: stderr ?? "",
+          code: err && "code" in err ? Number(err.code) || 1 : 0,
+        }),
     );
   });
 }
@@ -256,8 +266,33 @@ async function runTool(
   if (versionOut.code !== 0 && !version) return { skipped: `${tool.id} not on PATH (${tool.install})` };
 
   const out = path.join(stage, `${tool.id}.sarif`);
-  await run(tool.bin, tool.args(stage, out), stage);
-  const results = parseSarifResults(await fs.readFile(out, "utf8").catch(() => ""));
+  const analysis = await run(tool.bin, tool.args(stage, out), stage);
+  /*
+   * A tool that failed to run has not found nothing — it has found nothing *yet*, and the
+   * difference is the whole value of this file.
+   *
+   * `fs.readFile(...).catch(() => "")` used to turn an absent report into an empty one, so a
+   * broken invocation was scored as a clean sweep of misses. That is how `ghas-codeql@2.26.1`
+   * came to be published at 0/90: the command was `codeql database analyze <source-dir>`, which
+   * needs a database rather than a source tree, and it aborted with "is not a recognized CodeQL
+   * database" on every case. We reported a competitor's product as detecting none of twelve
+   * classes on the strength of a run that never read a line of code.
+   *
+   * So: a non-zero exit, or a missing report, is a *skip* with the reason attached. Skips are
+   * printed and stored; they are never scored, and nothing downstream can mistake one for a zero.
+   */
+  const sarif = await fs.readFile(out, "utf8").catch(() => null);
+  if (analysis.code !== 0 || sarif === null) {
+    const detail = (analysis.stderr.trim() || analysis.stdout.trim() || `exit ${analysis.code}`)
+      .split("\n")
+      .find((l: string) => l.trim().length > 0)
+      ?.slice(0, 240);
+    await fs.rm(out, { force: true });
+    return {
+      skipped: `${tool.id} did not produce a report — NOT scored as zero. ${detail ?? "no output"}`,
+    };
+  }
+  const results = parseSarifResults(sarif);
   await fs.rm(out, { force: true });
 
   const { classesByCase, rulesByCase } = attributeToCases(
@@ -275,7 +310,10 @@ async function runTool(
 
 export async function runIncumbentSuite(
   casesRoot: string,
-  corpusVersion = "corpus-v1",
+  /* The corpus these tools actually just ran against — `loadCases` walks the live tree, so a
+     stale default here labels a current measurement with a superseded version and invites it to
+     be compared against numbers from a different population. */
+  corpusVersion = "corpus-v2",
 ): Promise<{
   runs: IncumbentRun[];
   skipped: string[];

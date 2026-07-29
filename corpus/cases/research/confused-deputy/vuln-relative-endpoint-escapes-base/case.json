@@ -1,0 +1,7 @@
+{
+  "id": "research/confused-deputy/vuln-relative-endpoint-escapes-base",
+  "classId": "confused-deputy",
+  "label": "vulnerable",
+  "public": true,
+  "note": "Caller-supplied 'endpoint' is resolved with new URL() against a partner base, so an absolute value redirects the service key to any host"
+}

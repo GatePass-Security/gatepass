@@ -355,6 +355,7 @@ export default function OverviewPage() {
         <LatestFindingsTable findings={latestFindings} />
       </Card>
 
+      <Pipeline />
       <SurfaceGrid />
     </div>
   );
@@ -379,6 +380,60 @@ function CoverageRow({ label, value, href, note }: { label: string; value: numbe
         </Link>
       </dd>
     </div>
+  );
+}
+
+/**
+ * How the surfaces chain together.
+ *
+ * The nine cards below answer "what is there"; they do not answer "what runs into what". A repo
+ * becomes a scan, a scan becomes findings, a finding becomes guidance, a gate decision and an
+ * audit control — and someone landing here for the first time cannot see that from a grid of
+ * equals. Each stage is also a legitimate entry point on its own, which is why every node links
+ * out: teams arrive at Gatepass wanting only the gate, or only the evidence export.
+ */
+const PIPELINE = [
+  { href: "/repos", label: "Connect", detail: "Read-only GitHub App" },
+  { href: "/scans", label: "Scan", detail: "12 detectors, ~1 ms" },
+  { href: "/findings", label: "Triage", detail: "Verified vs research" },
+  { href: "/agent-guidance", label: "Fix", detail: "Agent-ready steps" },
+  { href: "/evidence", label: "Evidence", detail: "Auditor-ready controls" },
+] as const;
+
+function Pipeline() {
+  return (
+    <section aria-labelledby="pipeline-heading">
+      <div className="mb-3 flex items-center gap-4">
+        <h2 id="pipeline-heading" className="text-[0.7rem] font-medium tracking-[0.11em] text-fg-muted uppercase">
+          How it runs
+        </h2>
+        <span className="h-px flex-1 bg-line" aria-hidden="true" />
+        <span className="text-[0.7rem] text-fg-muted">Every stage also works on its own</span>
+      </div>
+      <ol className="flex flex-wrap items-stretch gap-2">
+        {PIPELINE.map((stage, i) => (
+          <li key={stage.href} className="flex min-w-0 flex-1 items-center gap-2">
+            <Link
+              href={stage.href}
+              className="group min-w-0 flex-1 cursor-pointer rounded-[var(--radius-card)] border border-line bg-surface px-3.5 py-3 transition-colors duration-150 hover:border-accent hover:bg-raised"
+            >
+              <span className="flex items-baseline gap-1.5">
+                <span className="text-[0.62rem] font-semibold text-fg-muted tabular-nums">
+                  {String(i + 1).padStart(2, "0")}
+                </span>
+                <span className="truncate text-[0.855rem] font-medium text-fg group-hover:text-accent">
+                  {stage.label}
+                </span>
+              </span>
+              <span className="mt-0.5 block truncate text-[0.72rem] text-fg-muted">{stage.detail}</span>
+            </Link>
+            {i < PIPELINE.length - 1 && (
+              <ArrowUpRight size={13} className="hidden shrink-0 rotate-45 text-fg-muted sm:block" aria-hidden="true" />
+            )}
+          </li>
+        ))}
+      </ol>
+    </section>
   );
 }
 

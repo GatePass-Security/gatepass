@@ -1,0 +1,7 @@
+{
+  "id": "verified/rls-gap/vuln-supabase-rls-no-policy",
+  "classId": "rls-gap",
+  "label": "vulnerable",
+  "public": true,
+  "note": "Supabase table enables RLS but no policy is ever created, and the API reads it with the service-role client"
+}

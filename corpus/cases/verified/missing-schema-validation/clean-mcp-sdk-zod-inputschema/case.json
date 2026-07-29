@@ -1,0 +1,7 @@
+{
+  "id": "verified/missing-schema-validation/clean-mcp-sdk-zod-inputschema",
+  "classId": "missing-schema-validation",
+  "label": "clean",
+  "public": true,
+  "note": "MCP registerTool declares a zod inputSchema inside the nested config object, so the SDK validates before the handler runs"
+}

@@ -1,0 +1,7 @@
+{
+  "id": "cross-surface/cross-surface-scope-mismatch/holdout3-clean-gcp-overdeclared-roles",
+  "classId": "cross-surface-scope-mismatch",
+  "label": "clean",
+  "public": true,
+  "note": "IAM policy grants objectAdmin and dataEditor while the C# tool only downloads objects and reads table metadata; over-declaration, not mismatch"
+}

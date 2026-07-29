@@ -1,0 +1,7 @@
+{
+  "id": "verified/exposed-secret/clean-redaction-test-fixture",
+  "classId": "exposed-secret",
+  "label": "clean",
+  "public": true,
+  "note": "Unit test for a log redaction helper whose fixtures are dummy provider tokens asserted to be scrubbed"
+}

@@ -1,0 +1,7 @@
+{
+  "id": "verified/rls-gap/holdout3-vuln-rls-disabled-in-migration",
+  "classId": "rls-gap",
+  "label": "vulnerable",
+  "public": true,
+  "note": "A later backfill migration disables row level security on invoices and only re-enables it for payments, leaving tenant isolation off in production"
+}

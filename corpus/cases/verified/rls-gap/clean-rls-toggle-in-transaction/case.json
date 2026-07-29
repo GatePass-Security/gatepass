@@ -1,0 +1,7 @@
+{
+  "id": "verified/rls-gap/clean-rls-toggle-in-transaction",
+  "classId": "rls-gap",
+  "label": "clean",
+  "public": true,
+  "note": "Backfill migration disables RLS for the length of one transaction and re-enables it with the tenant policy before commit"
+}

@@ -1,0 +1,7 @@
+{
+  "id": "research/over-permissioned-loop/holdout3-clean-go-context-deadline",
+  "classId": "over-permissioned-loop",
+  "label": "clean",
+  "public": true,
+  "note": "Bare for{} agent loop with no step counter, bounded by a context deadline and a hard model-spend ceiling"
+}

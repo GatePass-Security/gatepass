@@ -13,10 +13,12 @@ export const alt = "Gatepass — Deterministic security for AI-native code";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
+/* Corpus-v2 figures. "0% false positives" and "0.9 ms" were corpus-v1 and no longer hold —
+   see benchmark/COMPETITIVE-BENCHMARK.md. */
 const STATS: Array<[string, string]> = [
   ["12/12", "agentic classes"],
-  ["0%", "false positives"],
-  ["0.9 ms", "per scan"],
+  ["0/12", "CodeQL, same corpus"],
+  ["8.3%", "false positives"],
   ["×10", "byte-identical"],
 ];
 

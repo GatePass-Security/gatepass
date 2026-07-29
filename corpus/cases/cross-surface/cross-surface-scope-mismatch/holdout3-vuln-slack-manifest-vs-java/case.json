@@ -1,0 +1,7 @@
+{
+  "id": "cross-surface/cross-surface-scope-mismatch/holdout3-vuln-slack-manifest-vs-java",
+  "classId": "cross-surface-scope-mismatch",
+  "label": "vulnerable",
+  "public": true,
+  "note": "Slack app manifest declares three read scopes while the Java tool layer calls users.list, files.uploadV2 and admin.conversations.archive"
+}

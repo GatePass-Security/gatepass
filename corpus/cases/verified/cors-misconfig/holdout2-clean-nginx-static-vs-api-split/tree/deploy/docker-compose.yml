@@ -1,0 +1,28 @@
+services:
+  edge:
+    image: nginx:1.27-alpine
+    ports:
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./tls:/etc/nginx/tls:ro
+      - ../public:/srv/www/static:ro
+    depends_on:
+      - api
+
+  api:
+    build: ../services/api
+    expose:
+      - "9000"
+    environment:
+      SESSION_COOKIE_NAME: sid
+      DATABASE_URL: postgres://app:not-a-real-password@db:5432/app
+    depends_on:
+      - db
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: not-a-real-password
+      POSTGRES_DB: app

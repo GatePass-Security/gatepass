@@ -1,0 +1,11 @@
+name: pr-fixer
+description: Suggests and applies lint fixes on pull requests.
+public: false
+default_permissions:
+  contents: read
+  pull_requests: write
+  checks: write
+  metadata: read
+default_events:
+  - pull_request
+  - check_suite

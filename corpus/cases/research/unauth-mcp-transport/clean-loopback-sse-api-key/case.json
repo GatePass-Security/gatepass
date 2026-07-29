@@ -1,0 +1,7 @@
+{
+  "id": "research/unauth-mcp-transport/clean-loopback-sse-api-key",
+  "classId": "unauth-mcp-transport",
+  "label": "clean",
+  "public": true,
+  "note": "FastAPI SSE MCP bound to 127.0.0.1 and wrapped in ASGI middleware that checks an API key with compare_digest"
+}

@@ -1,0 +1,7 @@
+{
+  "id": "verified/unpinned-dependency/holdout3-clean-lockfile-authoritative",
+  "classId": "unpinned-dependency",
+  "label": "clean",
+  "public": true,
+  "note": "Caret ranges in package.json look loose but the committed lockfile with integrity hashes plus npm ci makes every install byte-identical"
+}

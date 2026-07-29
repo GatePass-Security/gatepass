@@ -1,0 +1,7 @@
+{
+  "id": "cross-surface/cross-surface-scope-mismatch/vuln-oauth-read-scopes-admin-endpoint",
+  "classId": "cross-surface-scope-mismatch",
+  "label": "vulnerable",
+  "public": true,
+  "note": "OAuth config requests only read:user/user:email/read:org, but the sync job PUTs and DELETEs /orgs/{org}/memberships, which requires admin:org"
+}

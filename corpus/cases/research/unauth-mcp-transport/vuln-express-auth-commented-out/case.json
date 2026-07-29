@@ -1,0 +1,7 @@
+{
+  "id": "research/unauth-mcp-transport/vuln-express-auth-commented-out",
+  "classId": "unauth-mcp-transport",
+  "label": "vulnerable",
+  "public": true,
+  "note": "Express streamable-HTTP MCP endpoint on 0.0.0.0 whose bearer middleware is commented out behind a TODO"
+}

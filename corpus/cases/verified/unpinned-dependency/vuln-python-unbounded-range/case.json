@@ -1,0 +1,7 @@
+{
+  "id": "verified/unpinned-dependency/vuln-python-unbounded-range",
+  "classId": "unpinned-dependency",
+  "label": "vulnerable",
+  "public": true,
+  "note": "Python requirements and pyproject dependencies use >= with no upper bound and no lockfile, so builds float to the newest release"
+}

@@ -1,0 +1,7 @@
+{
+  "id": "research/confused-deputy/holdout3-vuln-proxy-attaches-key",
+  "classId": "confused-deputy",
+  "label": "vulnerable",
+  "public": true,
+  "note": "Fetch tool attaches the server's own API key to an outbound request whose full URL the caller supplies"
+}

@@ -1,0 +1,7 @@
+{
+  "id": "verified/unbounded-tool-param/holdout3-clean-graphql-custom-scalars",
+  "classId": "unbounded-tool-param",
+  "label": "clean",
+  "public": true,
+  "note": "GraphQL tool arguments carry no @constraint directives because the bounds are enforced in the custom scalars' parseValue and parseLiteral"
+}

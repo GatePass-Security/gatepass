@@ -1,0 +1,7 @@
+{
+  "id": "verified/cors-misconfig/holdout3-clean-wildcard-public-assets",
+  "classId": "cors-misconfig",
+  "label": "clean",
+  "public": true,
+  "note": "Wildcard ACAO is scoped to an unauthenticated static asset host that issues no cookies and never sets Allow-Credentials"
+}

@@ -1,0 +1,7 @@
+{
+  "id": "verified/rls-gap/vuln-policy-using-true",
+  "classId": "rls-gap",
+  "label": "vulnerable",
+  "public": true,
+  "note": "Select policy on a multi-tenant audit table uses using (true), so every workspace reads every other workspace's events"
+}

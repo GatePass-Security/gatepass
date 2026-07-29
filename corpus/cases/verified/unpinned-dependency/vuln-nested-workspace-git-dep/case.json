@@ -1,0 +1,7 @@
+{
+  "id": "verified/unpinned-dependency/vuln-nested-workspace-git-dep",
+  "classId": "unpinned-dependency",
+  "label": "vulnerable",
+  "public": true,
+  "note": "Root manifest is exact-pinned but a nested workspace package pulls a git dependency with no ref plus caret ranges on pre-1.0 tool packages"
+}

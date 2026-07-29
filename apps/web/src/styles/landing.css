@@ -1627,8 +1627,15 @@ body:has(.gp) {
     background-color 0.5s cubic-bezier(0.5, 0, 0.1, 1);
 }
 
-.gp-svc:hover,
-.gp-svc:focus-within {
+/*
+ * Open state is driven by ServicesAccordion, not by `:hover`.
+ *
+ * `:hover` only re-resolves when the pointer moves. These rows change height, so a row can slide
+ * up into a stationary cursor as the one above it collapses — and never take hover. The component
+ * hit-tests the pointer each frame and sets `data-open`; `:focus-within` stays so the keyboard
+ * path does not depend on any of that.
+ */
+.gp-svc[data-open="true"] {
   border-color: rgba(45, 212, 191, 0.35);
   background: #0c0c10;
 }
@@ -1672,8 +1679,7 @@ body:has(.gp) {
     opacity 0.35s ease;
 }
 
-.gp-svc:hover .gp-svc-arrow,
-.gp-svc:focus-within .gp-svc-arrow {
+.gp-svc[data-open="true"] .gp-svc-arrow {
   transform: translateX(8px) rotate(-45deg);
   opacity: 1;
 }
@@ -1687,8 +1693,7 @@ body:has(.gp) {
   transition: grid-template-rows 0.6s cubic-bezier(0.5, 0, 0.1, 1);
 }
 
-.gp-svc:hover .gp-svc-expand,
-.gp-svc:focus-within .gp-svc-expand {
+.gp-svc[data-open="true"] .gp-svc-expand {
   grid-template-rows: 1fr;
 }
 
@@ -1714,8 +1719,7 @@ body:has(.gp) {
     transform 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) 0.18s;
 }
 
-.gp-svc:hover .gp-svc-content,
-.gp-svc:focus-within .gp-svc-content {
+.gp-svc[data-open="true"] .gp-svc-content {
   opacity: 1;
   transform: translateY(0);
 }

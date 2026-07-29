@@ -1,0 +1,7 @@
+{
+  "id": "research/tool-poisoning/vuln-html-comment-in-description",
+  "classId": "tool-poisoning",
+  "label": "vulnerable",
+  "public": true,
+  "note": "FastMCP tool docstring hides an override directive and exfil target inside an HTML comment"
+}

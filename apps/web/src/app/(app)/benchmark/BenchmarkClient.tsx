@@ -142,10 +142,30 @@ export default function BenchmarkClient({ data, error }: Props) {
 
   const orderedRuns = [primary, ...incumbents];
   const classWord = pluralize(totalClasses, "class", "classes");
+  // Carried on every run by the publisher; read off the primary since one artifact is one
+  // population by construction.
+  const population = primary.population;
+  const casesMeasured = primary.casesMeasured;
 
   return (
     <div className="space-y-6">
       {header}
+
+      {/* What was measured. Above the numbers, not in a footnote — the comparison below is only
+          valid inside this population, and that is the first thing a reader needs. */}
+      {population && (
+        <p className="rounded-[0.5rem] border border-line bg-sunken px-4 py-3 text-[0.78rem] leading-relaxed text-fg-secondary">
+          <span className="font-medium text-fg">What was measured — </span>
+          {population}
+          {casesMeasured !== undefined && (
+            <>
+              {" "}
+              Every figure on this page is scored over those {casesMeasured} cases; numbers from a
+              different corpus version are not comparable to them.
+            </>
+          )}
+        </p>
+      )}
 
       {/* Headline metrics — the primary run only, never averaged with incumbents. */}
       <div className="grid gap-3 sm:grid-cols-3">

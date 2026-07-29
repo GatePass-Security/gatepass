@@ -1,0 +1,7 @@
+{
+  "id": "research/unauth-mcp-transport/holdout3-clean-bearer-wrapped",
+  "classId": "unauth-mcp-transport",
+  "label": "clean",
+  "public": true,
+  "note": "Binds MCP HTTP transport to 0.0.0.0 but every request passes through a bearer-token check before reaching the handler"
+}

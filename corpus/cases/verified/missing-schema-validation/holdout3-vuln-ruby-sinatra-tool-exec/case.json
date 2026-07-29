@@ -1,0 +1,7 @@
+{
+  "id": "verified/missing-schema-validation/holdout3-vuln-ruby-sinatra-tool-exec",
+  "classId": "missing-schema-validation",
+  "label": "vulnerable",
+  "public": true,
+  "note": "Sinatra tool_call endpoint feeds model-authored JSON straight into Open3 argv and chdir with no shape check anywhere"
+}

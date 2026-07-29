@@ -1,0 +1,7 @@
+{
+  "id": "research/confused-deputy/clean-caller-scoped-token-exchange",
+  "classId": "confused-deputy",
+  "label": "clean",
+  "public": true,
+  "note": "Reads the inbound authorization but exchanges it (RFC 8693) for a caller-scoped downstream token; the service credential never leaves the token endpoint"
+}

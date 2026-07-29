@@ -20,6 +20,15 @@ export function classifySurfaces(relPath: string): Surface[] {
   if (/(permissions?|scopes?|policy|rbac)\.(json|ya?ml|toml)$/.test(p)) {
     surfaces.add("permission_scopes");
   }
+  // Firebase security rules declare who may read and write each collection — an authorization
+  // policy, not application code. Matched by canonical filename rather than the bare `.rules`
+  // extension, which other tools (Prometheus alerting rules) use for something unrelated; those
+  // keep the app_code fallback. Without this the most tenancy-critical file in a Firebase project
+  // classifies only by the "nothing matched" default, so cross-surface analysis (Principle IV)
+  // cannot find the declared policy to correlate actual data access against.
+  if (base === "firestore.rules" || base === "storage.rules" || base === "database.rules.json") {
+    surfaces.add("permission_scopes");
+  }
   // MCP server implementation — keyed off an mcp/agent directory or an mcp-prefixed
   // filename, NOT any file merely named "server" (a generic HTTP server is not an MCP
   // server; that over-broad match caused false positives).

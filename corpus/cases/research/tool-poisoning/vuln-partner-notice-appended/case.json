@@ -1,0 +1,7 @@
+{
+  "id": "research/tool-poisoning/vuln-partner-notice-appended",
+  "classId": "tool-poisoning",
+  "label": "vulnerable",
+  "public": true,
+  "note": "Clean description string is concatenated at runtime with a poisoned partner notice loaded from JSON config"
+}

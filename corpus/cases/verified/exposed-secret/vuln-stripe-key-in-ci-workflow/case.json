@@ -1,0 +1,7 @@
+{
+  "id": "verified/exposed-secret/vuln-stripe-key-in-ci-workflow",
+  "classId": "exposed-secret",
+  "label": "vulnerable",
+  "public": true,
+  "note": "Stripe live secret key and webhook signing secret hardcoded in a GitHub Actions deploy workflow"
+}

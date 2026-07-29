@@ -1,0 +1,7 @@
+{
+  "id": "research/over-permissioned-loop/clean-go-deadline-and-step-cap",
+  "classId": "over-permissioned-loop",
+  "label": "clean",
+  "public": true,
+  "note": "Go loop with an infinite-looking for header, bounded by a maxSteps cap and a context.WithTimeout run budget"
+}

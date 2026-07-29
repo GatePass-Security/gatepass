@@ -1,0 +1,7 @@
+{
+  "id": "research/confused-deputy/vuln-interceptor-adds-partner-token",
+  "classId": "confused-deputy",
+  "label": "vulnerable",
+  "public": true,
+  "note": "Tool fetches a caller-supplied URL through a shared axios client whose interceptor attaches the partner API token to every request"
+}

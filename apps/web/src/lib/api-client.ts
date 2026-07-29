@@ -201,34 +201,46 @@ class ApiClient {
   }
 
   // === SCANS ===
-  /** `POST /v1/orgs/:org/scans` — scan a path already on the API host. */
-  triggerScan(orgId: string, repoPath: string): Promise<ScanResult> {
-    return this.request(`/orgs/${orgId}/scans`, {
-      method: "POST",
-      body: JSON.stringify({ path: repoPath }),
-    });
-  }
 
   /**
-   * `POST /v1/orgs/:org/scan-remote` — clone a GitHub repo and scan it.
-   * Cloning takes longer than the default 10s budget, so this call opts out
-   * of the shared timeout and carries its own longer one.
+   * Scanning is the one operation that routinely outlives the shared 10s request budget: parsing
+   * a tree takes tens of seconds on a real repository, and cloning one first takes longer still.
+   *
+   * A path scan used to run on the shared timeout, so the browser aborted at 10s while the API
+   * carried on and wrote the scan anyway — the dashboard reported a failure for work that had in
+   * fact succeeded, and the resulting scan only appeared after a manual reload.
    */
-  async scanRemoteRepo(orgId: string, repo: string, ref?: string): Promise<RemoteScanResult> {
+  private static readonly SCAN_TIMEOUT_MS = 180_000;
+
+  /** `POST /v1/orgs/:org/scans` — scan a path already on the API host. */
+  triggerScan(orgId: string, repoPath: string): Promise<ScanResult> {
+    return this.longRunning<ScanResult>(`/orgs/${orgId}/scans`, JSON.stringify({ path: repoPath }));
+  }
+
+  /** `POST /v1/orgs/:org/scan-remote` — clone a GitHub repo and scan it. */
+  scanRemoteRepo(orgId: string, repo: string, ref?: string): Promise<RemoteScanResult> {
+    return this.longRunning<RemoteScanResult>(
+      `/orgs/${orgId}/scan-remote`,
+      JSON.stringify(ref ? { repo, ref } : { repo }),
+    );
+  }
+
+  /** POST that opts out of the shared timeout in favour of the scan budget. */
+  private async longRunning<T>(path: string, body: string): Promise<T> {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 180_000);
+    const timeout = setTimeout(() => controller.abort(), ApiClient.SCAN_TIMEOUT_MS);
     try {
-      const res = await fetch(`${this.base}/v1/orgs/${orgId}/scan-remote`, {
+      const res = await fetch(`${this.base}/v1${path}`, {
         method: "POST",
-        headers: { "content-type": "application/json", ...this.auth() },
-        body: JSON.stringify(ref ? { repo, ref } : { repo }),
+        headers: { "content-type": "application/json" },
+        body,
         signal: controller.signal,
       });
       if (!res.ok) {
-        const body = (await res.json().catch(() => null)) as { error?: string } | null;
-        throw new ApiError(res.status, body?.error ?? `Scan failed (${res.status})`);
+        const parsed = (await res.json().catch(() => null)) as { error?: string } | null;
+        throw new ApiError(res.status, parsed?.error ?? `Scan failed (${res.status})`);
       }
-      return (await res.json()) as RemoteScanResult;
+      return (await res.json()) as T;
     } finally {
       clearTimeout(timeout);
     }

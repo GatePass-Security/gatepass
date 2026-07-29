@@ -1,0 +1,7 @@
+{
+  "id": "research/hbv/vuln-lookup-arbitrary-url",
+  "classId": "hbv",
+  "label": "vulnerable",
+  "public": true,
+  "note": "Tool described as 'looks up information' actually fetches any caller-supplied URL with a service-mesh token attached"
+}

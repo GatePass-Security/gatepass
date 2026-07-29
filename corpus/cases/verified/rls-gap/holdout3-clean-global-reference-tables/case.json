@@ -1,0 +1,7 @@
+{
+  "id": "verified/rls-gap/holdout3-clean-global-reference-tables",
+  "classId": "rls-gap",
+  "label": "clean",
+  "public": true,
+  "note": "The tables without RLS hold read-only global reference data with no tenant column and no per-tenant rows, so there is nothing to isolate"
+}

@@ -1,0 +1,7 @@
+{
+  "id": "research/over-permissioned-loop/vuln-budget-reset-on-tool-result",
+  "classId": "over-permissioned-loop",
+  "label": "vulnerable",
+  "public": true,
+  "note": "Loop has a MAX_STEPS budget but zeroes the counter whenever a tool result says 'continued', so tool output can keep it running forever"
+}

@@ -1,0 +1,7 @@
+{
+  "id": "verified/exposed-secret/clean-secret-named-vars",
+  "classId": "exposed-secret",
+  "label": "clean",
+  "public": true,
+  "note": "Variables named apiKey, password and privateKey that hold env lookups and file reads rather than literals"
+}

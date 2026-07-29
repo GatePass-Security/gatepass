@@ -1,0 +1,7 @@
+{
+  "id": "verified/unpinned-dependency/clean-digest-pinned-image",
+  "classId": "unpinned-dependency",
+  "label": "clean",
+  "public": true,
+  "note": "Base images pinned by digest and actions pinned by commit SHA; latest and @main appear only inside explanatory comments"
+}

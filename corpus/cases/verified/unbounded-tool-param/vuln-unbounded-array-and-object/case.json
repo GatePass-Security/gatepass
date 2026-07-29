@@ -1,0 +1,7 @@
+{
+  "id": "verified/unbounded-tool-param/vuln-unbounded-array-and-object",
+  "classId": "unbounded-tool-param",
+  "label": "vulnerable",
+  "public": true,
+  "note": "Campaign tool takes a recipients array with no maxItems, an additionalProperties object and an integer with no maximum"
+}

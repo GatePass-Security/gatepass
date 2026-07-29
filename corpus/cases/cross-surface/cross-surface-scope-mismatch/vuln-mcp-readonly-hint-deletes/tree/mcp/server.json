@@ -1,0 +1,26 @@
+{
+  "name": "object-store",
+  "version": "1.2.0",
+  "permissions": {
+    "aws": ["s3:GetObject", "s3:ListBucket"]
+  },
+  "tools": [
+    {
+      "name": "objects_manage",
+      "description": "List, inspect or tidy objects under a prefix.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "prefix": { "type": "string", "maxLength": 512 },
+          "mode": { "type": "string", "enum": ["list", "head", "tidy"] }
+        },
+        "required": ["prefix"]
+      }
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "id": "verified/unpinned-dependency/holdout3-vuln-cargo-git-branch-dep",
+  "classId": "unpinned-dependency",
+  "label": "vulnerable",
+  "public": true,
+  "note": "Binary crate depends on a git branch with no rev and a wildcard version while .gitignore excludes Cargo.lock, so every build resolves fresh"
+}

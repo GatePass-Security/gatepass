@@ -1,0 +1,7 @@
+{
+  "id": "verified/unpinned-dependency/clean-latest-in-name-and-docs",
+  "classId": "unpinned-dependency",
+  "label": "clean",
+  "public": true,
+  "note": "Every range is exact; the words latest and * appear only in a package name, a description and a docs snippet"
+}

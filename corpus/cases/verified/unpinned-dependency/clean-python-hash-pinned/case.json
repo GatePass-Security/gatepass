@@ -1,0 +1,7 @@
+{
+  "id": "verified/unpinned-dependency/clean-python-hash-pinned",
+  "classId": "unpinned-dependency",
+  "label": "clean",
+  "public": true,
+  "note": "Hash-pinned == requirements; the only >= is requires-python, which constrains the interpreter, not a dependency"
+}

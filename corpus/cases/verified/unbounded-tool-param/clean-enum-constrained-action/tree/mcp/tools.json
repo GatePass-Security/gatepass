@@ -1,0 +1,33 @@
+{
+  "tools": [
+    {
+      "name": "set_deploy_state",
+      "description": "Pauses or resumes the deploy queue for one service.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["service", "action"],
+        "properties": {
+          "service": {
+            "type": "string",
+            "title": "Service",
+            "description": "Which service the change applies to.",
+            "enum": ["api", "web", "worker", "scheduler"]
+          },
+          "action": {
+            "type": "string",
+            "title": "Action",
+            "description": "What to do with the deploy queue.",
+            "enum": ["pause", "resume"]
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason",
+            "description": "Free text shown in the audit log.",
+            "maxLength": 200
+          }
+        }
+      }
+    }
+  ]
+}

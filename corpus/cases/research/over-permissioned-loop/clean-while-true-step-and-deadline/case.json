@@ -1,0 +1,7 @@
+{
+  "id": "research/over-permissioned-loop/clean-while-true-step-and-deadline",
+  "classId": "over-permissioned-loop",
+  "label": "clean",
+  "public": true,
+  "note": "Literal while (true) agent loop that is hard-capped by a step counter and a wall-clock deadline checked before every turn"
+}

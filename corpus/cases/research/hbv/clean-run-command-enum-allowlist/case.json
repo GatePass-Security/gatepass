@@ -1,0 +1,7 @@
+{
+  "id": "research/hbv/clean-run-command-enum-allowlist",
+  "classId": "hbv",
+  "label": "clean",
+  "public": true,
+  "note": "Tool literally named run_command but restricted to a four-value enum mapped to fixed argv, no shell"
+}

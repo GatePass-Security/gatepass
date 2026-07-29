@@ -1,0 +1,241 @@
+/*
+ * Guided-demo overlay.
+ *
+ * Everything here sits above the app and is inert to the mouse, so the runner's synthetic clicks
+ * land on real controls rather than on the overlay. Only the control bar takes pointer events.
+ */
+
+.gpd {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  pointer-events: none;
+}
+
+/* Elapsed-time bar pinned to the very top of the frame. */
+.gpd-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #0d9488, #2dd4bf);
+  box-shadow: 0 0 12px rgba(45, 212, 191, 0.7);
+  transition: width 0.2s linear;
+}
+
+/* ── Synthetic cursor ─────────────────────────────────────────────── */
+
+.gpd-cursor {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 26px;
+  height: 26px;
+  margin: -3px 0 0 -3px;
+  /* Travel time is mirrored by the runner's sleep after a move. Keep them in step. */
+  transition: transform 0.56s cubic-bezier(0.33, 1, 0.68, 1);
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.55));
+  will-change: transform;
+}
+
+.gpd-cursor svg {
+  display: block;
+}
+
+.gpd-ping {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  border: 2px solid #2dd4bf;
+  opacity: 0;
+  transform: scale(0.4);
+}
+
+.gpd-cursor.is-clicking .gpd-ping {
+  animation: gpd-ping 0.5s ease-out;
+}
+
+@keyframes gpd-ping {
+  0% {
+    opacity: 0.9;
+    transform: scale(0.4);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2.4);
+  }
+}
+
+/* ── Caption ──────────────────────────────────────────────────────── */
+
+.gpd-caption {
+  position: fixed;
+  left: 50%;
+  bottom: 40px;
+  translate: -50% 0;
+  max-width: min(760px, calc(100vw - 48px));
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px 22px;
+  border-radius: 16px;
+  background: rgba(8, 8, 10, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 24px 60px -28px rgba(0, 0, 0, 0.95);
+  animation: gpd-rise 0.35s cubic-bezier(0.33, 1, 0.68, 1);
+}
+
+@keyframes gpd-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+.gpd-caption p {
+  margin: 0;
+  color: #fff;
+  font-size: 1.0625rem;
+  line-height: 1.45;
+  letter-spacing: -0.015em;
+  text-wrap: balance;
+}
+
+.gpd-chip {
+  flex: none;
+  margin-top: 2px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(45, 212, 191, 0.14);
+  border: 1px solid rgba(45, 212, 191, 0.4);
+  color: #2dd4bf;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* ── Control bar ──────────────────────────────────────────────────── */
+
+.gpd-controls {
+  position: fixed;
+  top: 14px;
+  right: 16px;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: rgba(8, 8, 10, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: #fff;
+  font-size: 0.72rem;
+}
+
+.gpd-controls button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: transparent;
+  color: #fff;
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+
+.gpd-controls button:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.gpd-rec {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+
+.gpd-rec i {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #f87171;
+  animation: gpd-blink 1.4s ease-in-out infinite;
+}
+
+@keyframes gpd-blink {
+  50% {
+    opacity: 0.25;
+  }
+}
+
+.gpd-time {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.75;
+}
+
+/* ── Trigger ──────────────────────────────────────────────────────── */
+
+.gpd-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 2.25rem;
+  padding: 0 0.85rem;
+  border-radius: 999px;
+  border: 1px solid rgba(13, 148, 136, 0.45);
+  background: linear-gradient(180deg, rgba(45, 212, 191, 0.16), rgba(13, 148, 136, 0.1));
+  color: var(--color-teal-500, #0d9488);
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.gpd-trigger:hover:not(:disabled) {
+  border-color: rgba(13, 148, 136, 0.8);
+  background: linear-gradient(180deg, rgba(45, 212, 191, 0.26), rgba(13, 148, 136, 0.16));
+}
+
+.gpd-trigger:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+/* The control bar sits over the top-right of the header, which is where the trigger lives.
+   Hidden rather than unmounted so the header does not reflow mid-recording. */
+[data-demo="running"] .gpd-trigger {
+  visibility: hidden;
+}
+
+/* While the tour runs, suppress stray selection highlights from synthetic clicks. */
+[data-demo="running"] {
+  user-select: none;
+}
+
+[data-demo="running"] * {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gpd-cursor {
+    transition: none;
+  }
+  .gpd-caption {
+    animation: none;
+  }
+}

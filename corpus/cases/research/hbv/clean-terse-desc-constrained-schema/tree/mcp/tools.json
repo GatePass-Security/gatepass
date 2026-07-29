@@ -1,0 +1,30 @@
+{
+  "tools": [
+    {
+      "name": "get_user",
+      "description": "Gets a user.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "userId": { "type": "string", "pattern": "^usr_[0-9a-hjkmnp-tv-z]{26}$" }
+        },
+        "required": ["userId"],
+        "additionalProperties": false
+      },
+      "annotations": { "readOnlyHint": true, "destructiveHint": false, "openWorldHint": false }
+    },
+    {
+      "name": "get_org",
+      "description": "Gets an org.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "orgId": { "type": "string", "pattern": "^org_[0-9a-hjkmnp-tv-z]{26}$" }
+        },
+        "required": ["orgId"],
+        "additionalProperties": false
+      },
+      "annotations": { "readOnlyHint": true, "destructiveHint": false, "openWorldHint": false }
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+services:
+  crm-mcp:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      MCP_HOST: "0.0.0.0"
+      MCP_PORT: "8080"
+      PGHOST: db
+    restart: unless-stopped
+
+  db:
+    image: postgres:16.3-alpine
+    environment:
+      POSTGRES_DB: crm
+      POSTGRES_USER: crm_app
+      POSTGRES_HOST_AUTH_METHOD: trust

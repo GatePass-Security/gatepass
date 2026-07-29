@@ -1,0 +1,8 @@
+# Installed fresh in CI on every build.
+fastapi>=0.110
+uvicorn[standard]>=0.29
+httpx>=0.27
+pydantic>=2.6
+sqlalchemy>=2.0
+boto3>=1.34
+python-multipart>=0.0.9

@@ -1,0 +1,7 @@
+{
+  "id": "verified/exposed-secret/holdout3-clean-sops-encrypted-values",
+  "classId": "exposed-secret",
+  "label": "clean",
+  "public": true,
+  "note": "Provider credential keys are present but every value is SOPS/age ciphertext, so the committed file holds no usable secret"
+}

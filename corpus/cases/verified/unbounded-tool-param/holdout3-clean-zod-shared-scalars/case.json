@@ -1,0 +1,7 @@
+{
+  "id": "verified/unbounded-tool-param/holdout3-clean-zod-shared-scalars",
+  "classId": "unbounded-tool-param",
+  "label": "clean",
+  "public": true,
+  "note": "Tool schemas look bare because every parameter is a named scalar imported from scalars.ts, where the length, regex, range and enum bounds live"
+}

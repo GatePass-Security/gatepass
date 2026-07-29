@@ -1,0 +1,7 @@
+{
+  "id": "verified/cors-misconfig/clean-fastify-public-readonly-wildcard",
+  "classId": "cors-misconfig",
+  "label": "clean",
+  "public": true,
+  "note": "Fastify status API sends a wildcard origin with credentials explicitly disabled on GET-only unauthenticated routes"
+}

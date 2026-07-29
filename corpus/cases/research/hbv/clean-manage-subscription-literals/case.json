@@ -1,0 +1,7 @@
+{
+  "id": "research/hbv/clean-manage-subscription-literals",
+  "classId": "hbv",
+  "label": "clean",
+  "public": true,
+  "note": "Broad-sounding manage_subscription tool constrained to three Literal actions and a UUID-validated id"
+}

@@ -1,0 +1,9 @@
+{
+  "provider": "github",
+  "client_id": "Iv1.EXAMPLECLIENTID00",
+  "authorize_url": "https://github.com/login/oauth/authorize",
+  "token_url": "https://github.com/login/oauth/access_token",
+  "scopes": ["read:user", "user:email", "read:org"],
+  "redirect_uri": "https://app.example.com/auth/github/callback",
+  "allow_signup": false
+}

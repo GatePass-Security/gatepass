@@ -1,0 +1,7 @@
+{
+  "id": "research/over-permissioned-loop/holdout3-vuln-php-laravel-selfdispatch",
+  "classId": "over-permissioned-loop",
+  "label": "vulnerable",
+  "public": true,
+  "note": "Laravel queue job re-dispatches itself after every tool observation; $tries and $timeout bound one attempt, not the chain"
+}

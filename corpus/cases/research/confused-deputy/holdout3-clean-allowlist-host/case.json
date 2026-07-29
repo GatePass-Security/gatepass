@@ -1,0 +1,7 @@
+{
+  "id": "research/confused-deputy/holdout3-clean-allowlist-host",
+  "classId": "confused-deputy",
+  "label": "clean",
+  "public": true,
+  "note": "Attaches the server credential only after the caller-supplied URL is validated to be on a fixed trusted-host allowlist"
+}

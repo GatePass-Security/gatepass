@@ -1,0 +1,7 @@
+{
+  "id": "verified/missing-schema-validation/vuln-zod-declared-never-parsed",
+  "classId": "missing-schema-validation",
+  "label": "vulnerable",
+  "public": true,
+  "note": "A zod input schema is declared and attached to the tool metadata but the dispatcher never parses the model's arguments"
+}

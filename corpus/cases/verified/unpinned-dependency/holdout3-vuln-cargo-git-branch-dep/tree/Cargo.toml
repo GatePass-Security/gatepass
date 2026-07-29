@@ -1,0 +1,22 @@
+[package]
+name = "ledger-sync"
+version = "0.3.1"
+edition = "2021"
+publish = false
+
+[[bin]]
+name = "ledger-sync"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = "1.0"
+serde = { version = "1", features = ["derive"] }
+serde_json = "*"
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+
+# Shared internal crate. Tracks whatever HEAD of main happens to be at build time.
+tenant-audit = { git = "https://github.com/acme-internal/tenant-audit", branch = "main" }
+
+[profile.release]
+lto = true
+strip = "symbols"

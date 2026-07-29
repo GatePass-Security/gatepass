@@ -1,0 +1,7 @@
+{
+  "id": "verified/unbounded-tool-param/vuln-freeform-command-string",
+  "classId": "unbounded-tool-param",
+  "label": "vulnerable",
+  "public": true,
+  "note": "Shell and file-write tools expose free-form string params with no enum, pattern or maxLength"
+}

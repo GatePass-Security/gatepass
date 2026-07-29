@@ -1,0 +1,22 @@
+{
+  "display_information": {
+    "name": "Standup Bot",
+    "description": "Runs the daily standup thread and posts the summary."
+  },
+  "features": {
+    "bot_user": { "display_name": "standup", "always_online": true }
+  },
+  "oauth_config": {
+    "scopes": {
+      "bot": ["channels:history", "channels:read", "chat:write"]
+    }
+  },
+  "settings": {
+    "event_subscriptions": {
+      "bot_events": ["message.channels", "app_mention"]
+    },
+    "org_deploy_enabled": false,
+    "socket_mode_enabled": true,
+    "token_rotation_enabled": true
+  }
+}

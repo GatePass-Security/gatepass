@@ -1,0 +1,7 @@
+{
+  "id": "research/unauth-mcp-transport/holdout3-vuln-middleware-after-route",
+  "classId": "unauth-mcp-transport",
+  "label": "vulnerable",
+  "public": true,
+  "note": "Express API-key middleware exists but is registered after the MCP route, so it never runs for MCP requests"
+}

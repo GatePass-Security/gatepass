@@ -1,0 +1,7 @@
+{
+  "id": "research/hbv/holdout3-vuln-records-rawsql",
+  "classId": "hbv",
+  "label": "vulnerable",
+  "public": true,
+  "note": "Tool vaguely described as 'work with records' passes its argument straight into a raw SQL execute in a second file"
+}
