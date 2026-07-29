@@ -408,7 +408,7 @@ export default function LandingPage() {
             wanted the argument behind one previously had to leave for the repository and find the
             right markdown file — which is another way of saying nobody did.
           */}
-          <BenchmarkExplorer github={SITE.github}>
+          <BenchmarkExplorer>
             <Reveal>
               <h2 className="gp-bench-h2">Every number here ships with the reason to doubt it</h2>
               <p className="gp-bench-p" style={{ marginTop: 16 }}>

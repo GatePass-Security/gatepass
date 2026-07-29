@@ -522,12 +522,29 @@ function BlockView({ block }: { block: Block }) {
   }
 }
 
-export function BenchmarkExplorer({ children, github }: { children: React.ReactNode; github: string }) {
+export function BenchmarkExplorer({ children }: { children: React.ReactNode }) {
   const [active, setActive] = useState<string | null>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+  const sectionRef = useRef<HTMLDivElement>(null);
   const article = ARTICLES.find((a) => a.id === active) ?? null;
 
   const close = useCallback(() => setActive(null), []);
+
+  /**
+   * The masthead's action: close whatever is open and put the section back in view.
+   *
+   * Closing alone is not enough. An article is taller than the summary it replaces, so a reader
+   * who clicks "back" from deep inside one would land on whatever now occupies that scroll
+   * position — usually the section below. Returning to the top of the benchmarks block is what
+   * "back to the benchmarks" actually means.
+   */
+  const backToSummary = useCallback(() => {
+    setActive(null);
+    requestAnimationFrame(() => {
+      const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      sectionRef.current?.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" });
+    });
+  }, []);
 
   /* Escape closes, matching every other dismissible surface in the product. */
   useEffect(() => {
@@ -555,18 +572,37 @@ export function BenchmarkExplorer({ children, github }: { children: React.ReactN
   }, []);
 
   return (
-    <div className="gp-bench-layout" data-reading={article ? "true" : undefined}>
+    <div className="gp-bench-layout" ref={sectionRef} data-reading={article ? "true" : undefined}>
       <div className="gp-bench-sidebar">
-        <div className="gp-bench-author-label">Written by</div>
-        <div className="gp-bench-author-row">
-          <div className="gp-bench-author-name">Gatepass Research</div>
-          <div className="gp-bench-socials">
-            <a href={github} target="_blank" rel="noreferrer" className="gp-bench-social-link" aria-label="Repository">
-              <ArrowUpRight size={18} />
-            </a>
-          </div>
-        </div>
-        <div className="gp-bench-role">Deterministic Security Engine</div>
+        {/*
+          The masthead is the way back. It used to be a byline with an outbound link to the
+          repository, which is the one destination a reader part-way through an article does not
+          want — leaving the page is not "up a level". Clicking it now closes whatever is open and
+          returns to the benchmark summary, which is what the arrow already looked like it meant.
+
+          One button around the whole card rather than a link inside a heading: the arrow and the
+          name do the same thing, so making them separate targets would only create a small one
+          next to a large one that behave identically.
+        */}
+        <button
+          type="button"
+          className="gp-bench-author-card"
+          onClick={backToSummary}
+          aria-label={article ? "Back to the benchmark summary" : "Benchmark summary"}
+        >
+          <span className="gp-bench-author-label">Written by</span>
+          <span className="gp-bench-author-row">
+            <span className="gp-bench-author-name">Gatepass Research</span>
+            <span className="gp-bench-socials">
+              <span className="gp-bench-social-link" aria-hidden="true">
+                {/* The glyph states the destination: back to the summary while reading, and the
+                    section's own top when there is nothing open to leave. */}
+                {article ? <ArrowLeft size={18} /> : <ArrowUpRight size={18} />}
+              </span>
+            </span>
+          </span>
+          <span className="gp-bench-role">Deterministic Security Engine</span>
+        </button>
         <div className="gp-bench-divider" />
 
         <div className="gp-bench-topic-list">
