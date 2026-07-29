@@ -5,6 +5,7 @@ import { DetectionSlider } from "@/components/landing/DetectionSlider";
 import { HowItWorksInteractive } from "@/components/landing/HowItWorksInteractive";
 import { ServicesAccordion } from "@/components/landing/ServicesAccordion";
 import { BenchmarkVisualCard } from "@/components/landing/BenchmarkVisualCard";
+import { BenchmarkExplorer } from "@/components/landing/BenchmarkExplorer";
 import { GatepassLogo } from "@/components/landing/GatepassLogo";
 import { Reveal } from "@/components/landing/motion";
 import "@/styles/landing.css";
@@ -150,6 +151,56 @@ const COMPARISON = [
   },
   { tool: "Gitleaks 8.30.1", classes: "1 / 12", cases: "2 / 93", fp: "1", deterministic: "Yes", repro: "No" },
   { tool: "Trivy 0.72.0", classes: "0 / 12", cases: "0 / 93", fp: "0", deterministic: "Yes", repro: "No" },
+  /*
+   * Measured on a different population and labelled as such. The LLM baseline ran on a 24-case
+   * draw — one vulnerable and one clean per class — so its recall is not comparable to the 93
+   * vulnerable cases above, and the cases column says which population each row belongs to. The
+   * "naive prompt" condition is the one a user would actually type; the guided condition, which
+   * ties us, is on the benchmark panel rather than hidden.
+   */
+  {
+    tool: "Claude (frontier LLM), naive prompt",
+    classes: "12 / 12",
+    cases: "12 / 12 · 24-case draw",
+    fp: "8",
+    deterministic: "No",
+    repro: "No",
+    population: "sample" as const,
+  },
+  /*
+   * Rows we have NOT measured, kept because a reader comparing tools deserves to see them — and
+   * kept without numbers because we do not have any. Every figure this page ever published for
+   * CodeQL, CodeRabbit and Greptile came from a harness bug rather than a run (see the panel),
+   * so the bar for putting a number back is a run that produced output. Coverage below is each
+   * vendor's own public description of what their tool looks for, not our assessment of it.
+   */
+  {
+    tool: "CodeRabbit CLI",
+    classes: "Not measured",
+    cases: "—",
+    fp: "—",
+    deterministic: "No",
+    repro: "No",
+    claim: "Vendor describes SQL injection, exposed secrets, race conditions and leaks, over 40 linters/SAST",
+  },
+  {
+    tool: "Greptile Agent v4",
+    classes: "Not measured",
+    cases: "—",
+    fp: "—",
+    deterministic: "No",
+    repro: "No",
+    claim: "Vendor describes SQL injection, SSRF and unsafe input handling, opengrep rules plus SCA",
+  },
+  {
+    tool: "GitHub Advanced Security (CodeQL)",
+    classes: "Not measured",
+    cases: "—",
+    fp: "—",
+    deterministic: "Yes",
+    repro: "No",
+    claim: "Our run never executed — withdrawn rather than published as a zero",
+  },
   {
     tool: "Snyk Agent Scan",
     classes: "Cannot scan source",
@@ -352,177 +403,132 @@ export default function LandingPage() {
       <Divider index="05" label="Benchmarks" />
       <section className="gp-section" id="benchmarks" style={{ paddingTop: 0 }}>
         <div className="gp-container">
-          <div className="gp-bench-layout">
-            {/* Left Sidebar */}
-            <Reveal className="gp-bench-sidebar">
-              <div className="gp-bench-author-label">Written by</div>
-              <div className="gp-bench-author-row">
-                <div className="gp-bench-author-name">Gatepass Research</div>
-                <div className="gp-bench-socials">
-                  <a
-                    href={SITE.github}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="gp-bench-social-link"
-                    aria-label="GitHub Repository"
-                  >
-                    <ArrowUpRight size={18} />
-                  </a>
-                </div>
-              </div>
-              <div className="gp-bench-role">Deterministic Security Engine</div>
-              <div className="gp-bench-divider" />
+          {/*
+            The sidebar entries open in place. Each headline states a limitation, and a reader who
+            wanted the argument behind one previously had to leave for the repository and find the
+            right markdown file — which is another way of saying nobody did.
+          */}
+          <BenchmarkExplorer github={SITE.github}>
+            <Reveal>
+              <h2 className="gp-bench-h2">Every number here ships with the reason to doubt it</h2>
+              <p className="gp-bench-p" style={{ marginTop: 16 }}>
+                192 cases across 12 classes. Half are vulnerable, half are hard negatives — safe code written to fool a
+                pattern matcher, like a redaction test full of credential-shaped strings, a CORS regression test whose{" "}
+                <em>title</em> is a sentence about wildcards, or schema constraints reachable only through a{" "}
+                <code>$ref</code> in another file. Identical corpus, identical scoring, every tool at a pinned version.
+              </p>
+              <p className="gp-bench-p" style={{ marginTop: 16 }}>
+                Most of the corpus was written by authors forbidden from reading our detectors, and told that fixtures
+                which defeat us are a good outcome. Many of them did.{" "}
+                <strong>
+                  All 192 cases were then visible while we closed the gaps, so 98.9% is an upper bound on your
+                  repository, not a prediction of it.
+                </strong>{" "}
+                A fresh set written by authors who have seen none of this is what would make the figure transferable,
+                and until that exists we say so everywhere the number appears.
+              </p>
+            </Reveal>
 
-              {/* Findings, not article stubs. The three entries here previously carried invented
-                  categories and publication dates for posts that do not exist. */}
-              <div className="gp-bench-topic-list">
-                <a href={SITE.github} target="_blank" rel="noreferrer" className="gp-bench-topic-item">
-                  <h3 className="gp-bench-topic-title">
-                    We detect 98.9% — and our own corpus was visible while we built for it. Read that before you quote
-                    it
-                  </h3>
-                  <div className="gp-bench-topic-meta">
-                    <span className="gp-bench-badge">Method</span>
-                    <span className="gp-bench-date">192 cases, upper bound</span>
-                  </div>
-                </a>
-
-                <a href={SITE.github} target="_blank" rel="noreferrer" className="gp-bench-topic-item">
-                  <h3 className="gp-bench-topic-title">
-                    We published CodeQL at zero of twelve. The run had never read a line of code
-                  </h3>
-                  <div className="gp-bench-topic-meta">
-                    <span className="gp-bench-badge">Withdrawn</span>
-                    <span className="gp-bench-date">4 harness bugs, all in our favour</span>
-                  </div>
-                </a>
-
-                <a href={SITE.github} target="_blank" rel="noreferrer" className="gp-bench-topic-item">
-                  <h3 className="gp-bench-topic-title">
-                    Three contamination incidents, logged. Including the one nobody would have found
-                  </h3>
-                  <div className="gp-bench-topic-meta">
-                    <span className="gp-bench-badge">Integrity log</span>
-                    <span className="gp-bench-date">corpus/INTEGRITY.md</span>
-                  </div>
-                </a>
+            <Reveal delay={1}>
+              <h3 className="gp-bench-h3">192-case scoring matrix</h3>
+              <div className="gp-table-wrap" style={{ marginTop: 16 }}>
+                <table className="gp-table">
+                  <thead>
+                    <tr>
+                      <th>Tool</th>
+                      <th>Classes with a detection</th>
+                      <th>Vulnerable cases</th>
+                      <th>False positives</th>
+                      <th>Deterministic</th>
+                      <th>Runnable reproduction</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {COMPARISON.map((row) => (
+                      <tr
+                        key={row.tool}
+                        className={row.us ? "gp-row-us" : undefined}
+                        data-basis={row.claim ? "unmeasured" : undefined}
+                      >
+                        <td style={{ fontWeight: row.us ? 600 : 400 }}>
+                          {row.tool}
+                          {/* The vendor's own words, attributed. A capability a company
+                                advertises is a fact about their marketing, which is all we can
+                                honestly assert without having run the tool ourselves. */}
+                          {row.claim && <span className="gp-claim">{row.claim}</span>}
+                        </td>
+                        <td className="gp-num" style={{ color: row.us ? "var(--accent)" : undefined }}>
+                          {row.classes}
+                        </td>
+                        <td className="gp-num">{row.cases}</td>
+                        <td className="gp-num">{row.fp}</td>
+                        <td className="gp-num">{row.deterministic}</td>
+                        <td className="gp-num" style={{ color: row.us ? "var(--accent)" : undefined }}>
+                          {row.repro}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </Reveal>
 
-            {/* Right Content */}
-            <div className="gp-bench-content">
-              <Reveal>
-                <h2 className="gp-bench-h2">Every number here ships with the reason to doubt it</h2>
-                <p className="gp-bench-p" style={{ marginTop: 16 }}>
-                  192 cases across 12 classes. Half are vulnerable, half are hard negatives — safe code written to fool
-                  a pattern matcher, like a redaction test full of credential-shaped strings, a CORS regression test
-                  whose <em>title</em> is a sentence about wildcards, or schema constraints reachable only through a{" "}
-                  <code>$ref</code> in another file. Identical corpus, identical scoring, every tool at a pinned
-                  version.
-                </p>
-                <p className="gp-bench-p" style={{ marginTop: 16 }}>
-                  Most of the corpus was written by authors forbidden from reading our detectors, and told that fixtures
-                  which defeat us are a good outcome. Many of them did.{" "}
-                  <strong>
-                    All 192 cases were then visible while we closed the gaps, so 98.9% is an upper bound on your
-                    repository, not a prediction of it.
-                  </strong>{" "}
-                  A fresh set written by authors who have seen none of this is what would make the figure transferable,
-                  and until that exists we say so everywhere the number appears.
-                </p>
-              </Reveal>
+            <Reveal delay={2}>
+              <h3 className="gp-bench-h3">What this does and does not prove</h3>
+              <p className="gp-bench-p" style={{ marginTop: 16 }}>
+                We cover twelve agentic vulnerability classes. On the same 192 cases, Trivy covers none of them,
+                Gitleaks one, and Semgrep two. That gap is the reason to use us, and it widened rather than closed as
+                the corpus got larger and considerably meaner.
+              </p>
 
-              <Reveal delay={1}>
-                <h3 className="gp-bench-h3">192-case scoring matrix</h3>
-                <div className="gp-table-wrap" style={{ marginTop: 16 }}>
-                  <table className="gp-table">
-                    <thead>
-                      <tr>
-                        <th>Tool</th>
-                        <th>Classes with a detection</th>
-                        <th>Vulnerable cases</th>
-                        <th>False positives</th>
-                        <th>Deterministic</th>
-                        <th>Runnable reproduction</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {COMPARISON.map((row) => (
-                        <tr key={row.tool} className={row.us ? "gp-row-us" : undefined}>
-                          <td style={{ fontWeight: row.us ? 600 : 400 }}>{row.tool}</td>
-                          <td className="gp-num" style={{ color: row.us ? "var(--accent)" : undefined }}>
-                            {row.classes}
-                          </td>
-                          <td className="gp-num">{row.cases}</td>
-                          <td className="gp-num">{row.fp}</td>
-                          <td className="gp-num">{row.deterministic}</td>
-                          <td className="gp-num" style={{ color: row.us ? "var(--accent)" : undefined }}>
-                            {row.repro}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </Reveal>
+              <ul className="gp-bench-bullets">
+                <li>
+                  <strong>Detection:</strong> 92 of 93 vulnerable cases. The one miss is an audit table with no tenant
+                  column, and we publish it by name — closing it meant trading away a guard that keeps two legitimate
+                  global lookup tables quiet, which was not a trade worth making.
+                </li>
+                <li>
+                  <strong>Precision under pressure:</strong> zero false positives across 99 clean cases built
+                  specifically to trip a pattern matcher. This is the figure least affected by having seen the corpus —
+                  hard negatives punish a rule that overfits.
+                </li>
+                <li>
+                  <strong>Against a frontier model:</strong> on 24 cases scored identically, an unguided LLM matches our
+                  recall and returns eight false positives to our zero. Handed the twelve class names up front it ties
+                  us exactly — we publish that row too, because deleting the one condition where a competitor draws
+                  level is the whole failure mode this page exists to avoid.
+                </li>
+                <li>
+                  <strong>Evidence that holds:</strong> 111 verified findings, zero we could not reproduce. A finding
+                  reaches the verified tier only when its cited file and line re-check against source; anything
+                  unprovable is filed as research with a confidence score instead.
+                </li>
+                <li>
+                  <strong>No model in the merge gate:</strong> byte-identical output across ten runs, so a CI build
+                  never flips on model temperature. Research-tier semantic analysis is the one path that calls a model,
+                  it only adjusts confidence on findings already flagged unproven, and you can switch it off per
+                  organisation.
+                </li>
+              </ul>
 
-              <Reveal delay={2}>
-                <h3 className="gp-bench-h3">What this does and does not prove</h3>
-                <p className="gp-bench-p" style={{ marginTop: 16 }}>
-                  We cover twelve agentic vulnerability classes. On the same 192 cases, Trivy covers none of them,
-                  Gitleaks one, and Semgrep two. That gap is the reason to use us, and it widened rather than closed as
-                  the corpus got larger and considerably meaner.
-                </p>
+              <blockquote className="gp-bench-quote">
+                We published CodeQL at zero of twelve. The command was wrong — it needed a database and we handed it a
+                source tree — so it aborted on every case, and a harness that discarded errors recorded the silence as a
+                score. Four bugs like that surfaced in one week. Every one made a competitor look worse and us look
+                better. The numbers are withdrawn and the harnesses can no longer express “did not run” as “found
+                nothing”.
+              </blockquote>
 
-                <ul className="gp-bench-bullets">
-                  <li>
-                    <strong>Detection:</strong> 92 of 93 vulnerable cases. The one miss is an audit table with no tenant
-                    column, and we publish it by name — closing it meant trading away a guard that keeps two legitimate
-                    global lookup tables quiet, which was not a trade worth making.
-                  </li>
-                  <li>
-                    <strong>Precision under pressure:</strong> zero false positives across 99 clean cases built
-                    specifically to trip a pattern matcher. This is the figure least affected by having seen the corpus
-                    — hard negatives punish a rule that overfits.
-                  </li>
-                  <li>
-                    <strong>Against a frontier model:</strong> on 24 cases scored identically, an unguided LLM matches
-                    our recall and returns eight false positives to our zero. Handed the twelve class names up front it
-                    ties us exactly — we publish that row too, because deleting the one condition where a competitor
-                    draws level is the whole failure mode this page exists to avoid.
-                  </li>
-                  <li>
-                    <strong>Evidence that holds:</strong> 111 verified findings, zero we could not reproduce. A finding
-                    reaches the verified tier only when its cited file and line re-check against source; anything
-                    unprovable is filed as research with a confidence score instead.
-                  </li>
-                  <li>
-                    <strong>No model in the merge gate:</strong> byte-identical output across ten runs, so a CI build
-                    never flips on model temperature. Research-tier semantic analysis is the one path that calls a
-                    model, it only adjusts confidence on findings already flagged unproven, and you can switch it off
-                    per organisation.
-                  </li>
-                </ul>
+              <BenchmarkVisualCard />
 
-                <blockquote className="gp-bench-quote">
-                  We published CodeQL at zero of twelve. The command was wrong — it needed a database and we handed it a
-                  source tree — so it aborted on every case, and a harness that discarded errors recorded the silence as
-                  a score. Four bugs like that surfaced in one week. Every one made a competitor look worse and us look
-                  better. The numbers are withdrawn and the harnesses can no longer express “did not run” as “found
-                  nothing”.
-                </blockquote>
-
-                <BenchmarkVisualCard />
-
-                <div style={{ marginTop: 20 }}>
-                  <a className="gp-link" href="#benchmarks">
-                    Read the full method and re-run it yourself
-                    <ArrowUpRight size={16} />
-                  </a>
-                </div>
-              </Reveal>
-            </div>
-          </div>
+              <div style={{ marginTop: 20 }}>
+                <a className="gp-link" href="#benchmarks">
+                  Read the full method and re-run it yourself
+                  <ArrowUpRight size={16} />
+                </a>
+              </div>
+            </Reveal>
+          </BenchmarkExplorer>
         </div>
       </section>
 

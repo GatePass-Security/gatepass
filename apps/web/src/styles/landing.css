@@ -2062,11 +2062,21 @@ body:has(.gp) {
   margin-top: 8px;
 }
 
+/* A <button>, not an <a>: it opens a panel on this page rather than navigating. The reset is
+   explicit because a button inherits neither the font nor the text alignment of its container. */
 .gp-bench-topic-item {
+  position: relative;
   display: flex;
   flex-direction: column;
-  padding-bottom: 20px;
+  align-items: flex-start;
+  width: 100%;
+  padding: 0 0 20px;
+  border: none;
   border-bottom: 1px solid var(--line-soft);
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
   text-decoration: none;
   cursor: pointer;
 }
@@ -2074,6 +2084,50 @@ body:has(.gp) {
 .gp-bench-topic-item:last-child {
   border-bottom: none;
   padding-bottom: 0;
+}
+
+/* The open entry is marked with a rule rather than a fill, so the accent stays spent on data. */
+.gp-bench-topic-item::before {
+  content: "";
+  position: absolute;
+  top: 2px;
+  bottom: 22px;
+  left: -18px;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--accent);
+  opacity: 0;
+  transform: scaleY(0.35);
+  transform-origin: top;
+  transition:
+    opacity 0.28s ease,
+    transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.gp-bench-topic-item[data-active="true"]::before {
+  opacity: 1;
+  transform: scaleY(1);
+}
+
+.gp-bench-topic-item[data-active="true"] .gp-bench-topic-title {
+  color: var(--accent);
+}
+
+.gp-bench-topic-item[data-active="true"] .gp-bench-badge {
+  background: rgba(45, 212, 191, 0.12);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* While one entry is open the others recede — enough to show which is being read, not enough
+   to make them unreadable. */
+.gp-bench-layout[data-reading="true"] .gp-bench-topic-item:not([data-active="true"]) {
+  opacity: 0.52;
+  transition: opacity 0.3s ease;
+}
+
+.gp-bench-layout[data-reading="true"] .gp-bench-topic-item:not([data-active="true"]):hover {
+  opacity: 1;
 }
 
 .gp-bench-topic-title {
@@ -2398,4 +2452,230 @@ body:has(.gp) {
   .gp-vis-class-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* ─────────────── Benchmark article panel ───────────────
+   The sidebar entries open in place rather than linking away. The transition is short and
+   directional — content rises and resolves — because the point is to make the argument behind a
+   headline reachable, not to perform. Everything here collapses to a plain fade under
+   prefers-reduced-motion. */
+
+@keyframes gp-art-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+    filter: blur(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: blur(0);
+  }
+}
+
+@keyframes gp-art-block-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.gp-art,
+.gp-art-summary {
+  animation: gp-art-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.gp-art-block {
+  animation: gp-art-block-in 0.44s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.gp-art-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  align-self: flex-start;
+  margin-bottom: 22px;
+  padding: 7px 14px 7px 11px;
+  border: 1px solid var(--line-soft);
+  border-radius: 999px;
+  background: none;
+  color: var(--fg-dim);
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+  transition:
+    color 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.gp-art-back:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+  transform: translateX(-2px);
+}
+
+.gp-art-back-end {
+  margin: 34px 0 0;
+}
+
+.gp-art-kicker {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.gp-art-h2 {
+  font-size: 33px;
+  font-weight: 500;
+  line-height: 1.22;
+  letter-spacing: -0.02em;
+  color: var(--fg);
+}
+
+/* The standfirst carries the caveat, so it is deliberately as prominent as the headline it
+   qualifies — a disclaimer set in small grey text is a disclaimer nobody reads. */
+.gp-art-standfirst {
+  margin-top: 16px;
+  padding-left: 16px;
+  border-left: 2px solid var(--accent);
+  font-size: 16.5px;
+  line-height: 1.62;
+  color: var(--fg-soft, var(--fg-dim));
+}
+
+.gp-art-body {
+  margin-top: 30px;
+}
+
+.gp-art-h3 {
+  margin: 34px 0 0;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--fg-dim);
+}
+
+.gp-art-p {
+  margin-top: 15px;
+  font-size: 15.5px;
+  line-height: 1.72;
+  color: var(--fg-dim);
+}
+
+.gp-art-p strong {
+  color: var(--fg);
+  font-weight: 500;
+}
+
+.gp-art-p code,
+.gp-art-quote code {
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  font-family: var(--font-jetbrains), monospace;
+  font-size: 0.88em;
+  color: var(--fg);
+}
+
+.gp-art-quote {
+  margin: 26px 0 0;
+  padding: 18px 20px;
+  border: 1px solid var(--line-soft);
+  border-left: 2px solid var(--accent);
+  border-radius: 0 8px 8px 0;
+  background: rgba(45, 212, 191, 0.04);
+  font-size: 15.5px;
+  line-height: 1.66;
+  color: var(--fg);
+}
+
+.gp-art-code {
+  margin-top: 18px;
+  padding: 16px 18px;
+  overflow-x: auto;
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.28);
+  font-family: var(--font-jetbrains), monospace;
+  font-size: 12.5px;
+  line-height: 1.85;
+  color: var(--fg-dim);
+}
+
+.gp-art-facts {
+  display: grid;
+  gap: 1px;
+  margin-top: 20px;
+  overflow: hidden;
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  background: var(--line-soft);
+}
+
+.gp-art-fact {
+  display: grid;
+  grid-template-columns: minmax(120px, 0.34fr) 1fr;
+  gap: 14px;
+  padding: 12px 16px;
+  background: var(--bg);
+}
+
+.gp-art-fact dt {
+  font-size: 12.5px;
+  color: var(--fg-dim);
+}
+
+.gp-art-fact dd {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--fg);
+}
+
+.gp-art-table {
+  margin-top: 20px;
+}
+
+@media (max-width: 720px) {
+  .gp-art-h2 {
+    font-size: 26px;
+  }
+  .gp-art-fact {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gp-art,
+  .gp-art-summary,
+  .gp-art-block {
+    animation: none;
+  }
+  .gp-bench-topic-item::before,
+  .gp-art-back {
+    transition: none;
+  }
+}
+
+/* A row we have not run. Dimmed rather than hidden: a reader comparing tools should see that the
+   tool exists and that we have no number for it, which is a different statement from a zero. */
+.gp-table tr[data-basis="unmeasured"] td {
+  color: var(--fg-dim);
+}
+
+.gp-claim {
+  display: block;
+  max-width: 46ch;
+  margin-top: 5px;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--fg-dim);
+  opacity: 0.78;
 }
