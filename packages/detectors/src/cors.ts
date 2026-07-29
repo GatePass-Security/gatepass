@@ -733,6 +733,34 @@ function classifyPlaceholder(expr: string, env: FoldEnv): { kind: Permissiveness
 /* ── grant collection ───────────────────────────────────────────────────────────────── */
 
 const HEADER_NAME = /access-control-allow-origin/gi;
+
+/**
+ * The header name written *about* rather than written *out*.
+ *
+ * `valueAfter` takes whatever follows the header name, which is right for every way a policy is
+ * actually expressed — `setHeader("Access-Control-Allow-Origin", origin)`, YAML's
+ * `Access-Control-Allow-Origin: "*"`, and nginx's punctuation-free
+ * `add_header Access-Control-Allow-Origin $upstream`. That last form is why the value cannot
+ * simply be required to follow a `:` or `=`.
+ *
+ * But it also matched this detector's own remediation text — "read the
+ * Access-Control-Allow-Origin response header." — and reported the word `response` as a
+ * reflected origin. Gatepass flagged its own prose as a vulnerability.
+ *
+ * Documentation, log lines and remediation copy all share one property that no policy
+ * declaration has: a run of ordinary English *before* the header name. Config and code put at
+ * most a call or a key there. Counting words only on the left is deliberate — a trailing comment
+ * (`Access-Control-Allow-Origin: * # loosened for the demo`) is a real policy with prose after
+ * it, and must still fire.
+ */
+function isProseMention(body: string, index: number): boolean {
+  const lineStart = body.lastIndexOf("\n", index) + 1;
+  const before = body.slice(lineStart, index);
+  // Purely alphabetic, space-delimited words. Identifiers (`res.setHeader`), snake_case
+  // directives (`add_header`) and sigils (`$origin`) are not English and do not count.
+  const words = before.match(/(?:^|\s)[A-Za-z]+(?=\s)/g) ?? [];
+  return words.length >= 3;
+}
 /**
  * A bare `origin` key is only a CORS option in a map/object literal (`cors({ origin: … })`,
  * `origin: "*"` in YAML). Accepting `=` for it would read every `const origin = …` local
@@ -929,6 +957,33 @@ function valueAfter(content: string, from: number): string {
  */
 const PREDICATE_JS = /\b([A-Za-z_$][\w$]*)\s*\.\s*(endsWith|startsWith|includes|contains|indexOf|search)\s*\(/gi;
 const PREDICATE_PY = /\b([A-Za-z_]\w*)\s*\.\s*(endswith|startswith|find)\s*\(/g;
+
+/**
+ * A suffix test whose suffix begins with a separator is the *correct* subdomain check, not the
+ * bug this rule is looking for.
+ *
+ * `origin.endsWith("acme.com")` is satisfied by `evilacme.com` because the attacker supplies the
+ * character immediately before the suffix. `origin.endsWith("." + base)` removes exactly that
+ * freedom: `evilacme.com` does not end in `.acme.com`, so the only way to satisfy it is to own a
+ * real subdomain. Flagging it does not just cost precision — it tells the author to replace
+ * working code with something no safer, and the obvious "fix" (dropping the dot) is the actual
+ * vulnerability.
+ *
+ * Only `endsWith`/`endswith` earn the exemption. A dot-anchored *prefix* test is still broken:
+ * `startsWith("https://acme.com")` is satisfied by `https://acme.com.evil.test`, because there
+ * the attacker appends rather than prepends.
+ */
+function isSeparatorAnchored(method: string, body: string, argStart: number): boolean {
+  if (!/^endswith$/i.test(method)) return false;
+  // The argument as written, up to the first comma or the closing paren. Concatenation is fine:
+  // what matters is the first literal character the comparison will see.
+  const arg =
+    body
+      .slice(argStart, argStart + 200)
+      .split(/[,)]/)[0]
+      ?.trim() ?? "";
+  return /^["'`][./]/.test(arg);
+}
 const PREDICATE_GO = /strings\s*\.\s*(HasSuffix|HasPrefix|Contains)\s*\(\s*([A-Za-z_][\w.]*)/g;
 const PREDICATE_REGEX = /\b([A-Za-z_$][\w$]*)\s*\.\s*(?:match|test)\s*\(\s*\/([^/\n]+)\//g;
 
@@ -984,6 +1039,7 @@ function collectGrants(file: ScanFile, env: FoldEnv): OriginGrant[] {
   HEADER_NAME.lastIndex = 0;
   let m: RegExpExecArray | null;
   while ((m = HEADER_NAME.exec(body)) !== null) {
+    if (isProseMention(body, m.index)) continue;
     push(m.index, classifyValue(valueAfter(body, m.index + m[0].length), file, env));
   }
 
@@ -1022,6 +1078,7 @@ function collectGrants(file: ScanFile, env: FoldEnv): OriginGrant[] {
       re.lastIndex = 0;
       while ((m = re.exec(body)) !== null) {
         if (!ORIGIN_RECEIVER.test(m[1] ?? "")) continue;
+        if (isSeparatorAnchored(m[2] ?? "", body, m.index + m[0].length)) continue;
         grants.push({
           index: m.index,
           kind: "predicate",

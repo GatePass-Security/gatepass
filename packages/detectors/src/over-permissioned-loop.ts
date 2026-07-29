@@ -260,8 +260,23 @@ function findLoops(content: string, lang: Lang): LoopSite[] {
 const MODEL_CALL =
   /(\b(llm|model|agent|assistant|planner|brain|client|anthropic|openai|bedrock|gemini|ollama|chain)\b\s*\.\s*\w*(run|call|complete|completion|chat|invoke|next|create|generate|send|step|respond|predict|stream|act)\w*\s*\()|(\b(call|invoke|run|query|ask)_?(model|llm|agent|assistant|completion)\w*\s*\()|(messages\s*\.\s*create\s*\()|(chat\s*\.\s*completions\s*\.\s*create)|(generate(Text|Content|Object)\s*\()|(\.\s*Next\s*\(\s*ctx)|(\.\s*Next\s*\(\s*\w*[Cc]tx)/i;
 
+/**
+ * Evidence that the loop *executes* a tool, not merely that the word "tool" appears.
+ *
+ * Three noun patterns were removed after Gatepass scanned its own source: `tools?\s*\[`
+ * (indexing a collection), `tool\s*\(\s*\w` (an MCP *registration* helper — declaring a tool is
+ * the opposite of running one), and the `name|args|input` field names, along with `ToolName` and
+ * `ToolArgs`. Each matched ordinary identifiers in code that *analyses* tools, so every recursive
+ * helper in `packages/detectors` read as an unbounded agent loop — seven findings, all false.
+ *
+ * That failure mode is not peculiar to us. A codebase with a `tools` array or a `toolName`
+ * variable is precisely an agentic codebase, which is the population this detector exists to
+ * serve; a gate satisfied by the vocabulary would fire on all of them. What survives here are
+ * verbs (`run_tool(`, `tools.execute(`) and agent-protocol artifacts that only exist once a model
+ * has actually asked for a call (`tool_calls`, `tool_use`, `tool_result`, `function_calls`).
+ */
 const TOOL_CALL =
-  /((run|call|execute|invoke|dispatch|perform|apply|handle)_?tools?\b)|(\btools?\s*\[)|(\btools?\s*\.\s*\w+\s*\()|(\btool\s*\(\s*\w)|(tool_?(calls?|use|uses|name|args|input|result|invocations?)\b)|(function_?calls?\b)|(ToolName|ToolArgs|ToolFunc|ToolCall)|(\.\s*(useTool|toolUse)\b)/i;
+  /((run|call|execute|invoke|dispatch|perform|handle)_?tools?\s*\()|(\btools?\s*\.\s*(run|call|execute|invoke|dispatch|handle|use)\w*\s*\()|(tool_?(calls?|use|uses|result|invocations?)\b)|(function_?calls?\b)|(\bToolCall\b)|(\.\s*(useTool|toolUse)\b)/i;
 
 function drivesAgent(body: string): boolean {
   return MODEL_CALL.test(body) || TOOL_CALL.test(body);
