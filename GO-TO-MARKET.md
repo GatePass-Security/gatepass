@@ -19,7 +19,7 @@ this repo.*
    currently gitignored and not on disk — regenerating it is task #1.**
 3. **Run 12 discovery calls a week for the next 8 weeks** (floor 8, stretch 15). ~100
    conversations before the YC application. Math and cadence in §7.
-4. **Charge from day one. $500/mo design-partner price.** Free pilots prove nothing to YC and
+4. **Charge from day one. $299/mo design-partner price.** Free pilots prove nothing to YC and
    nothing to you.
 5. **Cut Layer 4 (WCAG / CCPA / App Store) from the pitch.** It is a different buyer, a different
    category, and it makes a sharp security story sound like a compliance grab-bag. Keep the code;
@@ -60,9 +60,11 @@ Most agentic-security seed pitches are a landing page and a demo video.
 
 ### Three inconsistencies to fix before anything goes public
 
-1. **Pricing contradicts itself.** [`GATEPASS_ONEPAGER_V4.md`](GATEPASS_ONEPAGER_V4.md) says Team
-   $500–1,500/mo, Scale $2–5K/mo. Your newer summary says Growth $2,500/mo, Enterprise $35K/yr.
-   Pick one (recommendation in §8).
+1. ~~**Pricing contradicts itself.**~~ **Resolved.** Three tiers — Free $0, Team $299/mo,
+   Enterprise $1,999–2,999/mo billed annually at $24–36K ACV — stated in the YC application, live
+   on the landing page, and written out in §8. Two earlier sets are dead: the one-pager's Team
+   $500–1,500 / Scale $2–5K, and a later summary's Growth $2,500 / Enterprise $35K/yr. If you find
+   either still quoted anywhere, that copy is stale.
 2. **Dated model names.** The summary cites "Claude 3.5 Sonnet, GPT-4o." The repo actually wires
    NVIDIA NIM GLM 5.2. Anyone technical reading a 2026 pitch that names 2024 models discounts the
    whole document. Say what the code does, and name current-generation models.
@@ -149,13 +151,13 @@ you.** Here's why:
 ```
 LAND (week 0)          engineer who owns the MCP server
                        "here's a real finding in your repo, with the line and the fix"
-                       free CLI → GitHub App → PR gate.        $0 → $500/mo
+                       free CLI → GitHub App → PR gate.        $0 → $299/mo
 
 EXPAND (month 2-4)     their CTO / whoever owns the security questionnaire
-                       "every MCP server in your org, gated, with evidence"    $2,000/mo
+                       "every MCP server in your org, gated, with evidence"    $1,999-2,999/mo
 
 CONVERT (month 6-12)   the buyer's security team, or a real CISO at a larger org
-                       fleet scanning, self-hosted runner, SOC 2 evidence      $30-50K/yr
+                       fleet scanning, air-gapped runner, compliance sync      $24-36K ACV
 ```
 
 The *pricing* rides the CISO logic (never per-seat, tied to unblocked revenue). The *entry* rides
@@ -179,7 +181,7 @@ code. Delete it from the deck.
   cannot answer it. Their $150K–$500K deal is sitting in vendor review.
 - **What they feel:** "we shipped an MCP server in a weekend, it's in production, nobody has looked
   at it, and now Acme Corp's security team is asking about tool permissions."
-- **Deal size:** $500–2,500/mo. **Cycle: days to 3 weeks.** No procurement.
+- **Deal size:** $299/mo self-serve, up to $2,999/mo on expansion. **Cycle: days to 3 weeks.** No procurement.
 - **How to find them:** they have a public repo, a docs page describing their MCP server, and a
   company domain. See §5.1–5.3.
 
@@ -189,7 +191,7 @@ code. Delete it from the deck.
 - **Who signs:** Head of Platform Engineering, Director of AppSec, or Head of AI Enablement.
 - **Why they buy:** they have 10–80 internal MCP servers written by teams with no security review,
   and they need every one scanned before it touches production data.
-- **Deal size:** $2,000/mo → $30–50K/yr. **Cycle: 1–3 months.** Real procurement.
+- **Deal size:** $1,999–2,999/mo, billed annually — $24–36K ACV. **Cycle: 1–3 months.** Real procurement.
 - **How to find them:** MCP Dev Summit / MCPCon attendee and speaker lists, AAIF member orgs,
   people posting "we rolled out MCP internally" on LinkedIn/HN. See §5.6.
 
@@ -506,36 +508,49 @@ you can articulate the pitch without changing it week to week.
 
 ---
 
-## 8. Pricing — the recommendation
+## 8. Pricing — as stated to YC
 
-Resolve the contradiction as follows:
+Three tiers. These are the figures in the YC application and on the pricing section of the
+landing page, and they are the only ones that should appear anywhere.
 
 | Tier | Price | Contains | Who |
 |---|---|---|---|
-| **OSS / Free** | $0 | Unlimited local CLI scans, all verified detectors, SARIF output | Distribution. Never gate this. |
-| **Team** | **$500/mo** | Private repos, GitHub App, PR comments, CI gate, up to 10 repos | Segment A entry |
-| **Scale** | **$2,000/mo** | Unlimited repos, MCP fleet view, evidence export, questionnaire drafting, research-tier findings | Segment A expansion / Segment B entry |
-| **Enterprise** | **$30–50K/yr** | Self-hosted runner, in-VPC semantic layer, SSO, support SLA, custom detectors | Segment B |
+| **Free** | **$0/mo** | Up to 3 repos, all 12 OWASP Agentic classes, GitHub App PR gate, local CLI | Distribution. Self-serve. Deliberately limited. |
+| **Team** | **$299/mo** | Automated PR merge gates, VS Code extension, SARIF export, no repo cap. Up to 10 developers. | Segment A. Self-serve. |
+| **Enterprise** | **$1,999–2,999/mo** — billed annually, **$24–36K ACV** | MCP server fleet monitoring, air-gapped self-hosted runners, Vanta/Drata sync (EU AI Act, CCPA, WCAG 2.2), unlimited NVIDIA NIM patch guidance | Segment B, and Segment A expansion |
 
-**Design-partner offer (use this for the next 8 weeks):** $500/mo, 6-month commitment, 50% off if
+This collapses the previous four-tier ladder. The old Scale ($2,000/mo) and Enterprise ($30–50K/yr)
+rows described one buyer at one price band — $1,999/mo is $23,988/yr and $2,999/mo is $35,988/yr, so
+the annual figure lands in the same place the two old rows were reaching for, with one fewer
+conversation about which of them applies.
+
+**Quote the ACV, not just the monthly figure.** Enterprise is billed annually. A prospect who hears
+"$2,000 a month" and later sees a $24K contract has been surprised by you, which is an expensive way
+to save four words.
+
+**Design-partner offer (use this for the next 8 weeks):** $299/mo, 6-month commitment, 50% off if
 they agree to a logo, a case study, and a 20-minute call every two weeks.
 
 **Why charge immediately:**
 
 1. Free pilots have ~0% signal. Paid pilots have ~100%. You need to know which one you're in.
-2. YC asks "are you making money?" A $500/mo customer at application time beats 50 free users.
-3. $500/mo is *below the threshold where procurement gets involved* at a 10–150 person company —
-   a CTO expenses it. That's deliberate. It's the fastest path from conversation to revenue.
+2. YC asks "are you making money?" A $299/mo customer at application time beats 50 free users.
+3. $299/mo is *far below the threshold where procurement gets involved* at a 10–150 person company —
+   an engineering lead expenses it without asking anyone. That's deliberate. It is the shortest path
+   from a conversation to a running gate.
 
-**The value anchor for the $2,000 tier** — use it verbatim on calls:
+**The value anchor for Enterprise** — use it verbatim on calls:
 
 > "You've got a $200K contract sitting in vendor review because you can't answer their agent-
 > security questions. Gatepass is $2K/month. That's 1% of the contract, and it turns a two-week
 > back-and-forth into an evidence export."
 
-**What not to do:** per-seat pricing (taxes adoption of a tool you *want* every developer running),
-and per-scan pricing (your marginal cost is $0 and your whole argument is that scanning should be
-free at the margin — don't contradict your own moat with your price list).
+**What not to do:** per-seat pricing (it taxes adoption of a tool you *want* every developer
+running) and per-scan pricing (your marginal cost is $0 and your whole argument is that scanning
+should be free at the margin — don't contradict your own moat with your price list). Note the
+distinction Team draws: the price is flat and the *tier* is bounded at 10 developers. You pay the
+same at two as at ten. That is a cap, not per-seat billing, and it is worth saying that way round
+when someone challenges it.
 
 ---
 
@@ -583,7 +598,7 @@ architecture, dismisses the obvious objection, and is verifiable in five minutes
 - **12 calls.** First design-partner conversation.
 
 **Weeks 3–4 — Convert**
-- Land **2 paying design partners at $500/mo.**
+- Land **2 paying design partners at $299/mo.**
 - Build the 300-account org-owned GitHub list; scan-first outbound.
 - Join the AAIF security workstream. Contribute the ASI→detector mapping to OWASP.
 - **12 calls/week.**
@@ -595,7 +610,7 @@ architecture, dismisses the obvious objection, and is verifiable in five minutes
 - **12 calls/week.**
 
 **Weeks 7–8 — Package**
-- Target: **3–5 paying customers, $1,500–5,000 MRR, 50+ repos scanned, 100+ conversations.**
+- Target: **3–5 paying customers, $900–3,000 MRR, 50+ repos scanned, 100+ conversations.**
 - Re-run the survey at n=500 for a v2 report — a repeated measurement makes it a *benchmark*, not a
   blog post. That's the moat becoming visible.
 - Write the YC application from the notes, not from imagination.
@@ -659,7 +674,7 @@ Post these in one place every Friday:
 | CLI installs | 200+ |
 | Repos with Gatepass in CI | 10 |
 | Paying customers | 3–5 |
-| MRR | $1,500–5,000 |
+| MRR | $900–3,000 — 3-5 Team seats, or one Enterprise annual |
 | Findings that caught something pre-merge (customer-confirmed) | ≥3 |
 
 That last row is the one that matters most and is easiest to forget to collect. "Gatepass blocked a

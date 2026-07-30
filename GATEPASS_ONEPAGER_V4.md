@@ -41,20 +41,25 @@ Seed–Series B AI-native companies shipping agentic products (10–150 people, 
 4. **Outcome data:** which findings enterprises' security reviews actually probe, per industry — feeding both ruleset priority and the questionnaire product.
 
 ## Business model — pure software
-Never per-seat (that taxes adoption of a tool we want every developer running) and never per-scan
-(marginal cost is $0, and pricing against our own moat is incoherent). Four tiers, one price each:
+Never per-scan (marginal cost is $0, and pricing against our own moat is incoherent) and never
+per-seat — the price is flat and a tier is *bounded* by team size, which is a cap rather than
+per-seat billing. Three tiers, one price each:
 
-- **Free — $0:** the OSS CLI, unlimited local scans, every verified detector, SARIF output. This is
-  distribution and benchmark credibility; it never gets gated.
-- **Team — $500/mo:** private repos, GitHub App, PR comments, CI gate, up to 10 repos.
-- **Scale — $2,000/mo:** unlimited repos, MCP-fleet scanning, Vanta/Drata evidence export,
-  questionnaire drafting, research-tier findings.
-- **Enterprise — $30–50K/yr:** self-hosted runner, in-VPC semantic layer, SSO, contracted support,
-  custom detector classes.
+- **Free — $0/mo:** up to 3 repos, all 12 OWASP Agentic detection classes, GitHub App PR gate,
+  local CLI. Self-serve, and deliberately limited — but the detectors are never withheld, because
+  a free tier that gates them makes our published precision figure unverifiable by the people
+  best placed to check it.
+- **Team — $299/mo:** automated PR merge gates, VS Code extension, SARIF export, no repo cap.
+  Engineering teams up to 10 developers. Self-serve.
+- **Enterprise — $1,999–2,999/mo, billed annually ($24–36K ACV):** MCP server fleet monitoring,
+  air-gapped self-hosted runners, native Vanta/Drata sync (EU AI Act, CCPA, WCAG 2.2), unlimited
+  NVIDIA NIM patch guidance.
 
-$500 sits deliberately under the threshold where procurement gets involved at a 10–150 person
-company — a CTO expenses it, which is the shortest path from conversation to revenue. The $2,000
-tier is anchored against the stalled contract it unblocks: ~1% of a $200K deal.
+$299 sits deliberately far under the threshold where procurement gets involved at a 10–150 person
+company — an engineering lead expenses it without asking anyone, which is the shortest path from
+conversation to revenue. Enterprise is anchored against the stalled contract it unblocks: ~1% of a
+$200K deal. Quote the ACV alongside the monthly figure; a prospect who hears "$2,000 a month" and
+later sees a $24K contract has been surprised by you.
 
 No services tier; internal security research exists to grow the corpus and the benchmark.
 Full segmentation, channels, and cadence: [GO-TO-MARKET.md](GO-TO-MARKET.md).
