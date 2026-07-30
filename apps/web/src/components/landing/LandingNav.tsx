@@ -10,6 +10,7 @@ const LINKS = [
   { href: "#how", label: "How it works" },
   { href: "#services", label: "Surfaces" },
   { href: "#benchmarks", label: "Benchmarks" },
+  { href: "#pricing", label: "Pricing" },
 ];
 
 export function LandingNav() {
@@ -70,9 +71,12 @@ export function LandingNav() {
                 Dashboard
               </Link>
             </nav>
-            <a className="gp-btn gp-btn-primary gp-nav-cta" href="#start" onClick={(e) => handleScroll(e, "#start")}>
+            {/* Sign-in, not an in-page anchor: scrolling to the closing pitch was the same
+                page a visitor was already on. The GitHub App install is the first thing
+                sign-in asks for, which is what "scan a repo" actually requires. */}
+            <Link className="gp-btn gp-btn-primary gp-nav-cta" href="/login">
               Scan a repo
-            </a>
+            </Link>
             <button
               type="button"
               className="gp-nav-toggle"
@@ -95,9 +99,9 @@ export function LandingNav() {
           <Link className="gp-nav-link" href="/dashboard" onClick={() => setOpen(false)}>
             Dashboard
           </Link>
-          <a className="gp-btn gp-btn-primary" href="#start" onClick={(e) => handleScroll(e, "#start")}>
+          <Link className="gp-btn gp-btn-primary" href="/login" onClick={() => setOpen(false)}>
             Scan a repo
-          </a>
+          </Link>
         </div>
       </div>
     </header>

@@ -37,12 +37,22 @@ import "@/styles/landing.css";
  * See benchmark/COMPETITIVE-BENCHMARK.md.
  */
 
-/** Outbound destinations. Edit these once the real URLs exist. */
+/**
+ * Outbound destinations.
+ *
+ * `github` pointed at `gatepass-dev/gatepass`, an organisation that does not exist — so every
+ * link built from it, including the primary call to action, landed on a GitHub 404. It now names
+ * the repository that actually holds this code.
+ *
+ * `signIn` is where the two "start scanning" actions go. Sending a new visitor to a repository
+ * asked them to read a README before they could try anything; sign-in puts them in the product,
+ * and the GitHub App install is the first thing it asks for anyway.
+ */
 const SITE = {
-  install: "#start",
-  docs: "https://github.com/gatepass-dev/gatepass#readme",
+  signIn: "/login",
+  docs: "https://github.com/PranavPrasannaV/gatepass#readme",
   benchmarkReport: "#benchmarks",
-  github: "https://github.com/gatepass-dev/gatepass",
+  github: "https://github.com/PranavPrasannaV/gatepass",
   contact: "mailto:founders@gatepass.dev",
 };
 
@@ -72,6 +82,85 @@ const STATS = [
   { value: "0", label: "False positives across 99 clean cases written to induce them" },
   { value: "1 in 9", label: "Public MCP servers we scanned shipped an agentic vulnerability" },
 ];
+
+/*
+ * Straight from the pricing recommendation in GO-TO-MARKET.md §8, which exists to resolve a
+ * contradiction: the one-pager and a later summary quoted different numbers for the same tiers.
+ * These are the reconciled figures, so this page and any investor conversation say the same
+ * thing.
+ *
+ * The free tier is listed first and is not a trial. It is the OSS CLI with every verified
+ * detector in it — distribution and benchmark credibility both depend on it never being gated,
+ * and a "free tier" that withholds detectors would make the published precision figure
+ * unverifiable by the people best placed to check it.
+ *
+ * Enterprise carries a range rather than a number because it is scoped per deal (self-hosted
+ * runner, in-VPC semantic layer, custom detector classes). Inventing a single price for work
+ * whose shape is negotiated would be a worse answer than naming the band.
+ */
+const PRICING = [
+  {
+    name: "Free",
+    price: "$0",
+    period: "forever",
+    forWhom: "Every developer, on every repo, with nothing withheld.",
+    features: [
+      "Unlimited local CLI scans",
+      "All 12 verified detector classes",
+      "SARIF output for any CI",
+      "Reproduction attached to every verified finding",
+    ],
+    cta: { label: "Start scanning", href: "/login", external: false },
+    featured: false,
+  },
+  {
+    name: "Team",
+    price: "$500",
+    period: "/month",
+    forWhom: "A team shipping AI-generated code that needs the gate in the pull request.",
+    features: [
+      "Private repos via the GitHub App",
+      "PR comments and CI merge gate",
+      "Up to 10 repositories",
+      "Fix guidance for coding agents",
+    ],
+    cta: { label: "Start free, upgrade in-product", href: "/login", external: false },
+    featured: true,
+  },
+  {
+    name: "Scale",
+    price: "$2,000",
+    period: "/month",
+    forWhom: "An organisation whose security review is holding up revenue.",
+    features: [
+      "Unlimited repositories",
+      "MCP fleet view across every server",
+      "Evidence export for Vanta and Drata",
+      "Questionnaire drafting · research-tier findings",
+    ],
+    cta: { label: "Talk to the founders", href: "mailto:founders@gatepass.dev", external: true },
+    featured: false,
+  },
+  {
+    name: "Enterprise",
+    price: "$30–50K",
+    period: "/year",
+    forWhom: "Source that cannot leave your network.",
+    features: [
+      "Self-hosted runner — findings JSON only, never source",
+      "In-VPC semantic layer",
+      "SSO and contracted support",
+      "Custom detector classes",
+    ],
+    cta: { label: "Contact sales", href: "mailto:founders@gatepass.dev", external: true },
+    featured: false,
+  },
+];
+
+/** Card classes for a pricing tier. Featured gets the accent border and the lift. */
+function cxTier(featured: boolean): string {
+  return featured ? "gp-price-card gp-price-card-featured" : "gp-price-card";
+}
 
 const SERVICES = [
   {
@@ -261,9 +350,9 @@ export default function LandingPage() {
 
             <Reveal delay={3}>
               <div className="gp-buttons-row">
-                <a className="gp-btn gp-btn-primary" href="#start">
+                <Link className="gp-btn gp-btn-primary" href={SITE.signIn}>
                   Scan your repo
-                </a>
+                </Link>
                 <a className="gp-btn gp-btn-secondary" href="#benchmarks">
                   See the benchmarks
                 </a>
@@ -388,9 +477,9 @@ export default function LandingPage() {
               agent installed, nothing written to your repository.
             </p>
             <div className="gp-buttons-row">
-              <a className="gp-btn gp-btn-primary" href="#start">
+              <Link className="gp-btn gp-btn-primary" href={SITE.signIn}>
                 Scan your repo
-              </a>
+              </Link>
               <a className="gp-btn gp-btn-secondary" href={SITE.contact}>
                 Talk to the founders
               </a>
@@ -532,8 +621,69 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ─────────────── 06 · Start ─────────────── */}
-      <Divider index="06" label="Get started" />
+      {/* ─────────────── 06 · Pricing ─────────────── */}
+      <Divider index="06" label="Pricing" />
+      <section className="gp-section" id="pricing" style={{ paddingTop: 0 }}>
+        <div className="gp-container">
+          <Reveal>
+            <h2 className="gp-h2" style={{ maxWidth: "26ch" }}>
+              <span className="gp-dim">One price per tier.</span> Never per seat, never per scan
+            </h2>
+            <p className="gp-lead" style={{ maxWidth: "62ch", marginTop: 18 }}>
+              Per-seat pricing taxes adoption of a tool you want every developer running. Per-scan pricing contradicts
+              the argument: our marginal cost is zero, so scanning should be free at the margin.
+            </p>
+          </Reveal>
+
+          <div className="gp-price-grid">
+            {PRICING.map((tier, i) => (
+              <Reveal key={tier.name} delay={i} className={cxTier(tier.featured)}>
+                <div className="gp-price-head">
+                  <span className="gp-price-name">{tier.name}</span>
+                  {tier.featured && <span className="gp-price-flag">Most common</span>}
+                </div>
+                <div className="gp-price-amount">
+                  <span className="gp-price-value">{tier.price}</span>
+                  {tier.period && <span className="gp-price-period">{tier.period}</span>}
+                </div>
+                <p className="gp-price-for">{tier.forWhom}</p>
+                <ul className="gp-price-list">
+                  {tier.features.map((f) => (
+                    <li key={f}>{f}</li>
+                  ))}
+                </ul>
+                {tier.cta.external ? (
+                  <a
+                    className={`gp-btn ${tier.featured ? "gp-btn-primary" : "gp-btn-secondary"} gp-price-cta`}
+                    href={tier.cta.href}
+                  >
+                    {tier.cta.label}
+                  </a>
+                ) : (
+                  <Link
+                    className={`gp-btn ${tier.featured ? "gp-btn-primary" : "gp-btn-secondary"} gp-price-cta`}
+                    href={tier.cta.href}
+                  >
+                    {tier.cta.label}
+                  </Link>
+                )}
+              </Reveal>
+            ))}
+          </div>
+
+          <Reveal delay={2}>
+            <p className="gp-price-note">
+              <strong>$500 is deliberate.</strong> It sits under the threshold where procurement gets involved at a
+              10–150 person company — a CTO expenses it. The $2,000 tier is anchored against the contract it unblocks:
+              roughly 1% of a stalled $200K deal, and it turns a two-week security-review exchange into an evidence
+              export.
+            </p>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* ─────────────── 07 · Start ─────────────── */}
+      <Divider index="07" label="Get started" />
       <section className="gp-section" id="start" style={{ paddingTop: 0 }}>
         <div className="gp-container">
           <Reveal className="gp-cta">
@@ -545,10 +695,10 @@ export default function LandingPage() {
               says so.
             </p>
             <div className="gp-buttons-row">
-              <a className="gp-btn gp-btn-primary" href={SITE.github} target="_blank" rel="noreferrer">
-                Get started on GitHub
+              <Link className="gp-btn gp-btn-primary" href={SITE.signIn}>
+                Start scanning — free
                 <ArrowUpRight size={18} />
-              </a>
+              </Link>
               <a className="gp-btn gp-btn-secondary" href={SITE.contact}>
                 Contact sales
               </a>
