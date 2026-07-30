@@ -1,5 +1,5 @@
 import { headers } from "next/headers";
-import { API_BASE } from "@/lib/constants";
+import { API_BASE, apiUrlMisconfigured } from "@/lib/constants";
 import { PATHNAME_HEADER } from "@/lib/session-cookie";
 import { requireSession, SessionUnavailableError } from "@/lib/session";
 import type { Role, SessionInfo } from "@/lib/types";
@@ -19,6 +19,26 @@ import { DemoProvider } from "@/components/demo/DemoProvider";
  * accepts the cookie the API could not be asked about.
  */
 function ApiUnreachable({ detail }: { detail: string }) {
+  /* A deployment that was never told where its API lives is not an outage, and saying "start the
+     API" to someone who cannot is worse than saying nothing. Same distinction as the login page. */
+  if (apiUrlMisconfigured()) {
+    return (
+      <main className="mx-auto flex min-h-screen w-full max-w-xl flex-col justify-center px-6">
+        <h1 className="text-[1.05rem] font-medium text-fg">This deployment has no API configured</h1>
+        <p className="mt-2 text-[0.82rem] leading-relaxed text-fg-secondary">
+          The dashboard is pointing at <span className="font-mono text-fg-muted">{API_BASE}</span>, the
+          local-development default, because <span className="font-mono text-fg-muted">NEXT_PUBLIC_API_URL</span> was
+          not set when this build was made. It is asking your own machine for the API rather than a server.
+        </p>
+        <p className="mt-3 text-[0.82rem] leading-relaxed text-fg-secondary">
+          Set that variable to the API&rsquo;s origin and redeploy — it is compiled into the bundle, so it must be
+          present at build time.
+        </p>
+        <p className="mt-3 font-mono text-[0.72rem] text-fg-muted">{detail}</p>
+      </main>
+    );
+  }
+
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-xl flex-col justify-center px-6">
       <h1 className="text-[1.05rem] font-medium text-fg">Can&rsquo;t reach the Gatepass API</h1>

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { AlertTriangle, ArrowLeft, Github, KeyRound, TerminalSquare } from "lucide-react";
 import ApiClient from "@/lib/api-client";
-import { API_BASE } from "@/lib/constants";
+import { API_BASE, apiUrlMisconfigured } from "@/lib/constants";
 import { safeNextPath } from "@/lib/session-cookie";
 import { BrandLockup } from "@/components/Brand";
 import type { AuthConfig } from "@/lib/types";
@@ -135,11 +135,31 @@ export default async function LoginPage({
 
       {config === null ? (
         <div className="mt-7 rounded-[var(--radius-card)] border border-line bg-surface p-5">
-          <p className="text-[0.855rem] font-medium text-fg">Can&rsquo;t reach the Gatepass API</p>
-          <p className="mt-1.5 text-[0.78rem] leading-relaxed text-fg-secondary">
-            No response from <span className="font-mono text-fg-muted">{API_BASE}</span>, so this page cannot tell which
-            sign-in methods are available. Start the API and reload.
-          </p>
+          {apiUrlMisconfigured() ? (
+            /* Addressed to whoever deployed this, because only they can fix it. Telling a visitor
+               to start a server on loopback asks them to run software they do not have. */
+            <>
+              <p className="text-[0.855rem] font-medium text-fg">Sign-in isn&rsquo;t configured on this deployment</p>
+              <p className="mt-1.5 text-[0.78rem] leading-relaxed text-fg-secondary">
+                This build points at <span className="font-mono text-fg-muted">{API_BASE}</span> — the default used for
+                local development — so it is asking your own machine for the API rather than a server.{" "}
+                <span className="font-mono text-fg-muted">NEXT_PUBLIC_API_URL</span> was not set when it was built.
+              </p>
+              <p className="mt-2.5 text-[0.78rem] leading-relaxed text-fg-secondary">
+                If this is your deployment: set that variable to the API&rsquo;s origin and redeploy. The value is
+                compiled into the browser bundle, so it has to be present at build time — changing it afterwards has no
+                effect until the next build.
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="text-[0.855rem] font-medium text-fg">Can&rsquo;t reach the Gatepass API</p>
+              <p className="mt-1.5 text-[0.78rem] leading-relaxed text-fg-secondary">
+                No response from <span className="font-mono text-fg-muted">{API_BASE}</span>, so this page cannot tell
+                which sign-in methods are available. Start the API and reload.
+              </p>
+            </>
+          )}
         </div>
       ) : (
         <div className="mt-7 space-y-4">
