@@ -84,75 +84,75 @@ const STATS = [
 ];
 
 /*
- * Straight from the pricing recommendation in GO-TO-MARKET.md §8, which exists to resolve a
- * contradiction: the one-pager and a later summary quoted different numbers for the same tiers.
- * These are the reconciled figures, so this page and any investor conversation say the same
- * thing.
+ * Three tiers, as stated in the YC application.
  *
- * The free tier is listed first and is not a trial. It is the OSS CLI with every verified
- * detector in it — distribution and benchmark credibility both depend on it never being gated,
- * and a "free tier" that withholds detectors would make the published precision figure
- * unverifiable by the people best placed to check it.
+ * These figures supersede the four-tier table in GO-TO-MARKET.md §8 ($500 Team / $2,000 Scale /
+ * $30–50K Enterprise). That document exists specifically because the pricing had contradicted
+ * itself once already, so the discrepancy is flagged rather than left for somebody to trip over:
+ * whichever set is right, the site and the strategy doc must not disagree in a public repository.
  *
- * Enterprise carries a range rather than a number because it is scoped per deal (self-hosted
- * runner, in-VPC semantic layer, custom detector classes). Inventing a single price for work
- * whose shape is negotiated would be a worse answer than naming the band.
+ * Every capability named below is one that exists in this tree — `ide/vscode/` for the extension,
+ * `packages/evidence/src/exporters.ts` for the Vanta and Drata sync, `packages/compliance` for the
+ * EU AI Act, CCPA and WCAG 2.2 frameworks, `packages/findings/src/sarif.ts` for SARIF. A pricing
+ * page is the last place to advertise something unbuilt, because it is the page a buyer quotes
+ * back to you.
  */
-const PRICING = [
+interface Tier {
+  name: string;
+  price: string;
+  period: string;
+  /** Only where the billing period differs from the figure shown. */
+  billing?: string;
+  forWhom: string;
+  features: string[];
+  cta: { label: string; href: string; external: boolean };
+  featured: boolean;
+}
+
+const PRICING: readonly Tier[] = [
   {
     name: "Free",
     price: "$0",
-    period: "forever",
-    forWhom: "Every developer, on every repo, with nothing withheld.",
+    period: "/month",
+    forWhom: "Open-source developers and solo builders. Self-serve, and deliberately limited.",
     features: [
-      "Unlimited local CLI scans",
-      "All 12 verified detector classes",
-      "SARIF output for any CI",
-      "Reproduction attached to every verified finding",
+      "Up to 3 repositories",
+      "All 12 OWASP Agentic detection classes",
+      "GitHub App pull-request gate",
+      "Local CLI scanner",
     ],
     cta: { label: "Start scanning", href: "/login", external: false },
     featured: false,
   },
   {
     name: "Team",
-    price: "$500",
+    price: "$299",
     period: "/month",
-    forWhom: "A team shipping AI-generated code that needs the gate in the pull request.",
+    forWhom: "Engineering teams of up to 10 developers who need the gate to block a merge.",
     features: [
-      "Private repos via the GitHub App",
-      "PR comments and CI merge gate",
-      "Up to 10 repositories",
-      "Fix guidance for coding agents",
+      "Automated PR merge gates",
+      "VS Code extension",
+      "SARIF export for any CI",
+      "Everything in Free, without the repository cap",
     ],
     cta: { label: "Start free, upgrade in-product", href: "/login", external: false },
     featured: true,
   },
   {
-    name: "Scale",
-    price: "$2,000",
+    name: "Enterprise",
+    price: "$1,999–2,999",
     period: "/month",
-    forWhom: "An organisation whose security review is holding up revenue.",
+    /* The ACV is stated because this tier is billed annually — a monthly figure alone would
+       misrepresent what is actually signed. */
+    billing: "Billed annually · $24K–36K ACV",
+    forWhom: "Scaleups and enterprise engineering orgs, including source that cannot leave the network.",
     features: [
-      "Unlimited repositories",
-      "MCP fleet view across every server",
-      "Evidence export for Vanta and Drata",
-      "Questionnaire drafting · research-tier findings",
+      "MCP server fleet monitoring",
+      "Air-gapped self-hosted runners",
+      "Vanta and Drata sync — EU AI Act, CCPA, WCAG 2.2",
+      "Unlimited NVIDIA NIM patch guidance",
     ],
     cta: { label: "Talk to the founders", href: "mailto:founders@gatepass.dev", external: true },
-    featured: false,
-  },
-  {
-    name: "Enterprise",
-    price: "$30–50K",
-    period: "/year",
-    forWhom: "Source that cannot leave your network.",
-    features: [
-      "Self-hosted runner — findings JSON only, never source",
-      "In-VPC semantic layer",
-      "SSO and contracted support",
-      "Custom detector classes",
-    ],
-    cta: { label: "Contact sales", href: "mailto:founders@gatepass.dev", external: true },
     featured: false,
   },
 ];
@@ -627,11 +627,12 @@ export default function LandingPage() {
         <div className="gp-container">
           <Reveal>
             <h2 className="gp-h2" style={{ maxWidth: "26ch" }}>
-              <span className="gp-dim">One price per tier.</span> Never per seat, never per scan
+              <span className="gp-dim">One flat price per tier.</span> Never metered per scan
             </h2>
-            <p className="gp-lead" style={{ maxWidth: "62ch", marginTop: 18 }}>
-              Per-seat pricing taxes adoption of a tool you want every developer running. Per-scan pricing contradicts
-              the argument: our marginal cost is zero, so scanning should be free at the margin.
+            <p className="gp-lead" style={{ maxWidth: "64ch", marginTop: 18 }}>
+              A tier is bounded by team size, but you pay the same at two developers as at ten — billing per seat would
+              tax adoption of a tool you want every developer running. Nothing is metered per scan either: our marginal
+              cost is zero, so scanning should be free at the margin.
             </p>
           </Reveal>
 
@@ -646,6 +647,7 @@ export default function LandingPage() {
                   <span className="gp-price-value">{tier.price}</span>
                   {tier.period && <span className="gp-price-period">{tier.period}</span>}
                 </div>
+                {tier.billing && <p className="gp-price-billing">{tier.billing}</p>}
                 <p className="gp-price-for">{tier.forWhom}</p>
                 <ul className="gp-price-list">
                   {tier.features.map((f) => (
@@ -670,15 +672,6 @@ export default function LandingPage() {
               </Reveal>
             ))}
           </div>
-
-          <Reveal delay={2}>
-            <p className="gp-price-note">
-              <strong>$500 is deliberate.</strong> It sits under the threshold where procurement gets involved at a
-              10–150 person company — a CTO expenses it. The $2,000 tier is anchored against the contract it unblocks:
-              roughly 1% of a stalled $200K deal, and it turns a two-week security-review exchange into an evidence
-              export.
-            </p>
-          </Reveal>
         </div>
       </section>
 

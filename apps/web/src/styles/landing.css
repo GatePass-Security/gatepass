@@ -2733,7 +2733,7 @@ body:has(.gp) {
 
 .gp-price-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 18px;
   margin-top: 44px;
 }
@@ -2875,24 +2875,7 @@ body:has(.gp) {
   text-align: center;
 }
 
-.gp-price-note {
-  max-width: 74ch;
-  margin: 34px auto 0;
-  padding: 18px 20px;
-  border: 1px solid var(--line-soft);
-  border-left: 2px solid var(--accent);
-  border-radius: 0 10px 10px 0;
-  font-size: 14.5px;
-  line-height: 1.7;
-  color: var(--fg-dim);
-}
-
-.gp-price-note strong {
-  color: var(--fg);
-  font-weight: 500;
-}
-
-@media (max-width: 1100px) {
+@media (max-width: 940px) {
   .gp-price-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -2916,4 +2899,14 @@ body:has(.gp) {
     transition: none;
     transform: none;
   }
+}
+
+/* The annual-billing line under a monthly figure. Present only where the two differ, so a
+   reader never has to infer what is actually signed from a per-month number. */
+.gp-price-billing {
+  margin-top: 7px;
+  font-family: var(--font-jetbrains), monospace;
+  font-size: 11.5px;
+  letter-spacing: 0.01em;
+  color: var(--accent);
 }
