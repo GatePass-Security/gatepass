@@ -50,9 +50,9 @@ import "@/styles/landing.css";
  */
 const SITE = {
   signIn: "/login",
-  docs: "https://github.com/PranavPrasannaV/gatepass#readme",
+  docs: "https://github.com/GatePass-Security/gatepass#readme",
   benchmarkReport: "#benchmarks",
-  github: "https://github.com/PranavPrasannaV/gatepass",
+  github: "https://github.com/GatePass-Security/gatepass",
   contact: "mailto:founders@gatepass.dev",
 };
 
