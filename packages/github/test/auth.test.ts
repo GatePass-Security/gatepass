@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { getInstallationToken, type GitHubAppConfig } from "../src/index.js";
+import { getInstallationToken, normalizeAppPrivateKey, type GitHubAppConfig } from "../src/index.js";
 import jwt from "jsonwebtoken";
 import { generateKeyPairSync } from "node:crypto";
 
@@ -274,5 +274,95 @@ describe("getInstallationToken — config edge cases", () => {
     expect(result).toHaveProperty("expiresAt");
     expect(typeof result.token).toBe("string");
     expect(result.expiresAt).toBeInstanceOf(Date);
+  });
+});
+
+/**
+ * A GitHub App private key is a multi-line file and an environment variable is one line, so
+ * something always has to give. Each case below is a real shape a PEM arrives in after a trip
+ * through a `.env` file, a shell, or a hosting dashboard's single-line form field — and every
+ * one of them used to reach jsonwebtoken and come back as `secretOrPrivateKey must be an
+ * asymmetric key when using RS256`, which names neither the variable nor the mistake.
+ *
+ * The assertion that matters is not "it did not throw" but that the JWT still verifies against
+ * the public half of the pair: the key was repaired, not replaced by something that merely
+ * parses.
+ */
+describe("normalizeAppPrivateKey — PEMs that survived an environment variable", () => {
+  const pair = generateKeyPairSync("rsa", {
+    modulusLength: 2048,
+    publicKeyEncoding: { type: "spki", format: "pem" },
+    privateKeyEncoding: { type: "pkcs1", format: "pem" },
+  });
+
+  function signsCorrectly(privateKey: string): boolean {
+    const token = jwt.sign({ iss: "123456" }, normalizeAppPrivateKey(privateKey), { algorithm: "RS256" });
+    const payload = jwt.verify(token, pair.publicKey, { algorithms: ["RS256"] }) as { iss: string };
+    return payload.iss === "123456";
+  }
+
+  it("accepts a key that was already correct, and leaves it usable", () => {
+    expect(signsCorrectly(pair.privateKey)).toBe(true);
+  });
+
+  it("repairs newlines written as the two characters backslash-n", () => {
+    expect(signsCorrectly(pair.privateKey.replace(/\n/g, "\\n"))).toBe(true);
+  });
+
+  it("repairs a value still wrapped in the quotes it was pasted with", () => {
+    expect(signsCorrectly(`"${pair.privateKey.replace(/\n/g, "\\n")}"`)).toBe(true);
+    expect(signsCorrectly(`'${pair.privateKey}'`)).toBe(true);
+  });
+
+  it("repairs a key whose newlines a single-line form flattened to spaces", () => {
+    expect(signsCorrectly(pair.privateKey.replace(/\n/g, " "))).toBe(true);
+  });
+
+  it("is idempotent, so a key that passed through twice is not damaged", () => {
+    const once = normalizeAppPrivateKey(pair.privateKey.replace(/\n/g, "\\n"));
+    expect(normalizeAppPrivateKey(once)).toBe(once);
+  });
+
+  it("handles PKCS#8, which is what some key generators emit", () => {
+    const pkcs8 = generateKeyPairSync("rsa", {
+      modulusLength: 2048,
+      publicKeyEncoding: { type: "spki", format: "pem" },
+      privateKeyEncoding: { type: "pkcs8", format: "pem" },
+    }).privateKey;
+    expect(() => normalizeAppPrivateKey(pkcs8.replace(/\n/g, "\\n"))).not.toThrow();
+  });
+});
+
+describe("normalizeAppPrivateKey — values that are not a key at all", () => {
+  /*
+   * The point of these is the wording. An operator reading the log has to be able to tell
+   * "you pasted the wrong secret" from "the right secret arrived damaged", because the two
+   * have nothing to do with each other and only one of them is about GitHub.
+   */
+  it("names the variable and the file to paste when the value is not a PEM", () => {
+    // The classic: the App's client secret, pasted into the private key's box.
+    expect(() => normalizeAppPrivateKey("a1b2c3d4e5f60718293a4b5c6d7e8f9012345678")).toThrow(
+      /GITHUB_APP_PRIVATE_KEY is not a PEM private key/,
+    );
+    expect(() => normalizeAppPrivateKey("not-a-key")).toThrow(/\.pem/);
+  });
+
+  it("rejects a truncated PEM rather than half-reading it", () => {
+    const half = "-----BEGIN RSA PRIVATE KEY-----\nMIIEow==\n";
+    expect(() => normalizeAppPrivateKey(half)).toThrow(/is not a PEM private key/);
+  });
+
+  it("distinguishes a corrupt body from a wrong value", () => {
+    const corrupt = "-----BEGIN RSA PRIVATE KEY-----\nbm90LXJlYWxseS1hLWtleQ==\n-----END RSA PRIVATE KEY-----";
+    expect(() => normalizeAppPrivateKey(corrupt)).toThrow(/has the shape of a PEM but could not be read/);
+  });
+
+  it("refuses the public half of the pair", () => {
+    const publicKey = generateKeyPairSync("rsa", {
+      modulusLength: 2048,
+      publicKeyEncoding: { type: "spki", format: "pem" },
+      privateKeyEncoding: { type: "pkcs1", format: "pem" },
+    }).publicKey;
+    expect(() => normalizeAppPrivateKey(publicKey)).toThrow(/is not a PEM private key/);
   });
 });

@@ -93,18 +93,43 @@ export async function startServer(): Promise<void> {
   let repoFetcher = undefined;
   let repoDirectory = undefined;
   let installationToken = undefined;
+  let appCredentialError = undefined;
   if (appId && (keyContent || keyPath) && installationId) {
-    const privateKey = keyContent ?? readFileSync(resolve(keyPath!), "utf-8");
-    const appConfig = { appId, privateKey, installationId };
-    const { token } = await getInstallationToken(appConfig);
-    installationToken = token;
-    githubClient = new RestGitHubClient(token);
-    // Clone-and-scan: fetch real repos as tarballs with the installation token.
-    repoFetcher = new TarballRepoFetcher(githubTarballDownloader(appConfig));
-    // Read-only repository discovery for the connect flow — two GETs, no write surface.
-    repoDirectory = createRepoDirectory(token);
-    console.log(`GitHub App client + repo fetcher + repo directory ready (installation ${installationId})`);
-  } else {
+    /*
+     * Guarded, because this was the one optional integration that could kill the process.
+     *
+     * Getting here reads a file, parses a PEM and calls GitHub, and a deployment whose key was
+     * mangled on the way into an environment variable — the ordinary failure, a PEM being
+     * multi-line and an environment variable not — threw out of `startServer` before `listen`
+     * ever ran. A hosting platform sees a service that opens no port and restarts it forever,
+     * so a mistyped optional credential presented as total outage.
+     *
+     * Falling through is not a loosening of access. The anonymous fetcher below reaches strictly
+     * less than the App does, so the cost of a bad credential is the deployment's private
+     * repositories, not the deployment.
+     */
+    try {
+      const privateKey = keyContent ?? readFileSync(resolve(keyPath!), "utf-8");
+      const appConfig = { appId, privateKey, installationId };
+      const { token } = await getInstallationToken(appConfig);
+      installationToken = token;
+      githubClient = new RestGitHubClient(token);
+      // Clone-and-scan: fetch real repos as tarballs with the installation token.
+      repoFetcher = new TarballRepoFetcher(githubTarballDownloader(appConfig));
+      // Read-only repository discovery for the connect flow — two GETs, no write surface.
+      repoDirectory = createRepoDirectory(token);
+      console.log(`GitHub App client + repo fetcher + repo directory ready (installation ${installationId})`);
+    } catch (err) {
+      // All four together, or none: a half-configured client would fail later, further from the
+      // cause, on whichever call happened to need the piece that never got built.
+      installationToken = undefined;
+      githubClient = undefined;
+      repoFetcher = undefined;
+      repoDirectory = undefined;
+      appCredentialError = (err as Error).message;
+    }
+  }
+  if (!repoFetcher) {
     /*
      * No App credentials — clone-and-scan still works, for public repositories only.
      *
@@ -115,7 +140,15 @@ export async function startServer(): Promise<void> {
      * without widening what can be reached.
      */
     repoFetcher = new TarballRepoFetcher(publicTarballDownloader());
-    console.log("No GitHub App configured — clone-and-scan is limited to public repositories.");
+    if (appCredentialError !== undefined) {
+      // stderr, and stated as a rejection rather than an absence: this deployment was configured
+      // to use an App and is not using one, which is a different situation from never having
+      // asked for it, and the operator has something to fix.
+      console.error(`GitHub App credentials REJECTED — ${appCredentialError}`);
+      console.error("  Running without the App: clone-and-scan is limited to public repositories.");
+    } else {
+      console.log("No GitHub App configured — clone-and-scan is limited to public repositories.");
+    }
   }
 
   const llmTransport = config.nvidiaApiKey ? createNimTransport({ apiKey: config.nvidiaApiKey }) : undefined;
