@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { AlertTriangle, Clock, Inbox, Lock, SearchX, Settings2, WifiOff } from "lucide-react";
 import { Button } from "./Button";
+import { InlineCode } from "./InlineCode";
 import { cx } from "@/lib/utils";
 import { explainError, type ErrorContext, type ErrorKind, type FriendlyError } from "@/lib/errors";
 
@@ -83,6 +84,18 @@ export function ErrorState({
           <p className={cx("text-[0.875rem] font-medium", style.title)}>{error.title}</p>
           <p className="mt-1 text-[0.82rem] leading-relaxed text-fg-secondary">{error.detail}</p>
           {error.action && <p className="mt-2 text-[0.82rem] leading-relaxed text-fg-secondary">{error.action}</p>}
+
+          {/*
+            Setup instructions, kept visually below the part the reader can act on and set in
+            muted type. Someone without shell access on the API service should be able to stop
+            reading at `action` and have lost nothing.
+          */}
+          {error.operator && (
+            <p className="mt-2.5 border-l-2 border-line pl-3 text-[0.75rem] leading-relaxed text-fg-muted">
+              <span className="font-medium text-fg-secondary">For whoever runs this deployment</span> —{" "}
+              <InlineCode text={error.operator} />
+            </p>
+          )}
 
           {(onRetry || error.technical) && (
             <div className="mt-3 flex flex-wrap items-center gap-3">

@@ -43,9 +43,11 @@ describe("explainError — messages this API genuinely produces", () => {
     // The headline must not be the raw string, and must not name an internal option.
     expect(e.title).not.toContain("repo fetcher");
     expect(e.title.toLowerCase()).toContain("github");
-    // The alternative that works right now matters more than the env-var list.
+    // The alternative that works right now matters more than the env-var list, and the two
+    // land in different fields on purpose: `action` is what this reader can do, `operator` is
+    // what whoever runs the deployment must set. Both are rendered (ui/EmptyState).
     expect(e.action).toMatch(/Path on host/);
-    expect(e.action).toMatch(/GITHUB_APP_ID/);
+    expect(e.operator).toMatch(/GITHUB_APP_ID/);
     expect(e.retryable).toBe(false);
     // The original is kept for a bug report, just not as the headline.
     expect(e.technical).toBe(API_MESSAGES.noRepoFetcher);
@@ -80,7 +82,7 @@ describe("explainError — messages this API genuinely produces", () => {
   it("names the platform when a compliance token is missing", () => {
     const e = explainError(new ApiError(403, API_MESSAGES.noVantaToken));
     expect(e.title).toContain("Vanta");
-    expect(e.action).toContain("VANTA_API_TOKEN");
+    expect(e.operator).toContain("VANTA_API_TOKEN");
   });
 
   it("explains a plan gate in terms of the plan", () => {
@@ -149,7 +151,7 @@ describe("explainError — anonymous clone-and-scan refusals", () => {
     // The trap this rule exists to avoid: sending someone to check their spelling when the
     // real answer is that Gatepass was never granted access.
     expect(e.detail).toMatch(/private/i);
-    expect(e.action).toMatch(/GITHUB_APP_ID/);
+    expect(e.operator).toMatch(/GITHUB_APP_ID/);
     expect(e.retryable).toBe(false);
   });
 
@@ -189,5 +191,25 @@ describe("explainError — a capability this deployment does not have", () => {
     expect(e.kind).toBe("unconfigured");
     // The specific rule names the feature; the generic 501 branch could not.
     expect(e.title.toLowerCase()).toContain("pull request");
+  });
+});
+
+/**
+ * The failure mode that took a deployed dashboard down: no API URL configured, so the server
+ * fell back to its own loopback and every page — sign-in included — got nothing.
+ *
+ * What is pinned here is the *diagnosis*, because the old one was actively wrong. It told
+ * whoever was on call to start a local API process, on a host they were not looking at, when
+ * the fix was one environment variable. A message that sends someone to the wrong machine is
+ * worse than no message.
+ */
+describe("explainError — a dashboard with no API URL configured", () => {
+  it("blames the missing variable, not a process nobody was meant to run", () => {
+    const e = explainError(new TypeError("Failed to fetch"));
+    expect(e.kind).toBe("offline");
+    expect(e.operator).toBeDefined();
+    // Under test, GATEPASS_API_URL is unset — exactly the deployed-and-unconfigured case.
+    expect(e.operator).toMatch(/GATEPASS_API_URL/);
+    expect(e.operator).not.toMatch(/pnpm --filter/);
   });
 });

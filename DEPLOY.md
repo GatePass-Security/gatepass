@@ -6,9 +6,24 @@ The whole hosted product runs at $0/month on free tiers, no credit card required
 |---|---|---|
 | API (`apps/api`) | [Render](https://render.com) web service | 750 instance-hours/mo (sleeps after 15 min idle) |
 | Dashboard (`apps/web`) | [Vercel](https://vercel.com) hobby | Unlimited static + serverless for personal use |
-| Postgres | [Neon](https://neon.tech) | 0.5 GB storage, autosuspend |
+| Database | [MongoDB Atlas](https://mongodb.com/atlas) M0 | 512 MB, free with **no expiry** |
 
-## 1. Neon (Postgres) — ~3 minutes
+> **Do not use Render's own free Postgres for this.** It is deleted 30 days after creation, so a
+> demo built on it dies on a timer nobody is watching. Atlas M0 has no such clock. Neon's free
+> tier also works if you prefer Postgres — set `DATABASE_URL` instead of `MONGODB_URI`.
+
+## The one variable that breaks everything if it is missing
+
+`GATEPASS_API_URL`, on the **dashboard**. It is how Vercel's server-side code finds the API.
+Without it the dashboard falls back to `http://localhost:3000` — its own loopback, where nothing
+is listening — and every page including sign-in fails to reach the API. The System page shows
+the resolved value and flags it in red when it was defaulted rather than set.
+
+It is a plain runtime variable, not a `NEXT_PUBLIC_` one, so changing it takes effect on the
+next deploy without needing the bundle rebuilt. (`NEXT_PUBLIC_API_URL` is still read as a
+fallback so older deployments keep working.)
+
+## 1. Neon (Postgres) — optional, ~3 minutes
 
 1. Sign up at **neon.tech** (GitHub SSO), create a project `gatepass`.
 2. Copy the **connection string** (looks like `postgresql://user:pass@ep-…aws.neon.tech/neondb?sslmode=require`).
@@ -67,8 +82,14 @@ takes ~40s. For demos, a free [UptimeRobot](https://uptimerobot.com) monitor pin
 
 1. Sign up at **vercel.com** (GitHub SSO) → **Add New → Project** → import `gatepass`.
 2. Set **Root Directory** to `apps/web` (framework auto-detects Next.js).
-3. Env var: `NEXT_PUBLIC_API_URL` = your Render URL (e.g. `https://gatepass-api.onrender.com`).
-4. Deploy, note the URL, and put it in Render's `GATEPASS_ALLOWED_ORIGINS`.
+3. Env var: **`GATEPASS_API_URL`** = your Render URL, with scheme and no trailing slash
+   (e.g. `https://gatepass-api.onrender.com`). Apply it to Production, Preview and Development.
+4. Deploy, note the URL, and put it in Render's `GATEPASS_ALLOWED_ORIGINS` **and**
+   `GATEPASS_WEB_URL`.
+
+Check it worked by opening **/system** on the deployed dashboard: "API base" should show your
+Render URL. If it shows `http://localhost:3000` with a red note underneath, the variable did not
+reach the build — confirm it is set for the Production environment and redeploy.
 
 ## 4. Point the GitHub App at production — ~2 minutes
 

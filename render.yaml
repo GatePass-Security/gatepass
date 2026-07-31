@@ -11,6 +11,17 @@ services:
     envVars:
       - key: NODE_VERSION
         value: 22.12.0
+      # Storage. Set ONE of these; the API prefers Mongo, then Postgres, then memory.
+      # Deliberately NOT Render's own free Postgres: it is deleted 30 days after creation,
+      # which turns a working demo into a dead one on a timer nobody is watching.
+      - key: MONGODB_URI # MongoDB Atlas M0 — free with no expiry
+        sync: false
+      # Must match whatever the data was written under. The driver otherwise falls back to the
+      # database named in the connection string — and an Atlas URI usually names none, so it
+      # silently lands in `test` and the dashboard comes up empty against a cluster that is
+      # full of data.
+      - key: MONGODB_DB
+        value: gatepass
       - key: DATABASE_URL # Neon connection string (postgresql://...sslmode=require)
         sync: false
       - key: GITHUB_APP_ID
@@ -27,10 +38,25 @@ services:
         sync: false
       - key: SESSION_SECRET
         sync: false
+      # Username/password accounts, as `login:scrypt-hash:role` pairs. Without either this or
+      # the GitHub OAuth pair above, a production deployment has no way in at all: the local
+      # development sign-in is refused outright when NODE_ENV=production, by construction.
+      # Only hashes travel here — generate one with `pnpm --filter @gatepass/api hash-password`.
+      - key: GATEPASS_LOCAL_USERS
+        sync: false
       - key: NVIDIA_API_KEY
         sync: false
       - key: GATEPASS_ALLOWED_ORIGINS # e.g. https://gatepass.vercel.app
         sync: false
+      - key: GATEPASS_WEB_URL # the dashboard's public URL, reported by /healthz
+        sync: false
+      # Public repositories scanned on first boot so the dashboard is not empty. `off` here
+      # because with a persistent store the seed is a property of the *database*, not of the
+      # service — whatever already ran against this cluster is already visible, and a free
+      # 512 MB instance has better uses for its first minute than re-downloading repositories
+      # it can already see. Set it to a comma-separated list to seed an empty cluster.
+      - key: GATEPASS_DEMO_REPOS
+        value: "off"
       # Write credentials for the two non-browser endpoints. Both FAIL CLOSED:
       # leave either unset and that route rejects every request, which is the
       # right posture for a deployment that does not use it.

@@ -1,5 +1,36 @@
-/** The Gatepass API's own origin. Server-side code and the proxy talk to this directly. */
-export const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000";
+/**
+ * The Gatepass API's own origin. **Server-side only.**
+ *
+ * ## Why this is not a `NEXT_PUBLIC_` value
+ *
+ * Nothing in the browser needs it. The browser talks to `API_PROXY_BASE` below — a same-origin
+ * path — and the proxy is the only thing that dials the API. So publishing the API's origin
+ * into the client bundle bought nothing and cost two things:
+ *
+ *  - **It is frozen at build time.** Next.js inlines `NEXT_PUBLIC_*` into the compiled output,
+ *    so setting it on the host after a deploy changes nothing until the next build. Read at
+ *    runtime, an edited environment variable takes effect on restart, which is what an operator
+ *    expects when they fix a URL.
+ *  - **It shipped the API's address to every visitor**, including on the signed-out marketing
+ *    pages, for no functional reason.
+ *
+ * `NEXT_PUBLIC_API_URL` is still honoured so an existing deployment configured the documented
+ * way keeps working; `GATEPASS_API_URL` is the one to set now.
+ */
+const configured = (process.env.GATEPASS_API_URL || process.env.NEXT_PUBLIC_API_URL || "").trim();
+
+/**
+ * Whether an API origin was actually configured, as opposed to defaulted.
+ *
+ * The localhost default is right for `pnpm dev` and actively misleading anywhere else: a hosted
+ * dashboard with no API URL set would dial its own loopback, get nothing, and report that the
+ * API "isn't running on this machine" — sending an operator to restart a local process that was
+ * never the problem. Callers use this to say the true thing instead.
+ */
+export const API_BASE_CONFIGURED = configured.length > 0;
+
+/** Trailing slashes are stripped so `${API_BASE}/v1/...` cannot produce a double slash. */
+export const API_BASE = (configured || "http://localhost:3000").replace(/\/+$/, "");
 
 /**
  * True when this build was deployed without being told where its API lives.
@@ -31,9 +62,14 @@ export function apiUrlMisconfigured(): boolean {
    * loopback. On the server there is no location to compare against — and the pages that show
    * this are server-rendered — so fall back to the condition that produced the loopback default
    * in the first place. `next dev` is excluded because there the default is correct.
+   *
+   * The test is "was anything configured", not "was NEXT_PUBLIC_API_URL configured". Someone
+   * self-hosting both halves on one box can legitimately point `GATEPASS_API_URL` at loopback,
+   * and telling them their deployment is misconfigured because they set the current variable
+   * rather than the deprecated one would be a false alarm about a correct setup.
    */
   if (typeof window !== "undefined") return !loopback.test(window.location.hostname);
-  return process.env.NODE_ENV === "production" && !process.env.NEXT_PUBLIC_API_URL;
+  return process.env.NODE_ENV === "production" && !API_BASE_CONFIGURED;
 }
 
 /**

@@ -6,6 +6,8 @@ export { Input, Textarea } from "./Input";
 export { Select } from "./Select";
 export { Skeleton, PageSkeleton } from "./Skeleton";
 export { EmptyState, ErrorState, ErrorPanel } from "./EmptyState";
+export { PageError } from "./PageError";
+export { InlineCode } from "./InlineCode";
 export { ToastProvider, useToast } from "./Toast";
 export { Stat, TONE_TEXT, TONE_FILL, TONE_SOFT, TONE_VAR, type Tone } from "./Stat";
 export { PageHeader } from "./PageHeader";

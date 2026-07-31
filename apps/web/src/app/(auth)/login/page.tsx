@@ -4,6 +4,7 @@ import ApiClient from "@/lib/api-client";
 import { API_BASE, apiUrlMisconfigured } from "@/lib/constants";
 import { safeNextPath } from "@/lib/session-cookie";
 import { BrandLockup } from "@/components/Brand";
+import { InlineCode } from "@/components/ui/InlineCode";
 import type { AuthConfig } from "@/lib/types";
 
 /**
@@ -28,8 +29,15 @@ export const metadata = {
   robots: { index: false, follow: false },
 };
 
-/** Every failure the two OAuth route handlers can redirect back with. */
-const ERRORS: Record<string, { title: string; detail: string }> = {
+/**
+ * Every failure the two OAuth route handlers can redirect back with.
+ *
+ * `detail` is what the person standing at the door reads. `operator` is what somebody with
+ * access to the API service would have to change, and it is kept separate rather than tacked
+ * onto the end of `detail`: a reader who cannot set an environment variable should not have to
+ * work out that the second half of the sentence was not addressed to them.
+ */
+const ERRORS: Record<string, { title: string; detail: string; operator?: string }> = {
   cancelled: {
     title: "Sign-in cancelled",
     detail: "You chose not to authorize Gatepass on GitHub. Nothing was changed.",
@@ -75,8 +83,8 @@ const ERRORS: Record<string, { title: string; detail: string }> = {
   },
   password_unavailable: {
     title: "Password sign-in isn't enabled here",
-    detail:
-      "This deployment has no local accounts configured. Set GATEPASS_LOCAL_USERS on the API service, or sign in with GitHub.",
+    detail: "This deployment has no local accounts, so there is no password to check. Sign in with GitHub instead.",
+    operator: "Set GATEPASS_LOCAL_USERS on the API service to enable local accounts.",
   },
   session_expired: {
     title: "Your session ended while you were on GitHub",
@@ -85,12 +93,15 @@ const ERRORS: Record<string, { title: string; detail: string }> = {
   github_unavailable: {
     title: "GitHub sign-in isn't available",
     detail:
-      "The API has no GitHub OAuth credentials configured, or did not respond. Set GITHUB_OAUTH_CLIENT_ID, GITHUB_OAUTH_CLIENT_SECRET and SESSION_SECRET on the API service.",
+      "Gatepass could not start a GitHub sign-in — either this deployment has no GitHub credentials set up, or the server did not respond. Nothing you did caused this.",
+    operator:
+      "Set GITHUB_OAUTH_CLIENT_ID, GITHUB_OAUTH_CLIENT_SECRET and SESSION_SECRET on the API service, and check the API is reachable.",
   },
   dev_unavailable: {
     title: "The development sign-in is not enabled",
-    detail:
-      "The API refused it. It requires GATEPASS_DEV_AUTH=1 and a non-production NODE_ENV — run the API with `pnpm --filter @gatepass/api dev`.",
+    detail: "The server refused it. This door only exists on a development machine, never in production.",
+    operator:
+      "It requires GATEPASS_DEV_AUTH=1 and a non-production NODE_ENV — run the API with `pnpm --filter @gatepass/api dev`.",
   },
 };
 
@@ -130,6 +141,12 @@ export default async function LoginPage({
             {failure.title}
           </p>
           <p className="mt-1.5 text-[0.78rem] leading-relaxed text-fg-secondary">{failure.detail}</p>
+          {failure.operator && (
+            <p className="mt-2.5 border-l-2 border-line pl-3 text-[0.72rem] leading-relaxed text-fg-muted">
+              <span className="font-medium text-fg-secondary">For whoever runs this deployment</span> —{" "}
+              <InlineCode text={failure.operator} />
+            </p>
+          )}
         </div>
       )}
 
@@ -141,14 +158,14 @@ export default async function LoginPage({
             <>
               <p className="text-[0.855rem] font-medium text-fg">Sign-in isn&rsquo;t configured on this deployment</p>
               <p className="mt-1.5 text-[0.78rem] leading-relaxed text-fg-secondary">
-                This build points at <span className="font-mono text-fg-muted">{API_BASE}</span> — the default used for
-                local development — so it is asking your own machine for the API rather than a server.{" "}
-                <span className="font-mono text-fg-muted">NEXT_PUBLIC_API_URL</span> was not set when it was built.
+                This deployment points at <span className="font-mono text-fg-muted">{API_BASE}</span> — the default used
+                for local development — so it is asking its own machine for the API rather than a server. No API URL was
+                set.
               </p>
               <p className="mt-2.5 text-[0.78rem] leading-relaxed text-fg-secondary">
-                If this is your deployment: set that variable to the API&rsquo;s origin and redeploy. The value is
-                compiled into the browser bundle, so it has to be present at build time — changing it afterwards has no
-                effect until the next build.
+                If this is your deployment: set <span className="font-mono text-fg-muted">GATEPASS_API_URL</span> to the
+                API&rsquo;s origin and redeploy. It is read at runtime, so it does not have to be present when the
+                bundle is built.
               </p>
             </>
           ) : (
@@ -326,10 +343,10 @@ function DevSignIn({ next, showDivider }: { next: string; showDivider: boolean }
 function NoSignInConfigured() {
   return (
     <div className="rounded-[var(--radius-card)] border border-line bg-surface p-5">
-      <p className="text-[0.855rem] font-medium text-fg">No sign-in method is configured</p>
+      <p className="text-[0.855rem] font-medium text-fg">There is no way to sign in here yet</p>
       <p className="mt-1.5 text-[0.78rem] leading-relaxed text-fg-secondary">
-        The API has neither GitHub OAuth credentials nor the development sign-in enabled, so there is no way to start a
-        session on this deployment.
+        This deployment has no sign-in method turned on — no GitHub, no password, no development session — so nobody can
+        start a session on it. This is a setup step nobody has done, not a problem with your account.
       </p>
       <dl className="mt-4 space-y-3 text-[0.78rem]">
         <div>

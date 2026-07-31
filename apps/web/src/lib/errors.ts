@@ -1,4 +1,4 @@
-import { API_BASE } from "./constants";
+import { API_BASE, API_BASE_CONFIGURED } from "./constants";
 import { ApiError } from "./types";
 
 /**
@@ -27,8 +27,18 @@ export interface FriendlyError {
   title: string;
   /** What happened, in the reader's terms. One or two sentences. */
   detail: string;
-  /** The next thing to do. Omitted when there genuinely isn't one. */
+  /**
+   * The next thing *this reader* can do, with what they already have. Omitted when there
+   * genuinely isn't one — an empty suggestion is worse than none.
+   */
   action?: string;
+  /**
+   * The next thing whoever runs the deployment would do: environment variables, restarts,
+   * credentials. Separate from `action` because most people reading a Gatepass error cannot
+   * set an environment variable on the API service, and telling them to is a dead end that
+   * looks like an instruction. Rendered demoted, below the part they can act on.
+   */
+  operator?: string;
   /** HTTP status, when there was one. */
   status?: number;
   /** The original message. Secondary detail for a bug report — never the headline. */
@@ -58,6 +68,77 @@ function isAbort(err: unknown): boolean {
 function messageOf(err: unknown): string {
   if (err instanceof Error) return err.message;
   return typeof err === "string" ? err : "";
+}
+
+/**
+ * Whether the API this dashboard points at lives on the reader's own machine.
+ *
+ * It decides which half of "the API is down" is useful to say. On localhost the reader is
+ * almost certainly the person who can start it, so naming the command is the whole answer. On
+ * a hosted deployment they almost certainly cannot, and "start the API" reads as an instruction
+ * they are failing to follow rather than as information.
+ */
+function isLocalApi(base: string): boolean {
+  return /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])([:/]|$)/i.test(base);
+}
+
+/**
+ * The API did not answer at all.
+ *
+ * One builder, because this is reachable two ways — a browser `TypeError` on a direct call,
+ * and a 502 from the same-origin proxy when it cannot reach upstream — and which path the
+ * request took is not something the reader should be able to feel.
+ */
+export function offlineError(base: string): Omit<FriendlyError, "technical" | "status"> {
+  return {
+    kind: "offline",
+    title: "Gatepass can’t reach its server",
+    detail:
+      "The dashboard loaded, but the Gatepass server did not answer. It may still be starting up, or it may be briefly down. Nothing you were doing was lost.",
+    action: "Wait a few seconds, then try again.",
+    operator: operatorNote(base),
+    retryable: true,
+  };
+}
+
+/**
+ * The same outage as seen from the browser, where the unreachable host is this page's origin.
+ *
+ * Deliberately names no address. The one the client bundle could see is the API's, and the API
+ * is not what the browser was calling.
+ */
+function browserOfflineError(): Omit<FriendlyError, "technical" | "status"> {
+  return {
+    kind: "offline",
+    title: "Gatepass can’t reach its server",
+    detail:
+      "The request did not leave this page — the connection dropped, or the dashboard itself is unreachable. Nothing you were doing was lost.",
+    action: "Check your connection, then try again.",
+    operator: "The browser could not reach the dashboard's own origin, so this is a network or hosting fault here.",
+    retryable: true,
+  };
+}
+
+/**
+ * What to tell whoever runs this deployment, which depends on *why* the address is what it is.
+ *
+ * The case worth separating is the third one. A hosted dashboard with no API URL configured
+ * falls back to localhost and then reports that nothing is listening there — true, useless, and
+ * pointed at the wrong machine entirely. Left as "start the API on this machine", it sends an
+ * operator to debug a local process on a server they are not looking at, when the actual fix is
+ * one environment variable. The dashboard knows which of these it is, so it should say.
+ */
+function operatorNote(base: string): string {
+  if (!API_BASE_CONFIGURED && base === API_BASE) {
+    return (
+      `No API URL is configured for this dashboard, so it fell back to ${base} — its own loopback, ` +
+      `where nothing is listening. Set GATEPASS_API_URL to the API's public origin ` +
+      `(for example https://gatepass-api.onrender.com) on the dashboard's host and redeploy.`
+    );
+  }
+  return isLocalApi(base)
+    ? `The dashboard is pointed at ${base}, and nothing is listening there. If you are running Gatepass on this machine, start the API with \`pnpm --filter @gatepass/api dev\` and reload.`
+    : `The dashboard is pointed at ${base} and got no response. Check that the API service is running and reachable from the dashboard's network.`;
 }
 
 /**
@@ -95,8 +176,9 @@ const PATTERNS: Array<{
       title: "Cloning from GitHub isn't set up on this deployment",
       detail:
         "To clone a repository, the API has to authenticate as the Gatepass GitHub App, and this server has no App credentials. Nothing is broken — the feature just isn't configured yet.",
-      action:
-        "Scan a directory the API can already read using the “Path on host” option, which needs no setup. To enable cloning, set GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY and GITHUB_INSTALLATION_ID on the API service and restart it.",
+      action: "Scan a directory the API can already read using the “Path on host” option, which needs no setup.",
+      operator:
+        "To enable cloning, set GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY and GITHUB_INSTALLATION_ID on the API service and restart it.",
       retryable: false,
     }),
   },
@@ -113,8 +195,9 @@ const PATTERNS: Array<{
       title: `Gatepass couldn't reach ${m[1]}`,
       detail:
         "Without GitHub App credentials the API fetches anonymously, and GitHub gives an anonymous caller the same answer for a private repository as for one that doesn't exist. So this is either a typo or a repository Gatepass has not been granted access to.",
-      action:
-        "Check the owner/name spelling for a public repository. To scan private ones, install the Gatepass GitHub App and set GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY and GITHUB_INSTALLATION_ID on the API service.",
+      action: "Check the owner and name for a typo, if it is a public repository.",
+      operator:
+        "To scan private repositories, install the Gatepass GitHub App and set GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY and GITHUB_INSTALLATION_ID on the API service.",
       retryable: false,
     }),
   },
@@ -127,8 +210,9 @@ const PATTERNS: Array<{
       title: "GitHub's anonymous request limit is used up",
       detail:
         "This deployment fetches repositories without credentials, which GitHub caps at 60 requests an hour per IP address. The limit refills on its own — nothing is broken and nothing was rejected on its merits.",
-      action:
-        "Wait for the hour to roll over, or configure the Gatepass GitHub App (GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY, GITHUB_INSTALLATION_ID), which raises the limit to 5,000 an hour and unlocks private repositories.",
+      action: "Wait for the hour to roll over, then try again.",
+      operator:
+        "Configuring the Gatepass GitHub App (GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY, GITHUB_INSTALLATION_ID) raises the limit to 5,000 an hour and unlocks private repositories.",
       retryable: true,
     }),
   },
@@ -177,7 +261,9 @@ const PATTERNS: Array<{
       detail:
         "To open a fix pull request, the API has to authenticate as the Gatepass GitHub App with write access to the branch it creates, and this server has no App credentials. Nothing is broken — the feature just isn't configured yet.",
       action:
-        "The guidance on each finding is complete on its own; you can apply it by hand or hand it to your coding agent. To enable pull requests, install the Gatepass GitHub App with contents:write and set GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY and GITHUB_INSTALLATION_ID on the API service.",
+        "The guidance on each finding is complete on its own — you can apply it by hand, or hand it to your coding agent.",
+      operator:
+        "To enable pull requests, install the Gatepass GitHub App with contents:write and set GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY and GITHUB_INSTALLATION_ID on the API service.",
       retryable: false,
     }),
   },
@@ -254,7 +340,8 @@ const PATTERNS: Array<{
         kind: "unconfigured",
         title: `${platform} isn't connected`,
         detail: `Exporting evidence sends control results to ${platform}, and this deployment has no ${platform} API token.`,
-        action: `Set ${platform === "Vanta" ? "VANTA_API_TOKEN" : "DRATA_API_TOKEN"} on the API service, or export to the other platform.`,
+        action: "Export to the other platform instead, if your organization uses one.",
+        operator: `Set ${platform === "Vanta" ? "VANTA_API_TOKEN" : "DRATA_API_TOKEN"} on the API service to connect it.`,
         retryable: false,
       };
     },
@@ -266,13 +353,7 @@ const PATTERNS: Array<{
      * `TypeError` — it surfaces as this 502 from the proxy. Same cause, same message.
      */
     test: /upstream API unreachable at (\S+)/i,
-    build: (m) => ({
-      kind: "offline",
-      title: "Can't reach the Gatepass API",
-      detail: `No response from ${m[1]}. The API may be starting up, asleep, or blocked by a network rule.`,
-      action: "Check the API is running, then try again.",
-      retryable: true,
-    }),
+    build: (m) => offlineError(m[1]!),
   },
   {
     test: /OAuth(\/session)? not configured/i,
@@ -280,7 +361,7 @@ const PATTERNS: Array<{
       kind: "unconfigured",
       title: "GitHub sign-in isn't set up",
       detail: "This deployment has no GitHub OAuth credentials, so it cannot start a sign-in flow.",
-      action: "Set GITHUB_OAUTH_CLIENT_ID, GITHUB_OAUTH_CLIENT_SECRET and SESSION_SECRET on the API service.",
+      operator: "Set GITHUB_OAUTH_CLIENT_ID, GITHUB_OAUTH_CLIENT_SECRET and SESSION_SECRET on the API service.",
       retryable: false,
     }),
   },
@@ -290,7 +371,7 @@ const PATTERNS: Array<{
       kind: "unconfigured",
       title: "The GitHub webhook isn't set up",
       detail: "Incoming webhook deliveries are verified with a shared secret, and this deployment has none set.",
-      action: "Set GITHUB_WEBHOOK_SECRET on the API service to match the value in your GitHub App settings.",
+      operator: "Set GITHUB_WEBHOOK_SECRET on the API service to match the value in your GitHub App settings.",
       retryable: false,
     }),
   },
@@ -300,7 +381,7 @@ const PATTERNS: Array<{
       kind: "unconfigured",
       title: "This deployment's storage can't do that",
       detail: `The API is running against a store that does not implement ${m[1]}. In-memory storage supports a subset of what Postgres does.`,
-      action: "Point the API at a PostgreSQL database with DATABASE_URL to enable it.",
+      operator: "Point the API at a PostgreSQL database with DATABASE_URL to enable it.",
       retryable: false,
     }),
   },
@@ -318,9 +399,9 @@ const PATTERNS: Array<{
     test: /Missing required config: (.+)/i,
     build: (m) => ({
       kind: "unconfigured",
-      title: "The API is missing a setting",
-      detail: `It needs ${m[1]} and that value is not set.`,
-      action: `Set ${m[1]} on the API service and restart it.`,
+      title: "This deployment is missing a setting",
+      detail: `The Gatepass server needs ${m[1]} to do this, and that value is not set. Nothing is broken — it just isn't configured yet.`,
+      operator: `Set ${m[1]} on the API service and restart it.`,
       retryable: false,
     }),
   },
@@ -351,16 +432,18 @@ const PATTERNS: Array<{
 export function explainError(err: unknown, ctx: ErrorContext = {}): FriendlyError {
   const technical = messageOf(err) || undefined;
 
-  // Reaching the host at all comes first — nothing below matters if it is down.
+  /*
+   * Reaching the host at all comes first — nothing below matters if it is down.
+   *
+   * Which host, though, depends on where this ran. In the browser the request went to this
+   * app's own origin (the `/api/gp` proxy), so a network failure means the dashboard is
+   * unreachable and the API's address is neither known here nor the thing that broke. Naming
+   * it would be a guess dressed as a diagnosis. When the proxy *does* reach the browser, an
+   * unreachable API arrives as its 502 — and that rule, below, gets the address from the
+   * proxy's own message, which is server-derived and correct.
+   */
   if (isNetworkFailure(err)) {
-    return {
-      kind: "offline",
-      title: "Can't reach the Gatepass API",
-      detail: `No response from ${API_BASE}. The API may be starting up, asleep, or blocked by a network rule.`,
-      action: "Check the API is running, then try again.",
-      technical,
-      retryable: true,
-    };
+    return { ...(typeof window === "undefined" ? offlineError(API_BASE) : browserOfflineError()), technical };
   }
 
   if (isAbort(err)) {
@@ -391,7 +474,7 @@ export function explainError(err: unknown, ctx: ErrorContext = {}): FriendlyErro
     return {
       kind: "notFound",
       title: `That ${label} no longer exists`,
-      detail: `The API has no ${label} matching this request. It may have been removed, or the link you followed is out of date.`,
+      detail: `Gatepass has no ${label} matching this request. It may have been deleted, or the link you followed may be out of date.`,
       action: resource === "scan" ? "Pick a scan from the Scans page." : undefined,
       status,
       technical,
@@ -403,8 +486,8 @@ export function explainError(err: unknown, ctx: ErrorContext = {}): FriendlyErro
     case 401:
       return {
         kind: "denied",
-        title: "Not signed in",
-        detail: "The API rejected this request because it carried no valid credential.",
+        title: "You're not signed in anymore",
+        detail: "Your session is no longer valid, so Gatepass refused the request. This usually just means it expired.",
         action: "Sign in again, then retry.",
         status,
         technical,
@@ -453,8 +536,8 @@ export function explainError(err: unknown, ctx: ErrorContext = {}): FriendlyErro
       return {
         kind: "unconfigured",
         title: "That isn't set up on this deployment",
-        detail: raw || "The API does not have this capability configured.",
-        action: "An operator needs to configure it on the API service.",
+        detail: raw || "Gatepass can do this, but it has not been configured here. Nothing is broken.",
+        operator: "This capability has to be configured on the API service before it will work.",
         status,
         technical,
         retryable: false,
@@ -466,11 +549,11 @@ export function explainError(err: unknown, ctx: ErrorContext = {}): FriendlyErro
   if (status && status >= 500) {
     return {
       kind: "server",
-      title: "The API hit an error",
+      title: "Something went wrong on Gatepass's side",
       detail: ctx.action
-        ? `Something went wrong on the server while trying to ${ctx.action}.`
-        : "Something went wrong on the server handling this request.",
-      action: "Try again. If it keeps happening, the detail below is worth reporting.",
+        ? `The server hit an error while trying to ${ctx.action}. This is a fault here, not something you did.`
+        : "The server hit an error handling this request. This is a fault here, not something you did.",
+      action: "Try again. If it keeps happening, the technical detail below is worth reporting.",
       status,
       technical,
       retryable: true,
