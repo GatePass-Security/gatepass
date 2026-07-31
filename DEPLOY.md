@@ -40,18 +40,35 @@ queries) and tracked in `__drizzle_migrations` — re-running is a no-op.
 
 1. Sign up at **render.com** (GitHub SSO) → **New → Blueprint** → select the `gatepass` repo.
    Render reads [render.yaml](render.yaml) and creates the `gatepass-api` service.
-2. Fill in the env vars it prompts for:
-   - `DATABASE_URL` — the Neon string from step 1
-   - `GITHUB_APP_ID`, `GITHUB_INSTALLATION_ID` — from github.com/settings/apps
-   - `GITHUB_APP_PRIVATE_KEY` — paste the **full PEM file content** (Render env vars accept
-     multi-line values; no file needed)
-   - `GITHUB_WEBHOOK_SECRET` — any long random string; must match step 4
-   - `GITHUB_OAUTH_CLIENT_ID` / `GITHUB_OAUTH_CLIENT_SECRET` / `SESSION_SECRET` — as in `.env.example`
-   - `NVIDIA_API_KEY` — for research-tier LLM refinement (optional; scans degrade gracefully)
+2. Fill in the env vars it prompts for. **Set exactly one storage variable** — the API prefers
+   Mongo, then Postgres, then an in-memory store that loses everything on restart:
+   - `MONGODB_URI` — the Atlas SRV string. Leave `DATABASE_URL` blank; it is never read once
+     this is set. (Taking the Neon route instead? Do the reverse — fill `DATABASE_URL` from
+     step 1 and leave `MONGODB_URI` blank.)
+   - `SESSION_SECRET` — any long random string; it signs session cookies
+   - **A way to sign in.** Without one of these a production deployment has no way in at all,
+     because the local development sign-in is refused outright when `NODE_ENV=production`:
+     - `GATEPASS_LOCAL_USERS` — `login:scrypt-hash:role`, hashes only. Generate one with
+       `pnpm --filter @gatepass/api hash-password`.
+     - and/or `GITHUB_OAUTH_CLIENT_ID` / `GITHUB_OAUTH_CLIENT_SECRET`
    - `GATEPASS_ALLOWED_ORIGINS` — your Vercel URL once you have it (step 3), e.g.
-     `https://gatepass.vercel.app`
-   - `GATEPASS_RUNNER_TOKENS` / `GATEPASS_ADMIN_TOKEN` — optional; see below
+     `https://gatepass.vercel.app`. Compared to the browser's `Origin` header as an exact
+     string, so no trailing slash, no path, and the scheme is required.
+   - `GATEPASS_WEB_URL` — the same Vercel URL; `/healthz` reports it back
+   - Optional, all of which degrade gracefully when absent:
+     - `GITHUB_APP_ID` / `GITHUB_INSTALLATION_ID` / `GITHUB_APP_PRIVATE_KEY` (paste the **full
+       PEM content** — Render env vars accept multi-line values) and `GITHUB_WEBHOOK_SECRET`
+       to match step 4. Without them, scanning still works but reaches public repos only.
+     - `NVIDIA_API_KEY` — research-tier LLM refinement
+     - `GATEPASS_RUNNER_TOKENS` / `GATEPASS_ADMIN_TOKEN` — see below
 3. Deploy. Health check is `GET /healthz`.
+
+The first line of the log says which store won, and is worth reading rather than assuming:
+`Gatepass API on :10000 (store: mongodb)`. If it says `store: memory`, neither variable reached
+the process — the API will come up and answer normally while writing your scan history into a
+Map that dies on the next restart. If the deploy instead fails its health check, the usual cause
+is Atlas **Network Access** not allowing `0.0.0.0/0`: a store that is configured but unreachable
+stops the process on purpose, rather than booting into a state that silently loses data.
 
 ### Write credentials (both fail closed)
 

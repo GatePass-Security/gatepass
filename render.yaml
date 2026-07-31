@@ -5,7 +5,20 @@ services:
     name: gatepass-api
     runtime: node
     plan: free
-    buildCommand: corepack enable && pnpm install --frozen-lockfile
+    # pnpm is installed with npm rather than enabled through corepack, on purpose.
+    #
+    # Corepack authenticates its downloads against npm's registry signing keys, and it ships
+    # with those keys *baked in*. npm rotated them; every corepack older than 0.31.0 therefore
+    # fails closed on any registry fetch with `Cannot find matching keyid` — including the
+    # 0.30.0 bundled with the Node 22.12.0 pinned below, which is what took this build down.
+    # The published workaround is COREPACK_INTEGRITY_KEYS=0, i.e. turn the signature check off.
+    # Not in this repo. npm verifies the tarball against the registry's own integrity hash, so
+    # this route is both verified and immune to the key rotation.
+    #
+    # The version MUST match `packageManager` in the root package.json — same pnpm that wrote
+    # pnpm-lock.yaml, or `--frozen-lockfile` is checking the lockfile against a resolver that
+    # did not produce it.
+    buildCommand: npm install -g pnpm@9.15.9 && pnpm install --frozen-lockfile
     startCommand: pnpm --filter @gatepass/api start
     healthCheckPath: /healthz
     envVars:
