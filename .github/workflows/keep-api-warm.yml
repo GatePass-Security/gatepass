@@ -1,0 +1,53 @@
+name: Keep API warm
+
+# The hosted API runs on a free instance that suspends after ~15 minutes idle, and takes about
+# forty seconds to wake. That wake happens on somebody's first request — so the person who pays
+# for it is always a first-time visitor, on the login page, before they have seen anything.
+#
+# The client-side fix (a 60s cold-start budget on `authConfig` and `session`, plus `maxDuration`
+# on the login segment) stops that being reported as an outage. It does not stop the wait. This
+# removes the wait, by making sure a request has already arrived before a person does.
+#
+# HONEST LIMITS, because this is a substitute for a monitoring service rather than one:
+#
+#  - GitHub's scheduler is best-effort. A `*/10` cron is frequently late, sometimes by more than
+#    the 15-minute idle window, so this reduces cold starts rather than eliminating them. A free
+#    UptimeRobot monitor is more reliable and is the better answer if it matters.
+#  - Scheduled workflows are disabled automatically after 60 days without repository activity.
+#    On an active repo that never fires; on a quiet one it stops silently.
+#  - It is deliberately not a health *gate*. A failed ping here means the runner could not reach
+#    the API, which on a suspended instance is the normal case this exists to fix. Failing the
+#    job would train everyone to ignore a red cross.
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+# Two runs pinging the same URL achieve nothing the first did not, so a queued one is dropped
+# rather than stacked behind a late predecessor.
+concurrency:
+  group: keep-api-warm
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wake the API
+        env:
+          # Overridable without editing this file: set a repository variable of the same name to
+          # point at a different deployment.
+          API_URL: ${{ vars.GATEPASS_API_URL || 'https://gatepass-api-1zn8.onrender.com' }}
+        run: |
+          # --max-time 90 covers the ~40s wake with room. -o /dev/null keeps the body out of the
+          # log: /healthz is not secret, but a workflow log is a place things get read from later.
+          code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 90 "$API_URL/healthz" || echo "000")
+          elapsed=$(curl -s -o /dev/null -w '%{time_total}' --max-time 90 "$API_URL/healthz" || echo "-")
+          echo "GET $API_URL/healthz -> $code (second call: ${elapsed}s)"
+          if [ "$code" != "200" ]; then
+            echo "::warning::API did not answer 200 (got $code). Not failing the job — see the note at the top of this file."
+          fi
