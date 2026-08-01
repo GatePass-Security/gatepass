@@ -16,13 +16,14 @@ import {
 } from "lucide-react";
 import { api } from "@/lib/api-client";
 import { useOrgId } from "@/providers/SessionProvider";
-import type { Finding, FixEdit, FixPullRequestResult, Severity, Tier } from "@/lib/types";
+import type { AttributedFinding, FixEdit, FixPullRequestResult, Severity, Tier } from "@/lib/types";
 import { Badge } from "@/components/ui/Badge";
 import { Button, IconButton } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { EmptyState, ErrorPanel } from "@/components/ui/EmptyState";
 import { FilterPill, SegmentedControl } from "@/components/ui/FilterPill";
 import { Textarea } from "@/components/ui/Input";
+import { Select } from "@/components/ui/Select";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Stat, TONE_FILL, TONE_SOFT } from "@/components/ui/Stat";
 import { FindingDetail, SectionLabel, severityTone, tierTone } from "@/components/FindingDetail";
@@ -31,13 +32,18 @@ import { useToast } from "@/components/ui/Toast";
 import { SEVERITY_ORDER, confidencePercent, cx, pluralize, severityLabel, sharePercent } from "@/lib/utils";
 
 interface Props {
-  findings: Finding[];
-  scanId?: string;
+  /** The org's current findings — every connected repository's latest scan, newest first. */
+  findings: AttributedFinding[];
+  /** How many repositories those scans covered, including ones that came back clean. */
+  repoCount: number;
   error: string | null;
 }
 
 type TierFilter = "all" | Tier;
 type SeverityFilter = "all" | Severity;
+/** `"all"` spans every repository; anything else is one repository's name. */
+type RepoFilter = string;
+const ALL_REPOS = "all";
 
 const TIER_OPTIONS: Array<{ value: TierFilter; label: string }> = [
   { value: "all", label: "All" },
@@ -62,7 +68,8 @@ function medianOf(values: number[]): number {
 }
 
 const PAGE_DESCRIPTION =
-  "Two-tier results from the latest scan. Verified findings carry a reproduction; research findings carry a confidence score.";
+  "Two-tier results across every connected repository, from each one's most recent scan. " +
+  "Verified findings carry a reproduction; research findings carry a confidence score.";
 
 /**
  * A finding paired with the edit Gatepass could actually commit.
@@ -73,11 +80,11 @@ const PAGE_DESCRIPTION =
  * the rest of this file free of non-null assertions.
  */
 interface ApplicableFix {
-  finding: Finding;
+  finding: AttributedFinding;
   edit: FixEdit;
 }
 
-function applicableFixes(findings: readonly Finding[]): ApplicableFix[] {
+function applicableFixes(findings: readonly AttributedFinding[]): ApplicableFix[] {
   return findings.flatMap((finding) => {
     const edit = finding.suggestedFix?.kind === "diff" ? finding.suggestedFix.edit : undefined;
     return edit ? [{ finding, edit }] : [];
@@ -85,9 +92,12 @@ function applicableFixes(findings: readonly Finding[]): ApplicableFix[] {
 }
 
 const NO_APPLICABLE_FIX_REASON =
-  "Every fix in this scan is guidance-only — it needs a value a person has to choose, so there is nothing Gatepass can commit.";
+  "Every fix in view is guidance-only — it needs a value a person has to choose, so there is nothing Gatepass can commit.";
 
-export default function FindingsClient({ findings, scanId, error }: Props) {
+const PICK_A_REPO_REASON =
+  "A pull request is opened against one repository. Filter to a single repository to choose which one.";
+
+export default function FindingsClient({ findings, repoCount, error }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
@@ -95,6 +105,7 @@ export default function FindingsClient({ findings, scanId, error }: Props) {
   const rawQuery = searchParams.get("q") ?? "";
   const query = rawQuery.toLowerCase();
 
+  const [repoFilter, setRepoFilter] = useState<RepoFilter>(ALL_REPOS);
   const [tierFilter, setTierFilter] = useState<TierFilter>("all");
   const [severityFilter, setSeverityFilter] = useState<SeverityFilter>("all");
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -108,9 +119,34 @@ export default function FindingsClient({ findings, scanId, error }: Props) {
 
   const live = useMemo(() => findings.filter((f) => !disputed.has(f.fingerprint)), [findings, disputed]);
 
+  /* Every repository represented in the list, so the filter offers exactly what is there. */
+  const repoOptions = useMemo(
+    () => [...new Set(live.map((f) => f.repo).filter((r): r is string => Boolean(r)))].sort(),
+    [live],
+  );
+
+  /* The repository filter sits ahead of every other count on this page: the tier and severity
+     figures have to describe the set actually on screen, not the whole org. */
+  const inRepo = useMemo(
+    () => (repoFilter === ALL_REPOS ? live : live.filter((f) => f.repo === repoFilter)),
+    [live, repoFilter],
+  );
+
   /* Disputed findings are excluded here for the same reason the server excludes
      them: a finding a human rejected must not come back as a commit. */
-  const applicable = useMemo(() => applicableFixes(live), [live]);
+  const applicable = useMemo(() => applicableFixes(inRepo), [inRepo]);
+
+  /*
+   * A fix pull request is opened against one repository, so it needs one scan.
+   *
+   * The findings list now spans repositories, and a button that silently picked one of them
+   * would write to a repository the user did not choose — so it is offered only when the view
+   * has narrowed to a single scan, and otherwise says to pick a repository first.
+   */
+  const fixPrScanId = useMemo(() => {
+    const ids = new Set(applicable.map((f) => f.finding.scanId));
+    return ids.size === 1 ? [...ids][0] : undefined;
+  }, [applicable]);
 
   /* Stable, because the dialog's focus-trap effect depends on it — an inline
      arrow would tear down and re-run that effect (and steal focus back) on every
@@ -118,33 +154,33 @@ export default function FindingsClient({ findings, scanId, error }: Props) {
   const closeFixPr = useCallback(() => setFixPrOpen(false), []);
 
   const totals = useMemo(() => {
-    const verified = live.filter((f) => f.tier === "verified");
-    const research = live.filter((f) => f.tier === "research");
-    const critical = live.filter((f) => f.severity === "critical");
+    const verified = inRepo.filter((f) => f.tier === "verified");
+    const research = inRepo.filter((f) => f.tier === "research");
+    const critical = inRepo.filter((f) => f.severity === "critical");
     const confidences = research.map((f) => (f.tier === "research" ? f.confidence : 0));
     return {
-      total: live.length,
+      total: inRepo.length,
       verified: verified.length,
       research: research.length,
       critical: critical.length,
       criticalVerified: critical.filter((f) => f.tier === "verified").length,
-      classes: new Set(live.map((f) => f.classId)).size,
+      classes: new Set(inRepo.map((f) => f.classId)).size,
       medianConfidence: confidences.length > 0 ? medianOf(confidences) : null,
     };
-  }, [live]);
+  }, [inRepo]);
 
   /* Tier + text search define the scope the severity chips count within, so a
      chip's number is always what clicking it would actually yield. */
   const scoped = useMemo(
     () =>
-      live.filter((f) => {
+      inRepo.filter((f) => {
         if (tierFilter !== "all" && f.tier !== tierFilter) return false;
         if (!query) return true;
         const hay =
-          `${f.classId} ${f.severity} ${f.tier} ${f.explanation} ${f.locations.map((l) => l.path).join(" ")}`.toLowerCase();
+          `${f.classId} ${f.severity} ${f.tier} ${f.repo ?? ""} ${f.explanation} ${f.locations.map((l) => l.path).join(" ")}`.toLowerCase();
         return hay.includes(query);
       }),
-    [live, tierFilter, query],
+    [inRepo, tierFilter, query],
   );
 
   const severityCounts = useMemo(() => {
@@ -161,7 +197,8 @@ export default function FindingsClient({ findings, scanId, error }: Props) {
     [scoped, severityFilter],
   );
 
-  const filtersActive = tierFilter !== "all" || severityFilter !== "all" || rawQuery !== "";
+  const filtersActive =
+    repoFilter !== ALL_REPOS || tierFilter !== "all" || severityFilter !== "all" || rawQuery !== "";
 
   /* sharePercent, not Math.round: 999 of 1000 must not caption "100%" while the
      Research tile beside it still shows 1. */
@@ -169,17 +206,19 @@ export default function FindingsClient({ findings, scanId, error }: Props) {
   const verifiedShare = verifiedSharePct ? `${verifiedSharePct} of findings` : undefined;
 
   function clearFilters() {
+    setRepoFilter(ALL_REPOS);
     setTierFilter("all");
     setSeverityFilter("all");
     if (rawQuery) router.replace("/findings");
   }
 
-  async function submitDispute(finding: Finding, reason: string) {
-    if (!scanId) return;
+  async function submitDispute(finding: AttributedFinding, reason: string) {
     setDisputing(finding.fingerprint);
     setDisputeError(null);
     try {
-      await api.disputeFinding(finding.fingerprint, scanId, reason);
+      // The finding's own scan, not the page's — a dispute recorded against a different scan
+      // would be recorded against a repository the finding did not come from.
+      await api.disputeFinding(finding.fingerprint, finding.scanId, reason);
       setDisputed((prev) => new Set(prev).add(finding.fingerprint));
       setDisputeFor(null);
       setExpanded((prev) => (prev === finding.fingerprint ? null : prev));
@@ -195,38 +234,46 @@ export default function FindingsClient({ findings, scanId, error }: Props) {
   /* The action needs a scan to write against and findings to write from, so it
      is absent — not disabled — on the error and zero-finding surfaces, where a
      greyed-out control would be one more thing to read and nothing to act on. */
-  const canOfferFixPr = Boolean(scanId) && live.length > 0;
+  const canOfferFixPr = live.length > 0;
+
+  /* One reason, chosen in the order a user would hit them: nothing to commit at all, then
+     nothing this view can commit *to*. */
+  const fixPrBlockedReason =
+    applicable.length === 0 ? NO_APPLICABLE_FIX_REASON : fixPrScanId === undefined ? PICK_A_REPO_REASON : undefined;
 
   const fixPrButton = (
     <Button
       variant="secondary"
       size="sm"
       onClick={() => setFixPrOpen(true)}
-      disabled={applicable.length === 0}
-      title={applicable.length === 0 ? NO_APPLICABLE_FIX_REASON : undefined}
+      disabled={fixPrBlockedReason !== undefined}
+      title={fixPrBlockedReason}
     >
       <GitPullRequest className="h-3.5 w-3.5" aria-hidden="true" />
       Open fix pull request
     </Button>
   );
 
+  const scopeLabel =
+    repoFilter !== ALL_REPOS
+      ? repoFilter
+      : `${repoCount || repoOptions.length} ${pluralize(repoCount || repoOptions.length, "repository", "repositories")}`;
+
   const header = (
     <PageHeader
       title="Findings"
       description={PAGE_DESCRIPTION}
       actions={
-        scanId ? (
-          <>
-            <Badge tone="neutral">
-              Scan
-              <span className="max-w-[11rem] truncate font-mono text-fg-muted">{scanId}</span>
-            </Badge>
-            {/* A disabled button swallows pointer events in some browsers, so the
-                explanation also hangs off a wrapper that always receives them. */}
-            {canOfferFixPr &&
-              (applicable.length === 0 ? <span title={NO_APPLICABLE_FIX_REASON}>{fixPrButton}</span> : fixPrButton)}
-          </>
-        ) : undefined
+        <>
+          <Badge tone="neutral">
+            Across
+            <span className="max-w-[13rem] truncate font-mono text-fg-muted">{scopeLabel}</span>
+          </Badge>
+          {/* A disabled button swallows pointer events in some browsers, so the
+              explanation also hangs off a wrapper that always receives them. */}
+          {canOfferFixPr &&
+            (fixPrBlockedReason ? <span title={fixPrBlockedReason}>{fixPrButton}</span> : fixPrButton)}
+        </>
       }
     />
   );
@@ -254,7 +301,7 @@ export default function FindingsClient({ findings, scanId, error }: Props) {
           <EmptyState
             icon={<ShieldOff className="h-5 w-5" />}
             title="Every finding disputed"
-            description="All findings in this scan have been disputed and are suppressed for this org."
+            description="Every finding across these repositories has been disputed and is suppressed for this org."
           />
         )}
       </div>
@@ -265,7 +312,9 @@ export default function FindingsClient({ findings, scanId, error }: Props) {
     <div className="space-y-6">
       {header}
 
-      {fixPrOpen && scanId && <FixPullRequestDialog scanId={scanId} fixes={applicable} onClose={closeFixPr} />}
+      {fixPrOpen && fixPrScanId && (
+        <FixPullRequestDialog scanId={fixPrScanId} fixes={applicable} onClose={closeFixPr} />
+      )}
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Stat
@@ -303,6 +352,23 @@ export default function FindingsClient({ findings, scanId, error }: Props) {
 
       <div className="space-y-3">
         <div className="flex flex-wrap items-center gap-2">
+          {/* Only where there is a choice to make — one repository needs no filter, and an
+              org-wide list is unreadable without one. */}
+          {repoOptions.length > 1 && (
+            <>
+              <Select
+                aria-label="Filter by repository"
+                className="h-9 w-auto min-w-[13rem] text-[0.8rem]"
+                value={repoFilter}
+                onChange={(e) => setRepoFilter(e.target.value)}
+                options={[
+                  { value: ALL_REPOS, label: `All repositories (${repoOptions.length})` },
+                  ...repoOptions.map((r) => ({ value: r, label: r })),
+                ]}
+              />
+              <span className="hidden h-5 w-px bg-line sm:block" aria-hidden="true" />
+            </>
+          )}
           <SegmentedControl label="Filter by tier" value={tierFilter} options={TIER_OPTIONS} onChange={setTierFilter} />
           <span className="hidden h-5 w-px bg-line sm:block" aria-hidden="true" />
           {SEVERITY_ORDER.map((s) => (
@@ -320,8 +386,9 @@ export default function FindingsClient({ findings, scanId, error }: Props) {
 
         <div className="flex flex-wrap items-center gap-2">
           <p role="status" aria-live="polite" className="text-[0.78rem] text-fg-muted">
-            <span data-numeric>{filtered.length}</span> of <span data-numeric>{live.length}</span>{" "}
-            {pluralize(live.length, "finding")}
+            <span data-numeric>{filtered.length}</span> of <span data-numeric>{inRepo.length}</span>{" "}
+            {pluralize(inRepo.length, "finding")}
+            {repoFilter !== ALL_REPOS && ` in ${repoFilter}`}
           </p>
           {rawQuery && (
             <>
@@ -341,7 +408,7 @@ export default function FindingsClient({ findings, scanId, error }: Props) {
         <EmptyState
           icon={<Search className="h-5 w-5" />}
           title="No findings match these filters"
-          description="Widen the tier or severity filter, or clear the search, to see the rest of this scan."
+          description="Widen the repository, tier or severity filter, or clear the search, to see the rest."
           action={{ label: "Clear filters", onClick: clearFilters }}
         />
       ) : (
@@ -364,7 +431,6 @@ export default function FindingsClient({ findings, scanId, error }: Props) {
                 onSubmitDispute={(reason) => submitDispute(finding, reason)}
                 busy={disputing === finding.fingerprint}
                 disputeError={disputeFor === finding.fingerprint ? disputeError : null}
-                canDispute={Boolean(scanId)}
               />
             </li>
           ))}
@@ -383,7 +449,7 @@ export default function FindingsClient({ findings, scanId, error }: Props) {
 }
 
 interface FindingCardProps {
-  finding: Finding;
+  finding: AttributedFinding;
   expanded: boolean;
   onToggleExpand: () => void;
   disputeOpen: boolean;
@@ -392,10 +458,7 @@ interface FindingCardProps {
   onSubmitDispute: (reason: string) => void;
   busy: boolean;
   disputeError: FriendlyError | null;
-  canDispute: boolean;
 }
-
-const NO_SCAN_REASON = "Disputing needs a scan to record against, and no scan is loaded for these findings.";
 
 function FindingCard({
   finding,
@@ -407,20 +470,15 @@ function FindingCard({
   onSubmitDispute,
   busy,
   disputeError,
-  canDispute,
 }: FindingCardProps) {
   const sevTone = severityTone(finding.severity);
   const detailId = `finding-detail-${finding.fingerprint}`;
   const primary = finding.locations[0];
 
+  /* Every finding now carries the scan it came from, so disputing is always possible — the
+     "no scan loaded" state this used to guard against cannot occur. */
   const disputeButton = (
-    <Button
-      variant="ghost"
-      size="sm"
-      onClick={onOpenDispute}
-      disabled={!canDispute || disputeOpen}
-      title={canDispute ? undefined : NO_SCAN_REASON}
-    >
+    <Button variant="ghost" size="sm" onClick={onOpenDispute} disabled={disputeOpen}>
       <ShieldOff className="h-3.5 w-3.5" aria-hidden="true" />
       Dispute
     </Button>
@@ -447,6 +505,9 @@ function FindingCard({
             </div>
             {primary && (
               <p className="mt-1.5 truncate font-mono text-[0.72rem] text-fg-muted" title={primary.path}>
+                {/* The repository, because this list spans them: a bare path says which file
+                    but not which codebase, and two repositories can share a path. */}
+                {finding.repo && <span className="text-fg-secondary">{finding.repo} · </span>}
                 {primary.path}:{primary.startLine}
                 {finding.locations.length > 1 && (
                   <span className="font-sans">
@@ -459,9 +520,7 @@ function FindingCard({
           </div>
 
           <div className="flex shrink-0 items-center gap-1">
-            {/* A disabled button swallows pointer events in some browsers, so the
-                explanation also hangs off a wrapper that always receives them. */}
-            {canDispute ? disputeButton : <span title={NO_SCAN_REASON}>{disputeButton}</span>}
+            {disputeButton}
             <IconButton
               label={expanded ? `Collapse details for ${finding.classId}` : `Expand details for ${finding.classId}`}
               size="sm"

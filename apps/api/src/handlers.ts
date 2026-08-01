@@ -90,6 +90,22 @@ export class NotConfiguredError extends Error {}
  */
 export class AuthFailedError extends Error {}
 
+/**
+ * A finding as `GET /v1/orgs/:org/findings` returns it: the finding exactly as stored, plus
+ * where it came from.
+ *
+ * The attribution is additive and never replaces a field on the finding — the schema owns
+ * that shape, and a route is not the place to reinterpret it. `repo` is absent for a scan of
+ * a directory on the API host, which genuinely has no repository.
+ */
+export type AttributedFinding = Finding & { scanId: string; repo?: string };
+
+/** The org's current findings and the scans they were read from. */
+export interface OrgFindingsView {
+  scans: Array<{ id: string; repo?: string; commitSha?: string; createdAt?: string }>;
+  findings: AttributedFinding[];
+}
+
 import type { LlmTransport } from "@gatepass/semantic";
 import type { GitHubClient, RepoFetcher, FixPullRequestClient } from "@gatepass/github";
 
@@ -548,6 +564,71 @@ export function makeHandlers(store: Store, options: HandlerOptions = {}) {
           };
         }),
       );
+    },
+
+    /**
+     * Everything that currently stands against this org, across every repository it has
+     * connected (`GET /v1/orgs/:org/findings`).
+     *
+     * ## Why this route exists at all
+     *
+     * The dashboard used to answer "what has Gatepass found?" by taking the **single most
+     * recent scan** and showing its findings. That is only the same question when an org has
+     * one repository. With several, the answer depends entirely on which repository happened
+     * to be scanned last — and if that one came back clean, a deployment holding twenty-three
+     * findings across six repositories reported nothing at all. It is the worst failure this
+     * product can have, because it is indistinguishable from the scanner not working.
+     *
+     * ## "Current" is each repository's own latest scan, not the newest scan overall
+     *
+     * A repository record points at the scan that describes its present state (`lastScanId`),
+     * which is exactly the set worth showing: unioning a repository's whole history would
+     * re-report vulnerabilities that a later scan already showed fixed, and taking only the
+     * newest scan across all repositories is the bug above. So a scan is included precisely
+     * when some repository names it as its latest — the same relation `listScans` already uses
+     * to label a row, reused rather than re-derived.
+     *
+     * Findings carry the scan and repository they came from. Without that, a cross-repository
+     * list is a pile of paths with no way to tell which codebase each belongs to, and
+     * disputing one would have nowhere to record itself.
+     */
+    async listOrgFindings(orgId: string): Promise<OrgFindingsView> {
+      await requireOrg(orgId);
+      if (!store.listScans) return { scans: [], findings: [] };
+      const repos = store.getRepos ? await store.getRepos(orgId) : [];
+      const byScan = new Map(repos.filter((r) => r.lastScanId).map((r) => [r.lastScanId!, r.name]));
+      // Same scope filter as `listScans`, for the same reason: this hands back findings, so it
+      // must not reach further than the list the caller is allowed to see.
+      const all = (await store.listScans(orgId)).filter((s) => scopeAllows(scope, byScan.get(s.id)));
+      const current = all.filter((s) => byScan.has(s.id));
+      /*
+       * Fall back to the newest scan when nothing is attributable to a repository.
+       *
+       * A store without `getRepos` — or an org whose scans predate repository records — would
+       * otherwise render an empty findings page while holding findings, which is the very
+       * failure this route was added to remove. One scan is the old behaviour, and it is right
+       * where there is no better answer available.
+       */
+      const chosen =
+        current.length > 0
+          ? [...current].sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""))
+          : [...all].sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? "")).slice(0, 1);
+      const perScan = await Promise.all(
+        chosen.map(async (s) => {
+          const repo = byScan.get(s.id);
+          const findings = await store.findingsOf(s.id);
+          return findings.map((f) => ({ ...f, scanId: s.id, ...(repo ? { repo } : {}) }));
+        }),
+      );
+      return {
+        scans: chosen.map((s) => ({
+          id: s.id,
+          ...(byScan.get(s.id) ? { repo: byScan.get(s.id)! } : {}),
+          ...(s.doc.scan.commitSha ? { commitSha: s.doc.scan.commitSha } : {}),
+          ...(s.createdAt ? { createdAt: s.createdAt } : {}),
+        })),
+        findings: perScan.flat(),
+      };
     },
 
     /**

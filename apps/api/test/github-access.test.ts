@@ -164,6 +164,26 @@ describe("a collaborator sees their repositories and no others", () => {
     expect(scans.some((s) => s.id === "scan-secret")).toBe(false);
   });
 
+  it("scopes the org-wide findings list to the repositories they may see", async () => {
+    const store = await seededStore();
+    const { scoped } = await handlersFor(store, "octocat");
+
+    // `GET /v1/orgs/:org/findings` spans repositories by design, which makes it the one route
+    // where a missed scope check would hand over every tenant repository at once.
+    const view = await scoped.listOrgFindings("acme");
+    expect(view.scans.map((s) => s.repo)).toEqual(["acme/api"]);
+    expect(view.scans.some((s) => s.id === "scan-secret")).toBe(false);
+    expect(view.findings.every((f) => f.repo === "acme/api")).toBe(true);
+  });
+
+  it("gives the owner the org-wide findings list across all three", async () => {
+    const store = await seededStore();
+    const { scoped } = await handlersFor(store, "owner", 2);
+
+    const view = await scoped.listOrgFindings("acme");
+    expect(new Set(view.scans.map((s) => s.repo))).toEqual(new Set(["acme/api", "acme/web", "acme/secret"]));
+  });
+
   it("refuses findings for a scan of a repository they cannot see", async () => {
     const store = await seededStore();
     const { scoped } = await handlersFor(store, "octocat");

@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { api } from "@/lib/api-client";
 import { useOrgId } from "@/providers/SessionProvider";
-import type { Finding, FleetView, RepoRecord, ScanSummary } from "@/lib/types";
+import type { AttributedFinding, FleetView, RepoRecord, ScanSummary } from "@/lib/types";
 import {
   SEVERITY_ORDER,
   confidencePercent,
@@ -27,7 +27,6 @@ import {
   formatDate,
   pluralize,
   relativeTime,
-  repoLabel,
   severityLabel,
   sharePercent,
 } from "@/lib/utils";
@@ -117,8 +116,10 @@ const SURFACES = [
 
 interface Overview {
   scans: ScanSummary[];
-  latestFindings: Finding[];
-  latestRepo?: string;
+  /** The org's open findings — every connected repository's most recent scan. */
+  openFindings: AttributedFinding[];
+  /** How many repositories those scans covered, including the ones that came back clean. */
+  scannedRepoCount: number;
   fleet?: FleetView;
   repos: RepoRecord[];
 }
@@ -151,17 +152,30 @@ export default function OverviewPage() {
     try {
       await api.getOrg(orgId);
       const scans = await api.listScans(orgId);
-      // Newest first — "the latest scan" everything below refers to is scans[0].
+      // Newest first — the chart and the "latest scanned" caption read from scans[0].
       const sorted = [...scans].sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""));
-      const latest = sorted[0];
+      /*
+       * The findings panel spans repositories rather than reading the newest scan alone.
+       *
+       * Reading `scans[0]` made this card describe whichever repository happened to be scanned
+       * last. With several connected, that is a coin toss, and when the coin came up on a
+       * repository with nothing wrong the overview announced "no findings" for an org holding
+       * findings in every other one — the single most misleading thing this page could say.
+       */
       // Fleet and repos are supporting context; a deployment without them should
       // still render an overview rather than an error.
-      const [latestFindings, fleet, repos] = await Promise.all([
-        latest ? api.getFindings(latest.id) : Promise.resolve([]),
+      const [current, fleet, repos] = await Promise.all([
+        api.listOrgFindings(orgId).catch(() => ({ scans: [], findings: [] })),
         api.getFleet(orgId).catch(() => undefined),
         api.getRepos(orgId).catch(() => []),
       ]);
-      setData({ scans: sorted, latestFindings, latestRepo: latest?.repo, fleet, repos });
+      setData({
+        scans: sorted,
+        openFindings: current.findings,
+        scannedRepoCount: new Set(current.scans.map((s) => s.repo).filter(Boolean)).size,
+        fleet,
+        repos,
+      });
       setStatus("ready");
     } catch (err) {
       setFailure(err);
@@ -188,7 +202,7 @@ export default function OverviewPage() {
   }
 
   const scans = data?.scans ?? [];
-  const latestFindings = data?.latestFindings ?? [];
+  const openFindings = data?.openFindings ?? [];
 
   if (scans.length === 0) {
     return (
@@ -226,9 +240,9 @@ export default function OverviewPage() {
     return pct && `${pct} of all findings`;
   };
 
-  const repo = repoLabel(data?.latestRepo);
   const fleet = data?.fleet;
   const repoCount = data?.repos.length ?? 0;
+  const scannedRepoCount = data?.scannedRepoCount ?? 0;
 
   return (
     <div className="space-y-6">
@@ -315,10 +329,14 @@ export default function OverviewPage() {
               }
             />
             <CoverageRow
-              label="Findings in latest scan"
-              value={latestFindings.length}
+              label="Open findings"
+              value={openFindings.length}
               href="/findings"
-              note={repo ? `From ${repo}` : undefined}
+              note={
+                scannedRepoCount > 0
+                  ? `Across ${scannedRepoCount} scanned ${pluralize(scannedRepoCount, "repository", "repositories")}`
+                  : undefined
+              }
             />
           </dl>
         </Card>
@@ -338,13 +356,15 @@ export default function OverviewPage() {
               </Link>
             }
           >
-            {repo ? `Latest findings — ${repo}` : "Latest findings"}
+            {/* Not "latest findings": these are the open ones across every repository, and
+                labelling them by the most recent scan is what made this card lie. */}
+            Open findings
           </CardTitle>
         }
         footer={
-          latestFindings.length > MAX_ROWS ? (
+          openFindings.length > MAX_ROWS ? (
             <p className="text-[0.72rem] text-fg-muted">
-              Showing {MAX_ROWS} of {latestFindings.length} findings from this scan.{" "}
+              Showing {MAX_ROWS} of {openFindings.length} open findings.{" "}
               <Link href="/findings" className="cursor-pointer text-accent hover:underline">
                 View all
               </Link>
@@ -352,7 +372,7 @@ export default function OverviewPage() {
           ) : undefined
         }
       >
-        <LatestFindingsTable findings={latestFindings} />
+        <OpenFindingsTable findings={openFindings} />
       </Card>
 
       <Pipeline />
@@ -589,7 +609,7 @@ function ScanChart({ scans }: { scans: ScanSummary[] }) {
 }
 
 /** Tier is the product's core claim, so it is spelled out rather than colour-coded. */
-function TierBadge({ finding }: { finding: Finding }) {
+function TierBadge({ finding }: { finding: AttributedFinding }) {
   if (finding.tier === "verified") {
     return (
       <Badge tone="verified" dot>
@@ -604,16 +624,28 @@ function TierBadge({ finding }: { finding: Finding }) {
   );
 }
 
-function LatestFindingsTable({ findings }: { findings: Finding[] }) {
-  const rows = findings.slice(0, MAX_ROWS);
+function OpenFindingsTable({ findings }: { findings: AttributedFinding[] }) {
+  /*
+   * Worst first, so six rows out of twenty-three are the six worth reading.
+   *
+   * Unsorted, the slice was whatever order the scans came back in — which across repositories
+   * means the top of the table is decided by scan chronology rather than by risk.
+   */
+  const rows = [...findings]
+    .sort(
+      (a, b) =>
+        SEVERITY_ORDER.indexOf(a.severity) - SEVERITY_ORDER.indexOf(b.severity) ||
+        Number(b.tier === "verified") - Number(a.tier === "verified"),
+    )
+    .slice(0, MAX_ROWS);
 
   return (
     <div className="overflow-x-auto">
       <table className="w-full min-w-[38rem] text-[0.855rem]">
-        <caption className="sr-only">Findings from the most recent scan</caption>
+        <caption className="sr-only">Open findings across every connected repository, worst first</caption>
         <thead>
           <tr className="border-b border-line bg-sunken">
-            {["Vulnerability", "Path", "Tier", "Severity"].map((heading) => (
+            {["Vulnerability", "Repository", "Path", "Tier", "Severity"].map((heading) => (
               <th
                 key={heading}
                 scope="col"
@@ -627,8 +659,8 @@ function LatestFindingsTable({ findings }: { findings: Finding[] }) {
         <tbody>
           {rows.length === 0 ? (
             <tr>
-              <td colSpan={4} className="px-4 py-10 text-center text-[0.82rem] text-fg-muted">
-                No findings in the latest scan.
+              <td colSpan={5} className="px-4 py-10 text-center text-[0.82rem] text-fg-muted">
+                Nothing open across the repositories scanned.
               </td>
             </tr>
           ) : (
@@ -641,6 +673,17 @@ function LatestFindingsTable({ findings }: { findings: Finding[] }) {
                   className="border-b border-line transition-colors last:border-b-0 hover:bg-raised/60"
                 >
                   <td className="px-4 py-3 font-medium text-fg">{finding.classId}</td>
+                  <td className="px-4 py-3 text-fg-secondary">
+                    {finding.repo ? (
+                      /* The full `owner/name`, not `repoLabel`'s last segment: this table spans
+                         repositories, and "servers" alone does not identify one. */
+                      <span className="block max-w-[13rem] truncate" title={finding.repo}>
+                        {finding.repo}
+                      </span>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-fg-muted">
                     {where ? (
                       <span className="block max-w-[20rem] truncate font-mono text-[0.76rem]" title={where}>

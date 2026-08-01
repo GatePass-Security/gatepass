@@ -109,6 +109,22 @@ export interface ScanSummary {
   bySeverity: Partial<Record<Severity, number>>;
 }
 
+/**
+ * A finding from `GET /v1/orgs/:org/findings`, carrying the scan and repository it came from.
+ *
+ * The findings page lists across every repository the org has connected, so each row has to
+ * say which codebase it belongs to — and a dispute has to be recorded against the scan that
+ * actually produced the finding, not against whichever scan the page loaded first.
+ */
+export type AttributedFinding = Finding & { scanId: string; repo?: string };
+
+/** `GET /v1/orgs/:org/findings` — apps/api/src/handlers.ts (`listOrgFindings`). */
+export interface OrgFindings {
+  /** The scans these findings were read from: each repository's most recent, newest first. */
+  scans: Array<{ id: string; repo?: string; commitSha?: string; createdAt?: string }>;
+  findings: AttributedFinding[];
+}
+
 export type FleetPosture = "unscanned" | "passing" | "findings_open" | "critical";
 
 /** apps/api/src/store.ts:26 */

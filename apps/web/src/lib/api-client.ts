@@ -25,6 +25,7 @@ import type {
   AvailableRepos,
   RepoSettingsPatch,
   ApiStatus,
+  OrgFindings,
 } from "./types";
 import type { Finding } from "./types";
 import { ApiError } from "./types";
@@ -256,6 +257,18 @@ class ApiClient {
   /** `GET /v1/orgs/:org/scans` — scan history with per-scan finding summaries. */
   listScans(orgId: string): Promise<ScanSummary[]> {
     return this.request(`/orgs/${orgId}/scans`);
+  }
+
+  /**
+   * `GET /v1/orgs/:org/findings` — every finding that currently stands for the org.
+   *
+   * Not the same question as `getFindings(scanId)`. This one spans every connected
+   * repository, taking each one's most recent scan, which is what "our findings" means once
+   * an org has more than one repository — asking for the newest scan alone reported whatever
+   * the last-scanned repository happened to say, and said nothing when that one was clean.
+   */
+  listOrgFindings(orgId: string): Promise<OrgFindings> {
+    return this.request(`/orgs/${orgId}/findings`);
   }
 
   /** `GET /v1/scans/:id/findings[?includeSuppressed=1]` */

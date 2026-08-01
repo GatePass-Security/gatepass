@@ -65,7 +65,15 @@ export default function EvidencePage() {
       const rows = await api.listScans(orgId);
       const sorted = [...rows].sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""));
       setScans(sorted);
-      setScanId((current) => current || (sorted[0]?.id ?? ""));
+      /*
+       * Opens on the newest scan that found something, not simply the newest.
+       *
+       * Control coverage is derived from a scan's findings, so opening on a clean one shows an
+       * export with nothing in it — an accurate answer to a question nobody asked. Any scan is
+       * still selectable; this only decides where the page starts.
+       */
+      const opening = sorted.find((s) => s.verified + s.research > 0) ?? sorted[0];
+      setScanId((current) => current || (opening?.id ?? ""));
       setStatus("ready");
     } catch (err) {
       setFailure(err);

@@ -521,6 +521,17 @@ export async function createServer(opts: ServerOptions = {}): Promise<{ server: 
     if (M === "GET" && p[1] === "orgs" && p[3] === "scans" && !p[4]) {
       return sendJson(res, 200, await hs.listScans(p[2]!));
     }
+    /*
+     * GET /v1/orgs/:org/findings — every finding that currently stands for this org.
+     *
+     * Distinct from `/v1/scans/:id/findings`, which answers about one scan. The dashboard's
+     * findings page asks this question — "what has Gatepass found for us?" — and answering it
+     * with the newest scan alone made an org with several repositories report whatever the
+     * last-scanned one happened to say. See `listOrgFindings`.
+     */
+    if (M === "GET" && p[1] === "orgs" && p.length === 4 && p[3] === "findings") {
+      return sendJson(res, 200, await hs.listOrgFindings(p[2]!));
+    }
     // GET /v1/scans/:id/findings[?includeSuppressed=1]
     if (M === "GET" && p[1] === "scans" && p[3] === "findings") {
       return sendJson(res, 200, await hs.getFindings(auth.session?.orgId, p[2]!, q.get("includeSuppressed") === "1"));

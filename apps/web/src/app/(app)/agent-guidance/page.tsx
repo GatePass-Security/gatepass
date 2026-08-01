@@ -74,11 +74,20 @@ export default function AgentGuidancePage() {
     setScans(null);
     try {
       const list = await api.listScans(orgId);
-      // Newest first: the scan someone wants guidance on is nearly always the
-      // last one that ran, so it is what the Select opens on.
+      // Newest first, which is the order to read a history in.
       const sorted = [...list].sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""));
       setScans(sorted);
-      setScanId((current) => current || (sorted[0]?.id ?? ""));
+      /*
+       * Opens on the newest scan that actually found something.
+       *
+       * The newest scan overall is the obvious default and the wrong one here: this page asks
+       * you to pick a finding to get guidance for, and across several repositories the most
+       * recently scanned is as likely as not to be a clean one — so the page opened with an
+       * empty finding list and nothing to do. Falling back to the newest overall keeps the
+       * behaviour identical for an org whose scans are all clean.
+       */
+      const opening = sorted.find((s) => s.verified + s.research > 0) ?? sorted[0];
+      setScanId((current) => current || (opening?.id ?? ""));
     } catch (err) {
       setScansError(err);
     }

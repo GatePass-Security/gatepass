@@ -25,6 +25,7 @@ repository name contains a slash and a local-path scan target is an absolute pat
 |---|---|---|
 | POST /orgs/:org/repos/:repo/scans | Trigger on-demand scan | FR-006 |
 | GET /scans/:id | Status + stage timings | |
+| GET /orgs/:org/findings | Everything currently open for the org | each connected repo's latest scan; findings carry `scanId` + `repo`; scope-filtered like GET /orgs/:org/scans |
 | GET /scans/:id/findings | Findings (canonical schema) | filter: tier, class, severity, status |
 | GET /scans/:id/findings.sarif | SARIF export | |
 | POST /findings/:id/dispute | Open dispute | FR-011 |
