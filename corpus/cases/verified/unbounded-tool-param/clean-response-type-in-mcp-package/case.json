@@ -1,0 +1,7 @@
+{
+  "id": "verified/unbounded-tool-param/clean-response-type-in-mcp-package",
+  "classId": "unbounded-tool-param",
+  "label": "clean",
+  "public": true,
+  "note": "Zod models of an upstream API's RESPONSE, in a package whose name merely begins with `mcp-`. Nothing here is a tool input: no tool is registered in the file and no schema is passed as an inputSchema. Reduced from cloudflare/mcp-server-cloudflare@70ff690 packages/mcp-common/src/shared-tools/workers.types.ts, where directory-name inference alone produced 186 verified findings, the first of them naming a Cloudflare API response field as the tool parameter `default_environment.environment`."
+}

@@ -162,15 +162,47 @@ function outerChain(expr: string): string {
 
 /* -------------------------------------------------------------- surface / scope decisions */
 
+/**
+ * Does a path *name* itself a tool surface?
+ *
+ * Directories and filenames are read by different rules, and the difference is the whole point.
+ *
+ * A **directory** has to be the word outright. It used to be enough for a segment to merely begin
+ * with one — the pattern allowed `mcp` followed by `-`, `_` or `.` — which is how nearly every
+ * MCP repository in existence qualified in its entirety: `packages/mcp-common/`,
+ * `packages/mcp-server-supabase/`, `src/mcp_atlassian/`. Those are package names. Naming a
+ * package after the protocol it speaks says nothing about which files in it declare tool inputs,
+ * and treating it as though it did meant every zod object anywhere beneath was analysed as a tool
+ * parameter schema — including models of an upstream API's *responses*, which are parsed rather
+ * than accepted and cannot be bounded in any meaningful sense.
+ *
+ * That produced 186 verified findings on cloudflare/mcp-server-cloudflare, the first of which
+ * named a field of a Cloudflare API reply as the tool parameter `default_environment.environment`
+ * (`clean-response-type-in-mcp-package` in the corpus is that file, reduced).
+ *
+ * A **filename** may still carry the word as a prefix, because there the word is a description of
+ * the file rather than of a project: `mcp_server.py`, `tools.json`, `agent-tools.ts`. Only the
+ * stem is considered, so `workers.types.ts` is not a tool file for beginning with a `w`.
+ *
+ * Neither form is *sufficient* on its own for a finding — see `isToolSchemaSurface`, which is
+ * where the actual evidence requirement lives.
+ */
+function pathNamesSurface(relPath: string, word: RegExp): boolean {
+  const parts = relPath.replace(/\\/g, "/").split("/");
+  const base = parts.pop() ?? "";
+  if (parts.some((segment) => word.test(segment))) return true;
+  return word.test(base.split(/[._-]/, 1)[0] ?? "");
+}
+
 /** A file that plausibly *declares tool input schemas* (as opposed to any file using zod). */
-const TOOL_PATH = /(?:^|\/)(?:tools?|mcp|agents?|functions?|skills?)(?:\/|[._-]|$)/i;
+const TOOL_WORD = /^(?:tools?|mcp|agents?|functions?|skills?)$/i;
 const TOOL_REGISTRATION =
   /\b(?:server|mcp|app|agent|registry|client)\s*\.\s*(?:tool|registerTool|addTool|register_tool|add_tool)\s*\(|@\w*(?:mcp|server|app|tool)\w*\.tool\b|\b(?:inputSchema|input_schema)\s*[:=]|\btools\s*[:=]\s*\[|\[\s*(?:KernelFunction|SKFunction|McpServerTool|AIFunction)\b|\brpc\s+\w+\s*\(/;
 
 function isToolSchemaSurface(file: ScanFile): boolean {
   if (TEST_PATH.test(file.relPath)) return false;
   if (file.surfaces.includes("tool_defs") || file.surfaces.includes("mcp_server")) return true;
-  if (TOOL_PATH.test(file.relPath)) return true;
+  if (pathNamesSurface(file.relPath, TOOL_WORD)) return true;
   // An OpenAPI document whose operations are marked as agent tools declares tool inputs just
   // as much as a `tools.json` does, and it is almost never under a `tools/` path.
   if (isOpenApiAgentDoc(file)) return true;
@@ -178,8 +210,8 @@ function isToolSchemaSurface(file: ScanFile): boolean {
 }
 
 /** A file that plausibly *handles* inbound requests or tool calls. */
-const HANDLER_PATH =
-  /(?:^|\/)(?:tools?|mcp|agents?|handlers?|routes?|routers?|controllers?|api|server|endpoints?|functions?|views?|registry)(?:\/|[._-]|$)/i;
+const HANDLER_WORD =
+  /^(?:tools?|mcp|agents?|handlers?|routes?|routers?|controllers?|api|server|endpoints?|functions?|views?|registry)$/i;
 const HANDLER_MARKER =
   /\b(?:inputSchema|input_schema)\s*[:=]|\.\s*(?:tool|registerTool|addTool|setRequestHandler)\s*\(|\b\w+\s*\.\s*(?:get|post|put|patch|delete|use)\s*\(\s*["'`/]|@\s*\w+\s*\.\s*(?:get|post|put|patch|delete|route|tool)\b|\bhandler\s*[:(]/;
 
@@ -189,7 +221,10 @@ const RUBY_ROUTE_MARKER = /^[ \t]*(?:get|post|put|patch|delete|options)\s+['"][^
 function isHandlerSurface(file: ScanFile): boolean {
   if (TEST_PATH.test(file.relPath)) return false;
   if (file.surfaces.includes("tool_defs") || file.surfaces.includes("mcp_server")) return true;
-  if (HANDLER_PATH.test(file.relPath)) return true;
+  // Same directory-versus-filename rule as the tool surface above, and for the same reason: this
+  // list is wider (`api`, `server`, `registry`), so prefix-matching a directory made
+  // `api-client/`, `server-utils/` and every `mcp-*` package a handler surface as well.
+  if (pathNamesSurface(file.relPath, HANDLER_WORD)) return true;
   if (RB_EXT.test(file.relPath) && RUBY_ROUTE_MARKER.test(file.content)) return true;
   return HANDLER_MARKER.test(file.content);
 }
