@@ -357,24 +357,63 @@ export async function startServer(): Promise<void> {
    * fixture scan touches none of it.
    */
   /*
-   * Chosen by scanning seventy-five public AI/agent repositories and reading every finding.
+   * Chosen from a survey of public MCP servers (research/scan-public-mcp.ts), then re-measured
+   * one by one through the exact path this seed uses — tarball, extract, `buildScanContext`,
+   * `runScan` — so the counts below are what the deployment will actually store, not what a
+   * `git clone` of the same repository happens to produce.
    *
-   * `vercel/ai` leads because it is the one result that is about *this* product rather than
-   * about static analysis generally: eleven MCP server transports bound to a port with no
-   * authentication construct anywhere in the file. They are example servers, which is exactly
-   * why they matter — example servers in the most-copied AI SDK are what people paste into
-   * production, and no conventional scanner models an MCP transport at all.
-   * `openai/openai-agents-python` is here because one repository is an anecdote and two are a
-   * pattern. The rest are ordinary hygiene and, deliberately, repositories that report nothing.
+   * The list this replaced was picked before that distinction was drawn and it showed. Four of
+   * its seven repositories returned nothing, and of the twenty-three findings the other three
+   * produced, sixteen sat in `examples/` and `tests/` — including all eleven of `vercel/ai`'s,
+   * which is why "those are example servers" kept being the first thing anyone said about it.
+   * Every finding below is in shipped code.
+   *
+   * Two selection rules did the work, in this order:
+   *
+   *   1. MCP-specific classes over general application security. `unauth-mcp-transport`,
+   *      `missing-schema-validation` and `unbounded-tool-param` are about agentic
+   *      infrastructure — a tool surface, a transport — and are the half of this product no
+   *      conventional scanner models. A CORS header in an MCP server's HTTP layer is a web bug
+   *      that happens to live in an MCP repository, and it is not why anyone would buy this.
+   *   2. Production paths over test/example paths, which is rule 1's precondition: a finding in
+   *      a fixture is not evidence about the shipped artefact, and being asked to explain that
+   *      is how the last set lost the room.
+   *
+   * `spec-workflow-mcp` carries the single most valuable finding in the set. It is the only
+   * repository here with a production `unauth-mcp-transport` — two of them, both critical, both
+   * a dashboard bound to 0.0.0.0 with no credential-bearing control applied to the route — and
+   * that class is the clearest answer this product has to "what does this find that Semgrep
+   * does not".
+   *
+   * Order matters and this one is deliberate. The dashboard's overview and several of its pages
+   * key off the most recent scan, and these are seeded sequentially, so whatever is LAST is what
+   * an evaluator lands on first. `modelcontextprotocol/servers` holds that slot: the reference
+   * implementation every MCP server is copied from, at a hundred-plus findings.
+   *
+   * The two zero-finding repositories are load-bearing, not filler. The corpus can only ever
+   * demonstrate recall — it is built from planted vulnerabilities — so well-maintained
+   * third-party code coming back empty is the only precision evidence here that nobody in this
+   * repository controls. Removing them to raise the total would delete the argument.
+   *
+   * Counts are verified-tier at the SHA in brackets and will drift as these repositories change;
+   * they are here to make a surprise legible ("this used to find fifty"), not as an assertion
+   * about today. Re-derive with `pnpm research:scan-mcp`.
    */
   const DEFAULT_DEMO_REPOS = [
-    "vercel/ai",
-    "openai/openai-agents-python",
-    "modelcontextprotocol/servers",
-    "punkpeye/fastmcp",
-    "sooperset/mcp-atlassian",
-    "microsoft/playwright-mcp",
-    "browserbase/mcp-server-browserbase",
+    // Clean, and deliberately so — both are well-regarded and neither yields a verified finding.
+    "microsoft/playwright-mcp", // 0 verified, 0 research (55679f5)
+    "GLips/Figma-Context-MCP", // 0 verified, 1 research (c083d65)
+    // 11 missing-schema-validation: MCP handlers taking `args: any` with no runtime check.
+    "Coding-Solo/godot-mcp", // 28 (1209744) — 17 unbounded-tool-param, 11 missing-schema-validation
+    // The flagship: 2 critical unauth-mcp-transport in src/dashboard/, both binding 0.0.0.0.
+    "Pimzino/spec-workflow-mcp", // 24 (d38e82e) — 19 unbounded-tool-param, 3 missing-schema-validation, 2 unauth-mcp-transport
+    "wonderwhy-er/DesktopCommanderMCP", // 50 (1eccc8b) — 49 unbounded-tool-param, 1 unpinned-dependency
+    "sooperset/mcp-atlassian", // 53 (31c1d77) — 48 unbounded-tool-param, 5 unpinned-dependency; also 77 research-tier
+    "mongodb-js/mongodb-mcp-server", // 54 (39fcf3e) — 49 unbounded-tool-param, 5 unpinned-dependency
+    "firecrawl/firecrawl-mcp-server", // 63 (41c2571) — 55 unbounded-tool-param, 6 missing-schema-validation, 2 unpinned-dependency
+    "supabase-community/supabase-mcp", // 147 (5cda067) — 145 unbounded-tool-param (+2 unauth-mcp-transport, test paths)
+    // Last on purpose: the overview keys off the newest scan, and this is the reference server set.
+    "modelcontextprotocol/servers", // 104 (76d64c8) — 78 unbounded-tool-param, 24 unpinned-dependency, 2 cors-misconfig
   ];
   const demoReposRaw = process.env.GATEPASS_DEMO_REPOS?.trim();
   const demoRepos = isOff(demoReposRaw)
