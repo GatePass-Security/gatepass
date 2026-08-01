@@ -24,7 +24,7 @@ import type { AuthConfig } from "@/lib/types";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Sign in — Gatepass",
+  title: "Sign in or create your account — Gatepass",
   // Nothing here should be indexed or previewed: it is a door, not a page.
   robots: { index: false, follow: false },
 };
@@ -125,10 +125,16 @@ export default async function LoginPage({
         <BrandLockup size={30} subtitle="Precision AppSec" />
       </Link>
 
-      <h1 className="text-[1.6rem] font-medium tracking-[-0.03em] text-fg">Sign in</h1>
+      {/*
+        "Sign in" alone was wrong for half the people who arrive here: the landing page's primary
+        call to action is "Start scanning — free", and it lands on this page. Someone who has never
+        used Gatepass read a sign-in heading, looked for a create-account link, and found none —
+        not because it was hidden, but because signing in with GitHub *is* the sign-up.
+      */}
+      <h1 className="text-[1.6rem] font-medium tracking-[-0.03em] text-fg">Sign in or create your account</h1>
       <p className="mt-2 text-[0.855rem] leading-relaxed text-fg-secondary">
-        Gatepass reads your repositories through its GitHub App. Sign-in identifies you and the organization whose
-        findings you can see.
+        Gatepass reads your repositories through its GitHub App. The same button does both — it identifies you, and on a
+        first visit it creates the workspace for the organization whose findings you can see.
       </p>
 
       {failure && (
@@ -181,13 +187,29 @@ export default async function LoginPage({
       ) : (
         <div className="mt-7 space-y-4">
           {config.github && (
-            <a
-              href={`/api/auth/github/start?next=${encodeURIComponent(next)}`}
-              className="inline-flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-action px-5 text-[0.9rem] font-medium text-action-text transition-colors duration-150 hover:bg-action-hover"
-            >
-              <Github size={16} aria-hidden="true" />
-              Continue with GitHub
-            </a>
+            <div>
+              {/*
+                One door for both, because there is only one door.
+                Gatepass has no separate sign-up: installing the GitHub App on an organization is
+                what creates the tenant, and the first person to sign in from that installation
+                brings it into being (`handlers.ts` → `ensureOrgFor`). A button reading only
+                "Continue with GitHub" told a first-time visitor nothing about that, so people
+                arriving from "Start scanning — free" looked for a create-account link that does
+                not exist and cannot exist without inventing identities GitHub does not recognise.
+              */}
+              <a
+                href={`/api/auth/github/start?next=${encodeURIComponent(next)}`}
+                className="inline-flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-action px-5 text-[0.9rem] font-medium text-action-text transition-colors duration-150 hover:bg-action-hover"
+              >
+                <Github size={16} aria-hidden="true" />
+                Sign up or sign in with GitHub
+              </a>
+              <p className="mt-2.5 text-[0.75rem] leading-relaxed text-fg-muted">
+                First time here? This creates your account. Your workspace is the GitHub organization you install the
+                Gatepass App on, and what you can see in it is exactly what GitHub already lets you see — there is
+                nothing separate to set up, and no access list for us to get wrong.
+              </p>
+            </div>
           )}
 
           {config.password && <PasswordSignIn next={next} showDivider={config.github} />}
