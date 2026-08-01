@@ -78,10 +78,17 @@ class ApiClient {
     return this.token ? { authorization: `Bearer ${this.token}` } : {};
   }
 
-  private async request<T>(path: string, options: RequestInit = {}): Promise<T> {
+  /**
+   * How long a normal request waits. Ten seconds is right for an API that is already awake:
+   * long enough for a slow query, short enough that a hung request does not leave a page
+   * spinning.
+   */
+  private static readonly DEFAULT_TIMEOUT_MS = 10_000;
+
+  private async request<T>(path: string, options: RequestInit = {}, timeoutMs?: number): Promise<T> {
     const url = `${this.base}/v1${path}`;
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10_000);
+    const timeout = setTimeout(() => controller.abort(), timeoutMs ?? ApiClient.DEFAULT_TIMEOUT_MS);
     const externalSignal = options.signal;
     if (externalSignal) {
       externalSignal.addEventListener("abort", () => controller.abort(), { once: true });
@@ -413,8 +420,24 @@ class ApiClient {
    * The login page renders from this rather than assuming GitHub is configured, so a machine
    * with no OAuth app shows the path that works instead of a button that dead-ends.
    */
+  /**
+   * Carries a cold-start budget rather than the shared ten seconds.
+   *
+   * This is the first request anybody makes, and on a platform that suspends an idle service it
+   * is therefore the one most likely to arrive while nothing is listening. A free Render instance
+   * takes roughly forty seconds to wake, so a ten-second deadline did not merely risk failing —
+   * it *guaranteed* that the first visitor after any quiet period met "Can't reach the Gatepass
+   * API" on a service that was healthy and simply asleep. Every later request in the session then
+   * succeeded, which is what made it look intermittent.
+   *
+   * Sixty seconds is the wake time plus room, and it costs nothing when the API is up: a warm
+   * config call answers in milliseconds and the timer is cleared. The only case that waits is the
+   * case that used to fail.
+   */
+  private static readonly COLD_START_TIMEOUT_MS = 60_000;
+
   authConfig(signal?: AbortSignal): Promise<AuthConfig> {
-    return this.request("/auth/config", signal ? { signal } : {});
+    return this.request("/auth/config", signal ? { signal } : {}, ApiClient.COLD_START_TIMEOUT_MS);
   }
 
   /**
@@ -498,9 +521,17 @@ class ApiClient {
    */
   async session(token: string): Promise<SessionInfo | null> {
     try {
-      return await this.request<SessionInfo>("/auth/me", {
-        headers: { authorization: `Bearer ${token}` },
-      });
+      /*
+       * Same cold-start budget as `authConfig`, for the same reason and with worse consequences.
+       * This runs on every authenticated page load, so on a suspended instance a signed-in user
+       * returning after lunch met an "API unreachable" page — while holding a perfectly good
+       * session — and reloading fixed it only because the first attempt had woken the service.
+       */
+      return await this.request<SessionInfo>(
+        "/auth/me",
+        { headers: { authorization: `Bearer ${token}` } },
+        ApiClient.COLD_START_TIMEOUT_MS,
+      );
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) return null;
       throw err;

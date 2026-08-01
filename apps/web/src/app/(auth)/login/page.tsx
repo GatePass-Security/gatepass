@@ -23,6 +23,19 @@ import type { AuthConfig } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * Long enough to outlast a suspended API waking up.
+ *
+ * This page server-renders, so it runs as a function with its own ceiling — and the platform
+ * default is ten seconds, the same figure that made the client-side deadline too short. Raising
+ * one without the other changes nothing: the fetch would still be alive when the function around
+ * it was killed, and the visitor would still be told the API could not be reached.
+ *
+ * It costs nothing on a healthy request. A ceiling is not a delay; a warm config call still
+ * answers in milliseconds.
+ */
+export const maxDuration = 60;
+
 export const metadata = {
   title: "Sign in or create your account — Gatepass",
   // Nothing here should be indexed or previewed: it is a door, not a page.
