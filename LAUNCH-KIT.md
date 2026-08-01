@@ -24,8 +24,10 @@ DATABASE_URL="<neon connection string>" pnpm db:migrate
 4. Put the Vercel URL into Render's `GATEPASS_ALLOWED_ORIGINS`.
 5. Point the GitHub App webhook at `https://<render-url>/v1/webhooks/github`.
 
-Full detail: [DEPLOY.md](DEPLOY.md). Free tier caveat: Render sleeps after 15 min idle — add a
-free UptimeRobot ping on `/healthz` before you demo.
+Full detail: [DEPLOY.md](DEPLOY.md). Free tier caveat: Render sleeps after 15 min idle.
+`.github/workflows/keep-api-warm.yml` asks for a ping every 10 min, but GitHub actually delivers
+one about every 70 — measured — so it does not keep the service warm on its own. Add a free
+5-minute UptimeRobot monitor on `/healthz`, and hit that URL yourself a minute before you demo.
 
 **Then DM 5 people who build with MCP/agents.** Script:
 

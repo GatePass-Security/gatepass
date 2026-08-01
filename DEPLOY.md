@@ -91,16 +91,60 @@ whose body names a different org is rejected with 403 rather than redirected. Ro
 replacing its pair and redeploying; there is no revocation list yet (see
 `contracts/api.md` → Implementation status).
 
-**Free-tier caveat:** the service sleeps after 15 min idle; the first request after that
-takes ~40s. For demos, a free [UptimeRobot](https://uptimerobot.com) monitor pinging
-`/healthz` every 10 min keeps it warm (750 free hrs/mo covers one always-on service).
+### Keeping the API awake — and why the workflow alone does not do it
+
+The service sleeps after 15 min idle and the first request after that pays the whole wake, 25–50s
+measured against this deployment. [`.github/workflows/keep-api-warm.yml`](.github/workflows/keep-api-warm.yml)
+pings `GET /healthz` on a `*/10 * * * *` schedule. Actions minutes are unlimited here because the
+repository is public, so it costs nothing.
+
+**It does not keep the service warm, and the run history says so.** Measured over the first
+7½ hours after it went live, consecutive runs arrived at:
+
+```
+11:05Z  12:11Z  14:01Z  15:15Z  16:17Z  17:27Z  18:32Z
+```
+
+Gaps of 66, 110, 74, 62, 70 and 65 minutes against a cron asking for 10 — GitHub delivered
+roughly one run in seven. Every one of them is green, because each ping did succeed; the run
+*durations* are where the failure shows, at 1m41s, 1m37s and 1m02s, which is the workflow paying
+the cold start it exists to prevent. `schedule:` is best-effort and heavily throttled, and no
+part of the Actions interface reports a run that was never started.
+
+So treat the workflow as a backstop and **use a free external monitor as the actual mechanism**:
+[UptimeRobot](https://uptimerobot.com) → **+ New monitor** → type **HTTP(s)**, URL
+`https://gatepass-api-1zn8.onrender.com/healthz`, interval **5 minutes**, add your email alert
+contact → **Create**. It fires on time, and it tells you when the API is genuinely unreachable —
+which the workflow structurally cannot, since a schedule that stops firing emits no signal at all
+(GitHub also disables scheduled workflows in repositories with no commits for 60 days).
+
+**The quota this runs into.** Render's 750 instance-hours/month are granted per *workspace* and
+are consumed only while a service is awake, so a pinger that genuinely succeeds costs:
+
+| Kept awake | 31-day month | Headroom against 750 |
+|---|---|---|
+| Round the clock | 744 h | **6 h** |
+| 16 h/day (e.g. `*/10 13-23,0-4 * * *`) | 499 h | 251 h |
+
+Going over 750 does not slow the service down, it **suspends it until the 1st of the next
+month** — the API dark for days, far worse than the cold start being avoided. Round-the-clock
+fits while `gatepass-api` is the workspace's only free service and stops fitting the moment
+there is a second one: two services held awake together exhaust 750 h by around the 15th and
+both go down. If you add another free service, narrow the schedule to a daily window rather
+than leaving both at 24/7.
 
 ## 3. Vercel (dashboard) — ~3 minutes
 
 1. Sign up at **vercel.com** (GitHub SSO) → **Add New → Project** → import `gatepass`.
 2. Set **Root Directory** to `apps/web` (framework auto-detects Next.js).
-3. Env var: **`GATEPASS_API_URL`** = your Render URL, with scheme and no trailing slash
-   (e.g. `https://gatepass-api.onrender.com`). Apply it to Production, Preview and Development.
+3. Env var: **`GATEPASS_API_URL`** = your Render URL, with scheme and no trailing slash.
+   Apply it to Production, Preview and Development.
+
+   > Copy this from the Render dashboard, do not type it from the service name. Render appends a
+   > random suffix when the name is already taken, so the host is usually something like
+   > `https://gatepass-api-1zn8.onrender.com` rather than `https://gatepass-api.onrender.com`.
+   > The two failures that follow from guessing it — a dashboard that cannot reach the API, and a
+   > GitHub webhook posting into nothing — both look like something else entirely.
 4. Deploy, note the URL, and put it in Render's `GATEPASS_ALLOWED_ORIGINS` **and**
    `GATEPASS_WEB_URL`.
 
@@ -112,7 +156,8 @@ reach the build — confirm it is set for the Production environment and redeplo
 
 In **github.com/settings/apps → your app**:
 
-- **Webhook URL**: `https://gatepass-api.onrender.com/v1/webhooks/github`
+- **Webhook URL**: your Render URL from step 3 with `/v1/webhooks/github` appended — the real
+  host including its random suffix, e.g. `https://gatepass-api-1zn8.onrender.com/v1/webhooks/github`
 - **Webhook secret**: the same value as Render's `GITHUB_WEBHOOK_SECRET`
 - **OAuth callback**: add your Vercel URL's callback path
 
@@ -121,7 +166,10 @@ From then on every push/PR on repos with the App installed triggers a hosted clo
 ## Known limits of the free stack (fine for demo/YC, revisit at first customers)
 
 - Render free sleeps → webhook deliveries during cold start can exceed GitHub's 10s timeout
-  (GitHub does not retry). The UptimeRobot ping mitigates this.
+  (GitHub does not retry). The keep-warm workflow above does not close this, because it is
+  delivered roughly every 70 minutes rather than every 10 — see the measurement there. An
+  external 5-minute monitor does close it. Until one is running, treat the service as cold by
+  default and hit `/healthz` yourself a minute before a demo you care about.
 - Neon free autosuspends; first query after idle adds ~1s.
 - Scans run in the API process (no per-scan container isolation yet — that's the ECS Fargate
   plan for paid infra). Scan input is tarball extraction with a tar-slip guard, never
