@@ -1,6 +1,8 @@
 import type { Detector, DetectorFinding, ScanContext, ScanFile } from "@gatepass/engine";
 import { lineAtIndex } from "@gatepass/engine";
 import type { Surface } from "@gatepass/findings";
+/* Shared with unauth-mcp-transport, which needs the same production-versus-fixture split. */
+import { TEST_PATH } from "./paths.js";
 
 /**
  * Verified detectors over the tool-definition / handler-input surface.
@@ -41,7 +43,6 @@ const CS_EXT = /\.cs$/i;
 const RB_EXT = /\.rb$/i;
 const PROTO_EXT = /\.proto$/i;
 const STRUCTURED_EXT = /\.(?:json|ya?ml)$/i;
-const TEST_PATH = /(?:^|\/)(?:tests?|__tests__|spec|fixtures?|examples?)(?:\/|$)|\.(?:test|spec)\.[jt]sx?$|_test\.py$/i;
 
 const OPENERS: Record<string, string> = { "(": ")", "[": "]", "{": "}" };
 
@@ -2377,6 +2378,31 @@ export const missingSchemaValidationDetector: Detector = {
             // check. Only a call that consumes the raw value onward counts.
             const callee = r[2]!;
             if (JS_VALIDATION_NAME.test(callee) || compiledValidators.has(callee)) continue;
+            /*
+             * `any` because it holds a REPLY, not a request.
+             *
+             * The shape of `let parsed: any; parsed = JSON.parse(responseText); … return
+             * asText(parsed)` is identical to an unvalidated input being forwarded, and it is the
+             * ordinary way to read a response from an upstream service that answers with JSON or
+             * with a bare string. Nothing model-controlled reaches it, so a schema on it would be
+             * validating the upstream's answer to us. Without this, firecrawl-mcp-server's
+             * feedback call was reported as "model- or client-controlled input reaches execution
+             * without a runtime shape check" — the same response-versus-input confusion the tool
+             * surface rules were fixed for.
+             */
+            const held = r[1]!;
+            /* Substring, not word-bounded: the holder is far more often `responseText` or
+               `apiResponse` than a bare `response`, and `\bresponse\b` matches neither. */
+            const RESPONSEY = `[\\w.]*(?:response|resp|reply|payload)[\\w.]*`;
+            const fromResponse = new RegExp(
+              `\\b${held}\\s*=\\s*(?:await\\s+)?(?:` +
+                `${RESPONSEY}\\s*\\.\\s*(?:json|text|body|content|arrayBuffer|blob)\\s*\\(` +
+                `|JSON\\s*\\.\\s*parse\\s*\\(\\s*(?:${RESPONSEY}|[\\w.]*(?:body|text)[\\w.]*)` +
+                `|fetch\\s*\\(` +
+                `)`,
+              "i",
+            );
+            if (fromResponse.test(r[0]!)) continue;
             findings.push(
               msvFinding(
                 file,

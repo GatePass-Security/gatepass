@@ -1,0 +1,7 @@
+{
+  "id": "verified/unauth-mcp-transport/clean-port-availability-probe",
+  "classId": "unauth-mcp-transport",
+  "label": "clean",
+  "public": true,
+  "note": "A port-availability probe: it opens a socket and closes it inside the listen callback, carries no MCP transport, and reaches the detector only because an unrelated display string in the file contains the word MCP. Reduced from Pimzino/spec-workflow-mcp@d38e82e src/dashboard/utils.ts:10, which was reported as a CRITICAL unauthenticated MCP transport on the strength of that string."
+}

@@ -1,0 +1,7 @@
+{
+  "id": "verified/confused-deputy/clean-origin-pinned-caller-supplies-path",
+  "classId": "confused-deputy",
+  "label": "clean",
+  "public": true,
+  "note": "The tool attaches a server credential, but the destination origin is a server-side constant: the caller-supplied value is parsed against a throwaway base and reduced to pathname+search before it is concatenated, so nothing the caller sends can move the request off `apiUrl`. Reduced from supabase-community/supabase-mcp@5cda067 packages/mcp-server-postgrest/src/server.ts:90, reported as a HIGH confused deputy because the destination was 'not pinned to a literal origin' — a non-literal expression is not the same as a caller-controlled one."
+}

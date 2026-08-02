@@ -1,0 +1,7 @@
+{
+  "id": "verified/missing-schema-validation/clean-parsed-upstream-response",
+  "classId": "missing-schema-validation",
+  "label": "clean",
+  "public": true,
+  "note": "`parsed` is typed `any` because it holds the body of a response this server just fetched — it is read for a status field and logged, never dispatched as tool input. Nothing model-controlled reaches it. Reduced from firecrawl/firecrawl-mcp-server@41c2571 src/index.ts:2365, reported as 'model- or client-controlled input reaching execution without a runtime shape check'. Same response-versus-input confusion the tool-params surface fix addressed, in a second detector."
+}

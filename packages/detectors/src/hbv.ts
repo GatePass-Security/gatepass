@@ -660,6 +660,18 @@ function pyTools(file: ScanFile, src: string): ToolDef[] {
         const pname = (p.text.split(/[:=]/)[0] ?? "").trim();
         if (!/^[\w]+$/.test(pname) || pname === "self" || pname === "cls") return null;
         const ann = p.text.slice(pname.length);
+        /*
+         * FastMCP injects `ctx: Context` itself; it is never part of the tool's input schema and
+         * no model ever supplies it. Counted as a parameter it is permanently unconstrained, so
+         * `open.length === 0` — the early exit for "the schema states the scope even when the
+         * prose does not" — became unreachable for every Python tool, and the reported reason
+         * read "`ctx` accepts free-form values" on tools whose real parameters were all bounded
+         * (`get_sprint_issues`, ge=1/le=50, reported CRITICAL).
+         *
+         * Matched on the annotation rather than the name so a genuine parameter that happens to
+         * be called `ctx` is still counted.
+         */
+        if (/^\s*:\s*(?:[\w.]+\.)?Context\b/.test(ann)) return null;
         return {
           name: pname,
           constrained: CONSTRAINED_PY.test(ann) || bodyValidates(body, pname),

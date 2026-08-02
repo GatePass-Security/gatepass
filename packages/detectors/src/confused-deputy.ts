@@ -218,9 +218,19 @@ function scopeAt(scopes: Scope[], offset: number, fallback: Scope): Scope {
  * threat here is a destination the CALLER chooses; a base URL the operator sets at deploy time is
  * as pinned as a literal, and treating it as dynamic makes every `process.env.API_BASE` service
  * client look like a confused deputy.
+ *
+ * The last alternative covers the same value arriving as a server-construction option —
+ * `createPostgrestMcpServer({ apiUrl })` reaching the tool as `options.apiUrl`. That is chosen
+ * where the server is built, not by anyone calling a tool, and without it a factory-configured
+ * base URL was reported as a HIGH confused deputy purely for not being a literal.
+ *
+ * The bag is matched by conventional name, so a tool that destructured caller data into a local
+ * named `config` would be trusted wrongly. That is the accepted cost: the corpus keeps all seven
+ * true positives, and the alternative — assuming every non-literal origin is caller-chosen —
+ * is what produced the false positive in the first place.
  */
 const CONFIG_READ =
-  /(process\.env)|(import\.meta\.env)|(Deno\.env)|(os\.environ)|(os\.getenv)|(os\.Getenv)|(System\.getenv)|(\bgetenv\s*\()|(\bENV\s*\[)|(\bViper\s*\.)|(\bsettings\s*\.\s*[A-Z_]{3,})/;
+  /(process\.env)|(import\.meta\.env)|(Deno\.env)|(os\.environ)|(os\.getenv)|(os\.Getenv)|(System\.getenv)|(\bgetenv\s*\()|(\bENV\s*\[)|(\bViper\s*\.)|(\bsettings\s*\.\s*[A-Z_]{3,})|(\b(?:options|opts|config|cfg|settings)\s*\.\s*[A-Za-z_]\w*)/;
 
 /** Format-string composition where the format is argument 0: `fmt.Sprintf(f, a)`, `String.format(f, a)`. */
 const FORMAT_ARG0 = /^(?:[\w$]+\s*\.\s*)*(?:Sprintf|Sprint|Sprintln|Errorf|sprintf|printf|format|Format)\s*\(/;

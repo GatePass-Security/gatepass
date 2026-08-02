@@ -1,6 +1,7 @@
 import type { Detector, DetectorFinding, ScanContext, ScanFile } from "@gatepass/engine";
 import { lineAtIndex } from "@gatepass/engine";
 import type { Severity, Surface } from "@gatepass/findings";
+import { TEST_PATH } from "./paths.js";
 
 /**
  * Verified detector: an MCP server whose transport is reachable over the network with no
@@ -392,7 +393,17 @@ function flagEnabledInConfig(repo: Repo, flag: string): boolean {
 /** A type annotation, not a value — `authRequired: boolean;` says nothing about the default. */
 const TYPE_RHS = /^(string|number|boolean|bigint|any|unknown|never|null|undefined|void|bool|int\d*|float\d*)\b/;
 
-/** Every value assigned to `name` anywhere in the repo (a type declaration must not shadow it). */
+/**
+ * Every value assigned to `name` in the repo's PRODUCTION code (a type declaration must not
+ * shadow it).
+ *
+ * Test and fixture paths are excluded deliberately. Both callers ask what the service does when
+ * it runs, and a test is entitled to construct values the service never uses: a spec that builds
+ * `bindAddress = "0.0.0.0"` to exercise a guard was enough to rate a production bind — defaulted
+ * to `127.0.0.1`, behind a constructor that throws on any non-localhost address without an
+ * explicit opt-in — as an all-interfaces CRITICAL. The same exclusion protects the auth-flag
+ * check below from a fixture that turns the flag on.
+ */
 function assignmentsOf(repo: Repo, name: string): string[] {
   const cached = repo.assigns.get(name);
   if (cached !== undefined) return cached;
@@ -401,6 +412,7 @@ function assignmentsOf(repo: Repo, name: string): string[] {
   const re = new RegExp(`\\b${escaped}\\b\\s*[:=]\\s*([^,;\\n]+)`, "g");
   const out: string[] = [];
   for (const f of repo.files) {
+    if (TEST_PATH.test(f.relPath)) continue;
     for (const m of (repo.code.get(f.relPath) ?? "").matchAll(re)) {
       const rhs = (m[1] ?? "").trim();
       if (!rhs || TYPE_RHS.test(rhs)) continue;
@@ -643,6 +655,25 @@ const BIND_PATTERNS: { lang: Lang | "any"; re: RegExp; label: string }[] = [
 const ALL_INTERFACES = /(^|["'\s=:])(0\.0\.0\.0|::|\*)(["'\s:,)]|$)/;
 const LOOPBACK = /(127\.0\.0\.1|localhost|::1)/i;
 
+/**
+ * Is this bind a probe rather than a service?
+ *
+ * A socket that is closed inside its own listen callback never serves a request: the canonical
+ * "is this port free" helper opens one, learns the answer and closes it before anything can
+ * connect. Nothing is exposed, so there is nothing for authentication to be missing from.
+ *
+ * Checked against the receiver by name so that `server.listen(p, h, () => { server.close() })`
+ * is recognised while an unrelated `other.close()` in the same callback is not. Without this the
+ * probe reached the finding list, and a display string containing the word MCP elsewhere in the
+ * file was enough to rate it CRITICAL — see the clean-port-availability-probe case.
+ */
+function isProbeBind(src: string, matchIndex: number, args: string): boolean {
+  const before = src.slice(Math.max(0, matchIndex - 120), matchIndex);
+  const receiver = /([A-Za-z_$][\w$]*)\s*$/.exec(before)?.[1];
+  if (!receiver) return false;
+  return new RegExp(`\\b${receiver}\\s*\\.\\s*close\\s*\\(`).test(args);
+}
+
 function hostFromArgs(repo: Repo, args: string): string | null {
   if (ALL_INTERFACES.test(args)) return "0.0.0.0";
   if (LOOPBACK.test(args)) return "127.0.0.1";
@@ -658,11 +689,25 @@ function hostFromArgs(repo: Repo, args: string): string | null {
   return null;
 }
 
-/** Any deployment config that pins the bind address (compose, Dockerfile CMD, k8s). */
+/**
+ * Any deployment config that pins the bind address (compose, Dockerfile CMD, k8s).
+ *
+ * The address has to be *assigned* to something host-shaped. The previous last alternative was a
+ * bare `0.0.0.0`, which matched the address wherever it appeared — including the line
+ * `# Optional: 0.0.0.0:5000:5000 exposes to all interfaces (use with caution)`, a comment warning
+ * against the very thing it was then read as evidence of. Comment lines are skipped for the same
+ * reason: documenting an option is not selecting it.
+ */
+const DEPLOY_BINDS_ALL = /(?:--host[= ]+|\b[A-Z_]*(?:HOST|BIND(?:_?ADDRESS)?)[A-Z_]*\s*[:=]\s*["']?)0\.0\.0\.0\b/;
+
 function hostFromDeployConfig(repo: Repo): string | null {
   for (const f of repo.files) {
     if (!/(docker-compose|dockerfile|\.ya?ml|\.tf|procfile|\.env)/i.test(f.relPath)) continue;
-    if (/(--host[= ]+0\.0\.0\.0|HOST[:=]\s*["']?0\.0\.0\.0|0\.0\.0\.0)/.test(f.content)) return "0.0.0.0";
+    for (const raw of f.content.split(/\r?\n/)) {
+      const line = raw.trim();
+      if (line.startsWith("#") || line.startsWith("//")) continue;
+      if (DEPLOY_BINDS_ALL.test(line)) return "0.0.0.0";
+    }
   }
   return null;
 }
@@ -687,6 +732,7 @@ function findExposures(repo: Repo, mcpFiles: Set<string>): Exposure[] {
         const bal = paren === -1 ? null : readBalanced(src, paren);
         const args = bal?.inner ?? "";
         const line = lineAtIndex(f.content, m.index);
+        if (pat.lang === "js" && isProbeBind(src, m.index, args)) continue;
         const host = hostFromArgs(repo, args);
         const mountsMcp = /(sse_app|streamable_http_app|http_app)\s*\(/.test(m[0] + args);
         const cand: Exposure = { file: f, line, offset: m.index, evidence: pat.label, host, support: [] };
