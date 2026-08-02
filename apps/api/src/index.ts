@@ -412,8 +412,23 @@ export async function startServer(): Promise<void> {
     "mongodb-js/mongodb-mcp-server", // 54 (39fcf3e) — 49 unbounded-tool-param, 5 unpinned-dependency
     "firecrawl/firecrawl-mcp-server", // 63 (41c2571) — 55 unbounded-tool-param, 6 missing-schema-validation, 2 unpinned-dependency
     "supabase-community/supabase-mcp", // 147 (5cda067) — 145 unbounded-tool-param (+2 unauth-mcp-transport, test paths)
-    // Last on purpose: the overview keys off the newest scan, and this is the reference server set.
     "modelcontextprotocol/servers", // 104 (76d64c8) — 78 unbounded-tool-param, 24 unpinned-dependency, 2 cors-misconfig
+    /*
+     * Last on purpose, and the only repository here that is *meant* to be vulnerable.
+     *
+     * A public teaching target for MCP attacks, so naming it costs no maintainer anything — the
+     * rule about not naming vulnerable repositories protects people who did not sign up to be an
+     * example, and this project signed up. It is also the only one of these that exercises the
+     * agentic classes end to end: 22 critical unauth-mcp-transport (every challenge server does
+     * `uvicorn.run(..., host="0.0.0.0")` with no auth registered) and the canonical tool-poisoning
+     * case, a tool whose description carries an <IMPORTANT> block instructing the model to read
+     * `company://confidential` and not to mention that it did.
+     *
+     * Without it the demo organisation is all real third-party code and therefore all medium: an
+     * accurate picture of well-maintained repositories, and a poor demonstration of what the
+     * engine detects when something genuinely is wrong.
+     */
+    "harishsg993010/damn-vulnerable-MCP-server",
   ];
   const demoReposRaw = process.env.GATEPASS_DEMO_REPOS?.trim();
   const demoRepos = isOff(demoReposRaw)
