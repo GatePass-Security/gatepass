@@ -1,6 +1,7 @@
 import type { Detector, DetectorFinding, ScanContext, ScanFile } from "@gatepass/engine";
 import { lineAtIndex } from "@gatepass/engine";
 import type { Severity, Surface } from "@gatepass/findings";
+import { TEST_PATH } from "./paths.js";
 
 /**
  * Research-tier detector: hallucination-based vulnerability (HBV). A tool whose description is
@@ -824,6 +825,14 @@ export const hbvDetector: Detector = {
 
     const tools: ToolDef[] = [];
     for (const f of ctx.files) {
+      /*
+       * A tool declared in a test fixture is not a tool the server exposes. `legacy_warning_tool`
+       * in tests/unit/utils/test_decorators.py exists to exercise a decorator, and it has no
+       * description because nothing reads one — which is precisely what the vagueness score
+       * rewards, so it came out CRITICAL. The tool surfaces already draw this line
+       * (`isToolSchemaSurface`, `isHandlerSurface`); this one had not.
+       */
+      if (TEST_PATH.test(f.relPath)) continue;
       const lang = repo.lang.get(f.relPath) ?? "other";
       const src = repo.code.get(f.relPath) ?? "";
       if (lang === "data") {
